@@ -11,6 +11,7 @@ from weather_cli.http import JsonHttpClient
 from weather_cli.noaa import NoaaApi
 from weather_cli.ranges import VALID_RANGES
 from weather_cli.service import WeatherService
+from weather_cli.station_presets import format_station_presets_for_help
 
 
 DEFAULT_CONTACT_EMAIL = "weather-cli@example.com"
@@ -21,13 +22,13 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
 
 
 def build_parser() -> argparse.ArgumentParser:
+    station_presets = format_station_presets_for_help()
     parser = argparse.ArgumentParser(
         prog="weather",
         description=(
             "Query NOAA weather.gov observations and hourly forecasts for a strict city,state place.\n\n"
             "Observation presets:\n"
-            "  Los Angeles,CA -> KLAX\n"
-            "  Seattle,WA     -> KSEA"
+            f"{station_presets}"
         ),
         epilog=(
             "Range semantics:\n"
@@ -39,7 +40,9 @@ def build_parser() -> argparse.ArgumentParser:
             "  weather \"Seattle,WA\" --range today\n"
             "  weather \"Los Angeles,CA\" --range yesterday --format table\n"
             "  weather \"Los Angeles,CA\" --range yesterday --nearest-station\n"
-            "  weather \"Seattle,WA\" --range yesterday --station KBFI"
+            "  weather \"Seattle,WA\" --range yesterday --station KBFI\n"
+            "  weather \"Denver,CO\" --range today\n"
+            "  weather \"San Francisco,CA\" --range yesterday"
         ),
         formatter_class=HelpFormatter,
     )
