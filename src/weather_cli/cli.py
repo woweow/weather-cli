@@ -16,15 +16,55 @@ from weather_cli.service import WeatherService
 DEFAULT_CONTACT_EMAIL = "weather-cli@example.com"
 
 
+class HelpFormatter(argparse.RawDescriptionHelpFormatter):
+    """Preserve line breaks for examples in --help output."""
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="weather",
-        description="Query NOAA weather.gov yesterday/today and +/-24h weather for a city,state place.",
+        description=(
+            "Query NOAA weather.gov observations and hourly forecasts for a strict city,state place.\n\n"
+            "Observation presets:\n"
+            "  Los Angeles,CA -> KLAX\n"
+            "  Seattle,WA     -> KSEA"
+        ),
+        epilog=(
+            "Range semantics:\n"
+            "  yesterday    Previous local calendar day (00:00 to 23:59:59)\n"
+            "  today        Observations so far since local midnight\n"
+            "  previous-24h Rolling observation window from now minus 24 hours\n"
+            "  next-24h     Rolling 24-hour hourly forecast from now\n\n"
+            "Examples:\n"
+            "  weather \"Seattle,WA\" --range today\n"
+            "  weather \"Los Angeles,CA\" --range yesterday --format table\n"
+            "  weather \"Los Angeles,CA\" --range yesterday --nearest-station\n"
+            "  weather \"Seattle,WA\" --range yesterday --station KBFI"
+        ),
+        formatter_class=HelpFormatter,
     )
-    parser.add_argument("place", help='Strict city,state input such as "Seattle,WA"')
-    parser.add_argument("--range", required=True, choices=VALID_RANGES, help="Requested weather window")
-    parser.add_argument("--format", choices=("json", "table"), default="json", help="Output format")
-    parser.add_argument("--station", help="Optional NOAA station override, e.g. KSEA")
+    parser.add_argument(
+        "place",
+        help='Strict city,state input such as "Seattle,WA" or "Los Angeles,CA"',
+    )
+    parser.add_argument(
+        "--range",
+        required=True,
+        choices=VALID_RANGES,
+        help=(
+            "Time window to query: yesterday, today, previous-24h, or next-24h"
+        ),
+    )
+    parser.add_argument(
+        "--format",
+        choices=("json", "table"),
+        default="json",
+        help="Output format for the normalized result (default: json)",
+    )
+    parser.add_argument(
+        "--station",
+        help="Force a NOAA station ID for observation queries, e.g. KSEA or KLAX",
+    )
     parser.add_argument(
         "--nearest-station",
         action="store_true",
@@ -33,7 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--contact-email",
         default=os.getenv("WEATHER_CLI_CONTACT_EMAIL", DEFAULT_CONTACT_EMAIL),
-        help="Contact email embedded in the NOAA User-Agent header",
+        help="Contact email embedded in the NOAA User-Agent header required by NOAA",
     )
     return parser
 
