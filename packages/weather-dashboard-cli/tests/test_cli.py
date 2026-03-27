@@ -33,7 +33,7 @@ def test_generate_html_writes_output_file():
         )
         assert exit_code == 0
         rendered = output_path.read_text(encoding="utf-8")
-        assert "Record bets" in rendered
+        assert "Record predictions" in rendered
         assert "Seattle" in rendered
         assert '"last_price_cents": 46' in rendered
         assert "No last price" in rendered

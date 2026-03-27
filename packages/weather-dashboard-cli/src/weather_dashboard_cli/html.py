@@ -283,20 +283,27 @@ HTML_TEMPLATE = """<!doctype html>
       }
 
       .record-button {
-        border: 0;
-        border-radius: 999px;
-        padding: 1rem 1.6rem;
-        font-size: 1rem;
-        font-weight: 800;
-        color: #fff7f0;
+        border: 1px solid var(--line);
+        border-radius: 0.6rem;
+        padding: 0.75rem 1.8rem;
+        font-size: 0.92rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        color: var(--ink);
         cursor: pointer;
-        background: linear-gradient(135deg, #1f3a57, #c25a21);
-        box-shadow: 0 14px 26px rgba(36, 54, 73, 0.2);
+        background: var(--card);
+        box-shadow: 0 2px 8px rgba(27, 37, 42, 0.08);
+        transition: background 0.15s, box-shadow 0.15s;
+      }
+
+      .record-button:hover {
+        background: rgba(255, 255, 255, 1);
+        box-shadow: 0 4px 14px rgba(27, 37, 42, 0.12);
       }
 
       .record-button:disabled {
         cursor: wait;
-        opacity: 0.75;
+        opacity: 0.6;
       }
 
       .status {
@@ -353,7 +360,7 @@ HTML_TEMPLATE = """<!doctype html>
       <section id="cards" class="cards"></section>
 
       <section class="footer">
-        <button id="record-bets" class="record-button" type="button">Record bets</button>
+        <button id="record-bets" class="record-button" type="button">Record predictions</button>
         <div id="status" class="status" aria-live="polite"></div>
       </section>
     </main>
