@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Weather Bet Dashboard"
+  short_description: "Generate multi-city weather bet dashboards"
+  default_prompt: "Use $build-weather-bet-dashboard to pull the repo cities, build the dashboard payload, and generate fresh HTML output."
