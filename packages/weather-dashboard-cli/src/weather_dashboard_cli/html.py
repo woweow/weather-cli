@@ -53,7 +53,7 @@ HTML_TEMPLATE = """<!doctype html>
       }
 
       main {
-        width: min(1180px, calc(100vw - 2rem));
+        width: min(1400px, calc(100vw - 2rem));
         margin: 0 auto;
         padding: 2.5rem 0 4rem;
       }
@@ -90,7 +90,7 @@ HTML_TEMPLATE = """<!doctype html>
 
       .cards {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: 1.1rem;
       }
 
@@ -134,14 +134,20 @@ HTML_TEMPLATE = """<!doctype html>
         text-align: right;
       }
 
+      .card-body {
+        display: grid;
+        grid-template-columns: auto 1fr;
+      }
+
       .section {
         padding: 1rem 1.2rem 1.2rem;
         display: grid;
         gap: 0.8rem;
+        align-content: start;
       }
 
-      .section + .section {
-        border-top: 1px solid var(--line);
+      .section-market {
+        border-left: 1px solid var(--line);
       }
 
       .section-title {
@@ -165,10 +171,9 @@ HTML_TEMPLATE = """<!doctype html>
 
       .weather-list {
         display: grid;
-        gap: 0.5rem;
+        gap: 0.15rem;
       }
 
-      .weather-row,
       .market-row {
         display: grid;
         gap: 0.6rem;
@@ -179,67 +184,59 @@ HTML_TEMPLATE = """<!doctype html>
       }
 
       .weather-row {
-        grid-template-columns: 5.4rem 1fr auto;
+        display: grid;
+        grid-template-columns: 3.2rem 1fr;
         align-items: center;
+        padding: 0.35rem 0.6rem;
+        border-radius: 0.5rem;
       }
 
       .weather-time {
-        font-weight: 700;
-      }
-
-      .weather-detail {
-        display: grid;
-        gap: 0.12rem;
-      }
-
-      .weather-summary {
-        font-size: 0.92rem;
-      }
-
-      .weather-extra {
-        color: var(--muted);
         font-size: 0.82rem;
+        color: var(--muted);
+        font-weight: 600;
       }
 
       .weather-temp {
         font-family: "Georgia", serif;
-        font-size: 1.3rem;
+        font-size: 1.1rem;
+        font-weight: 700;
+        text-align: right;
       }
 
       .market-list {
         display: grid;
-        gap: 0.7rem;
+        gap: 0.45rem;
       }
 
       .market-row {
-        grid-template-columns: 1.6fr auto auto;
+        grid-template-columns: 1fr auto auto;
         align-items: center;
       }
 
       .market-main {
-        display: grid;
-        gap: 0.28rem;
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
       }
 
       .market-label {
-        font-size: 1rem;
+        font-size: 0.88rem;
         font-weight: 700;
+        white-space: nowrap;
       }
 
       .market-prices {
-        color: var(--muted);
-        font-size: 0.82rem;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem 0.75rem;
+        display: none;
       }
 
       .headline {
-        min-width: 6.4rem;
+        min-width: 4rem;
         text-align: center;
         border-radius: 999px;
-        padding: 0.55rem 0.85rem;
+        padding: 0.35rem 0.6rem;
         font-weight: 700;
+        font-size: 0.82rem;
         background: rgba(77, 126, 168, 0.14);
         color: var(--sky);
       }
@@ -261,10 +258,11 @@ HTML_TEMPLATE = """<!doctype html>
         border: 0;
         background: transparent;
         color: var(--muted);
-        padding: 0.6rem 0.9rem;
+        padding: 0.4rem 0.6rem;
         cursor: pointer;
         font-weight: 700;
-        min-width: 4rem;
+        font-size: 0.78rem;
+        min-width: 2.8rem;
       }
 
       .toggle.active-yes {
@@ -307,13 +305,27 @@ HTML_TEMPLATE = """<!doctype html>
         font-size: 0.88rem;
       }
 
-      @media (max-width: 760px) {
+      @media (max-width: 900px) {
+        .cards {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 600px) {
         main {
           width: min(100vw - 1rem, 40rem);
           padding-top: 1.5rem;
         }
 
-        .weather-row,
+        .card-body {
+          grid-template-columns: 1fr;
+        }
+
+        .section-market {
+          border-left: none;
+          border-top: 1px solid var(--line);
+        }
+
         .market-row {
           grid-template-columns: 1fr;
         }
@@ -356,25 +368,29 @@ HTML_TEMPLATE = """<!doctype html>
       const statusEl = document.getElementById("status");
       const saveButtonEl = document.getElementById("record-bets");
 
-      function formatClock(isoValue) {
+      function tempColors(temp, minT, maxT) {
+        if (maxT === minT) return { bg: "transparent", fg: "inherit" };
+        const ratio = (temp - minT) / (maxT - minT);
+        // Exponential curve so hot temps really pop
+        const r = ratio * ratio;
+        // cool: steel blue -> mid: amber -> hot: deep red-orange
+        const hue = 220 - r * 210;      // 220 (blue) -> 10 (red)
+        const sat = 15 + r * 75;         // 15% -> 90%
+        const bgLight = 94 - r * 30;     // 94% (barely tinted) -> 64% (vivid)
+        const fgLight = 40 - r * 14;     // 40% -> 26% (dark on bright bg)
+        return {
+          bg: `hsl(${hue}, ${sat}%, ${bgLight}%)`,
+          fg: `hsl(${hue}, ${Math.min(sat + 20, 95)}%, ${fgLight}%)`
+        };
+      }
+
+      function formatClock12Short(isoValue) {
         const match = /T(\\d{2}):(\\d{2})/.exec(isoValue);
         if (!match) return isoValue;
         const hours = Number(match[1]);
-        const minutes = match[2];
-        const suffix = hours >= 12 ? "PM" : "AM";
+        const suffix = hours >= 12 ? "P" : "A";
         const normalizedHour = hours % 12 || 12;
-        return `${normalizedHour}:${minutes} ${suffix}`;
-      }
-
-      function formatTemp(value) {
-        return `${Math.round(value)}°F`;
-      }
-
-      function formatPercent(value) {
-        if (value === null || value === undefined) {
-          return "precip n/a";
-        }
-        return `${Math.round(value)}% precip`;
+        return `${normalizedHour}${suffix}`;
       }
 
       function formatCents(value) {
@@ -393,18 +409,21 @@ HTML_TEMPLATE = """<!doctype html>
 
       function buildWeatherRows(card) {
         if (!card.weather_hours.length) {
-          return `<div class="weather-row"><div class="weather-detail"><div class="weather-summary">No upcoming hourly forecast in payload.</div></div></div>`;
+          return `<div class="weather-row"><div class="weather-time">—</div><div class="weather-temp">No data</div></div>`;
         }
-        return card.weather_hours.map((hour) => `
-          <div class="weather-row">
-            <div class="weather-time">${formatClock(hour.start)}</div>
-            <div class="weather-detail">
-              <div class="weather-summary">${hour.summary}</div>
-              <div class="weather-extra">${formatPercent(hour.precipitation_probability_pct)}${hour.wind_speed ? ` • wind ${hour.wind_speed}` : ""}</div>
+        const temps = card.weather_hours.map(h => h.temperature_f);
+        const minT = Math.min(...temps);
+        const maxT = Math.max(...temps);
+        return card.weather_hours.map((hour) => {
+          const t = Math.round(hour.temperature_f);
+          const { bg, fg } = tempColors(hour.temperature_f, minT, maxT);
+          return `
+            <div class="weather-row" style="background: ${bg}">
+              <div class="weather-time" style="color: ${fg}">${formatClock12Short(hour.start)}</div>
+              <div class="weather-temp" style="color: ${fg}">${t}°</div>
             </div>
-            <div class="weather-temp">${formatTemp(hour.temperature_f)}</div>
-          </div>
-        `).join("");
+          `;
+        }).join("");
       }
 
       function buildMarketRows(cardIndex, card) {
@@ -434,30 +453,34 @@ HTML_TEMPLATE = """<!doctype html>
       }
 
       function render() {
-        cardsEl.innerHTML = state.cards.map((card, cardIndex) => `
+        cardsEl.innerHTML = state.cards.map((card, cardIndex) => {
+          const temps = card.weather_hours.map(h => h.temperature_f);
+          const peak = temps.length ? Math.round(Math.max(...temps)) : "—";
+          return `
           <article class="card">
             <header class="card-head">
               <div class="city-line">
                 <h2 class="city">${card.city}, ${card.state}</h2>
-                <div class="tz">${card.timezone}</div>
+                <div class="tz">Peak ${peak}°</div>
               </div>
             </header>
-            <section class="section">
-              <div class="section-title">
-                <h2>Upcoming Hours</h2>
-                <div class="section-subtitle">Now through midnight</div>
-              </div>
-              <div class="weather-list">${buildWeatherRows(card)}</div>
-            </section>
-            <section class="section">
-              <div class="section-title">
-                <h2>Current Market</h2>
-                <div class="section-subtitle">${card.market.event_date_label}</div>
-              </div>
-              <div class="market-list">${buildMarketRows(cardIndex, card)}</div>
-            </section>
+            <div class="card-body">
+              <section class="section">
+                <div class="section-title">
+                  <h2>°F</h2>
+                </div>
+                <div class="weather-list">${buildWeatherRows(card)}</div>
+              </section>
+              <section class="section section-market">
+                <div class="section-title">
+                  <h2>Market</h2>
+                  <div class="section-subtitle">${card.market.event_date_label}</div>
+                </div>
+                <div class="market-list">${buildMarketRows(cardIndex, card)}</div>
+              </section>
+            </div>
           </article>
-        `).join("");
+        `}).join("");
       }
 
       async function recordBets() {
