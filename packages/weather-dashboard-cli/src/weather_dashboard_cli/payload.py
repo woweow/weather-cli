@@ -102,7 +102,6 @@ def _require_cards(payload: dict[str, Any]) -> None:
                 )
             row_prefix = f"cards[{index}].market.rows[{row_index}]"
             _require_str(row, "label", prefix=row_prefix)
-            _require_optional_str_or_number(row, "chance_display", prefix=row_prefix)
             _require_optional_number(row, "yes_bid_cents", prefix=row_prefix)
             _require_optional_number(row, "yes_ask_cents", prefix=row_prefix)
             _require_optional_number(row, "no_bid_cents", prefix=row_prefix)
@@ -142,15 +141,6 @@ def _require_optional_number(payload: dict[str, Any], key: str, *, prefix: str |
     label = f"{prefix}.{key}" if prefix else key
     if value is not None and not isinstance(value, (int, float)):
         raise PayloadValidationError(f"{label} must be a number when present.")
-
-
-def _require_optional_str_or_number(
-    payload: dict[str, Any], key: str, *, prefix: str | None = None
-) -> None:
-    value = payload.get(key)
-    label = f"{prefix}.{key}" if prefix else key
-    if value is not None and not isinstance(value, (str, int, float)):
-        raise PayloadValidationError(f"{label} must be a string or number when present.")
 
 
 def _require_iso_date(payload: dict[str, Any], key: str) -> None:

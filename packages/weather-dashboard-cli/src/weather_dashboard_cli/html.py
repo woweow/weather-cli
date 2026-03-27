@@ -234,7 +234,7 @@ HTML_TEMPLATE = """<!doctype html>
         gap: 0.5rem 0.75rem;
       }
 
-      .chance {
+      .headline {
         min-width: 6.4rem;
         text-align: center;
         border-radius: 999px;
@@ -244,7 +244,7 @@ HTML_TEMPLATE = """<!doctype html>
         color: var(--sky);
       }
 
-      .chance.unavailable {
+      .headline.unavailable {
         background: #ece7df;
         color: #8b857d;
       }
@@ -318,7 +318,7 @@ HTML_TEMPLATE = """<!doctype html>
           grid-template-columns: 1fr;
         }
 
-        .chance,
+        .headline,
         .toggles {
           justify-self: start;
         }
@@ -332,8 +332,9 @@ HTML_TEMPLATE = """<!doctype html>
         <h1>Weather and Kalshi bet board.</h1>
         <p class="hero-copy">
           Forecast hours run from local now through midnight. Market rows only show exact
-          upstream values included in the input payload. If chance data is missing, the UI
-          leaves that slot intentionally blank instead of inventing a proxy.
+          upstream values included in the input payload. The market headline uses Kalshi's
+          raw last price when available and falls back to a disabled no-data state when it
+          is missing.
         </p>
       </section>
 
@@ -383,14 +384,11 @@ HTML_TEMPLATE = """<!doctype html>
         return `${value}¢`;
       }
 
-      function formatChance(row) {
-        if (row.chance_display === null || row.chance_display === undefined || row.chance_display === "") {
+      function formatHeadline(row) {
+        if (row.last_price_cents === null || row.last_price_cents === undefined) {
           return null;
         }
-        if (typeof row.chance_display === "number") {
-          return `${row.chance_display}%`;
-        }
-        return String(row.chance_display);
+        return `Last ${formatCents(row.last_price_cents)}`;
       }
 
       function buildWeatherRows(card) {
@@ -411,7 +409,7 @@ HTML_TEMPLATE = """<!doctype html>
 
       function buildMarketRows(cardIndex, card) {
         return card.market.rows.map((row, rowIndex) => {
-          const chance = formatChance(row);
+          const headline = formatHeadline(row);
           const yesClass = row.selected_yes ? "toggle active-yes" : "toggle";
           const noClass = row.selected_no ? "toggle active-no" : "toggle";
           return `
@@ -425,7 +423,7 @@ HTML_TEMPLATE = """<!doctype html>
                   <span>No ask ${formatCents(row.no_ask_cents)}</span>
                 </div>
               </div>
-              <div class="chance ${chance ? "" : "unavailable"}">${chance || "No chance data"}</div>
+              <div class="headline ${headline ? "" : "unavailable"}">${headline || "No last price"}</div>
               <div class="toggles" role="group" aria-label="${row.label}">
                 <button type="button" class="${yesClass}" data-card-index="${cardIndex}" data-row-index="${rowIndex}" data-side="yes">Yes</button>
                 <button type="button" class="${noClass}" data-card-index="${cardIndex}" data-row-index="${rowIndex}" data-side="no">No</button>

@@ -24,27 +24,28 @@
           "wind_speed": "3 mph"
         }
       ],
-      "market": {
-        "series_title": "Seattle Maximum Temperature Daily",
-        "event_ticker": "KXHIGHTSEA-26MAR27",
-        "event_date_label": "Mar 27, 2026",
-        "rows": [
-          {
-            "label": "55°F to 56°F",
-            "chance_display": "41%",
-            "yes_bid_cents": 45,
-            "yes_ask_cents": 46,
-            "no_bid_cents": 54,
-            "no_ask_cents": 57,
-            "selected_yes": false,
-            "selected_no": false
-          },
-          {
-            "label": "57°F to 58°F",
-            "yes_bid_cents": 32,
-            "yes_ask_cents": 33,
-            "no_bid_cents": 67,
-            "no_ask_cents": 68,
+        "market": {
+          "series_title": "Seattle Maximum Temperature Daily",
+          "event_ticker": "KXHIGHTSEA-26MAR27",
+          "event_date_label": "Mar 27, 2026",
+          "rows": [
+            {
+              "label": "55°F to 56°F",
+              "last_price_cents": 46,
+              "yes_bid_cents": 45,
+              "yes_ask_cents": 46,
+              "no_bid_cents": 54,
+              "no_ask_cents": 57,
+              "selected_yes": false,
+              "selected_no": false
+            },
+            {
+              "label": "57°F to 58°F",
+              "last_price_cents": 32,
+              "yes_bid_cents": 32,
+              "yes_ask_cents": 33,
+              "no_bid_cents": 67,
+              "no_ask_cents": 68,
             "selected_yes": true,
             "selected_no": false
           }
@@ -65,18 +66,18 @@
           "wind_speed": "5 mph"
         }
       ],
-      "market": {
-        "series_title": "Denver Maximum Temperature Daily",
-        "event_ticker": "KXHIGHTDEN-26MAR27",
-        "event_date_label": "Mar 27, 2026",
-        "rows": [
-          {
-            "label": "68°F to 69°F",
-            "chance_display": "35%",
-            "yes_bid_cents": 34,
-            "yes_ask_cents": 35,
-            "no_bid_cents": 64,
-            "no_ask_cents": 66,
+        "market": {
+          "series_title": "Denver Maximum Temperature Daily",
+          "event_ticker": "KXHIGHTDEN-26MAR27",
+          "event_date_label": "Mar 27, 2026",
+          "rows": [
+            {
+              "label": "68°F to 69°F",
+              "last_price_cents": 35,
+              "yes_bid_cents": 34,
+              "yes_ask_cents": 35,
+              "no_bid_cents": 64,
+              "no_ask_cents": 66,
             "selected_yes": false,
             "selected_no": true
           }

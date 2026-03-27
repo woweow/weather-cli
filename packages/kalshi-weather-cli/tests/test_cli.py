@@ -9,12 +9,16 @@ def test_help_includes_examples_and_supported_cities():
     assert "Use --list-cities for the live supported list." in help_text
     assert "earliest close time" in help_text
     assert "Normalized snapshot payload for scripting." in help_text
+    assert "full active ladder" in help_text
+    assert "`last_price_cents`" in help_text
+    assert "weather-dashboard input" in help_text
     assert "Supported exact city names:" in help_text
     assert "Seattle" in help_text
     assert "Los Angeles" in help_text
     assert "kalshi-weather Seattle" in help_text
     assert "kalshi-weather --list-cities" in help_text
     assert 'kalshi-weather "Los Angeles"' in help_text
+    assert "seattle-market.json" in help_text
 
 
 def test_list_cities_prints_supported_city_names(monkeypatch, capsys):

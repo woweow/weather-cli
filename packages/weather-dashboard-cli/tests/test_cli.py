@@ -14,6 +14,8 @@ def test_help_includes_commands_and_schema():
 
     assert "generate-html" in help_text
     assert "serve-bets" in help_text
+    assert "local current time" in help_text
+    assert "Record bets" in help_text
 
 
 def test_generate_html_writes_output_file():
@@ -33,7 +35,8 @@ def test_generate_html_writes_output_file():
         rendered = output_path.read_text(encoding="utf-8")
         assert "Record bets" in rendered
         assert "Seattle" in rendered
-        assert "No chance data" in rendered
+        assert '"last_price_cents": 46' in rendered
+        assert "No last price" in rendered
     finally:
         if output_path.exists():
             output_path.unlink()

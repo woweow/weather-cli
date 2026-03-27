@@ -14,6 +14,7 @@ SCHEMA_SNIPPET = """Input schema:
   {
     "schema_version": "1",
     "dashboard_date": "2026-03-27",
+    "generated_at": "2026-03-27T14:02:00Z",
     "cards": [
       {
         "city": "Seattle",
@@ -36,7 +37,7 @@ SCHEMA_SNIPPET = """Input schema:
           "rows": [
             {
               "label": "55°F to 56°F",
-              "chance_display": "41%",
+              "last_price_cents": 46,
               "yes_bid_cents": 45,
               "yes_ask_cents": 46,
               "no_bid_cents": 54,
@@ -59,7 +60,18 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="weather-dashboard",
-        description="Generate weather and Kalshi dashboard HTML or run the local bet recorder.",
+        description=(
+            "Generate weather and Kalshi dashboard HTML or run the local bet recorder.\n\n"
+            "Agent workflow:\n"
+            "  1. Use `weather` to build hourly forecast rows from each city's local current time\n"
+            "     through local midnight.\n"
+            "  2. Use `kalshi-weather --format json` to fetch the full active market ladder for the\n"
+            "     city's current daily event.\n"
+            "  3. Normalize those results into the schema below.\n"
+            "  4. Run `weather-dashboard generate-html`.\n"
+            "  5. Run `weather-dashboard serve-bets` before opening the HTML if you want the\n"
+            "     Record bets button to save data."
+        ),
         formatter_class=HelpFormatter,
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -71,9 +83,18 @@ def build_parser() -> argparse.ArgumentParser:
             "Generate a self-contained dashboard HTML document from normalized JSON.\n\n"
             f"{SCHEMA_SNIPPET}\n"
             "Notes:\n"
-            "  - `chance_display` is optional and should come directly from upstream data.\n"
+            "  - `weather_hours` must be hourly forecast rows from the city's local current time\n"
+            "    through local midnight, in Fahrenheit.\n"
+            "  - `market.rows` must contain the full active ladder for the selected daily event,\n"
+            "    not a filtered subset.\n"
+            "  - `last_price_cents` is the primary headline market value shown on each row.\n"
             "  - `selected_yes` and `selected_no` are optional, independent booleans.\n"
-            "  - Input may include extra metadata fields; the renderer ignores what it does not need."
+            "  - Input may include extra metadata fields; the renderer ignores what it does not need.\n\n"
+            "Examples:\n"
+            "  cat dashboard.json | weather-dashboard generate-html > dashboard.html\n"
+            "  weather-dashboard generate-html --input dashboard.json --output dashboard.html\n"
+            "  weather-dashboard generate-html --input dashboard.json --save-endpoint "
+            "http://127.0.0.1:8765/record-bets --output dashboard.html"
         ),
         formatter_class=HelpFormatter,
     )
@@ -97,7 +118,9 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Run the local bet-recording HTTP endpoint.\n\n"
             "The server accepts POST /record-bets and appends snapshots to the fixed repo path\n"
-            "/Users/brianrogers/coding/weather-cli/.bets/DD_MM_YYYY_bets_placed.json.\n"
+            "/Users/brianrogers/coding/weather-cli/.bets/DD_MM_YYYY_bets_placed.json.\n\n"
+            "Run this command before opening generated dashboard HTML if you want the Record bets\n"
+            "button to persist selections.\n"
         ),
         formatter_class=HelpFormatter,
     )
