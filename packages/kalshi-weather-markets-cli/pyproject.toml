@@ -1,13 +1,13 @@
 [project]
-name = "kalshi-weather-cli"
+name = "kalshi-weather-markets-cli"
 version = "0.1.0"
-description = "CLI for Kalshi daily high-temperature market snapshots"
+description = "CLI for Kalshi daily high-temperature market ladders"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
-kalshi-weather = "kalshi_weather_cli.cli:main"
+kalshi-weather-markets = "kalshi_weather_markets_cli.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]

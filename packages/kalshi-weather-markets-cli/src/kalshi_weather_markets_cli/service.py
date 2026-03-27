@@ -3,9 +3,13 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 
-from kalshi_weather_cli.catalog import build_city_catalog
-from kalshi_weather_cli.errors import MarketDataError, UnsupportedCityError
-from kalshi_weather_cli.models import CitySeriesCandidate, LadderSnapshot, MarketRange
+from kalshi_weather_markets_cli.catalog import build_city_catalog
+from kalshi_weather_markets_cli.errors import MarketDataError, UnsupportedCityError
+from kalshi_weather_markets_cli.models import (
+    CitySeriesCandidate,
+    LadderSnapshot,
+    MarketRange,
+)
 
 
 class KalshiWeatherService:

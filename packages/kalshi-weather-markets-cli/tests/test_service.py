@@ -1,7 +1,7 @@
 import pytest
 
-from kalshi_weather_cli.errors import UnsupportedCityError
-from kalshi_weather_cli.service import KalshiWeatherService, format_event_date
+from kalshi_weather_markets_cli.errors import UnsupportedCityError
+from kalshi_weather_markets_cli.service import KalshiWeatherService, format_event_date
 
 
 class FakeKalshiClient:

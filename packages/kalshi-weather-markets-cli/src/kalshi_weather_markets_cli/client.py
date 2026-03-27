@@ -5,7 +5,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from kalshi_weather_cli.errors import KalshiHttpError
+from kalshi_weather_markets_cli.errors import KalshiHttpError
 
 
 BASE_URL = "https://api.elections.kalshi.com/trade-api/v2"
@@ -15,7 +15,7 @@ class KalshiPublicClient:
     def __init__(self, base_url: str = BASE_URL, timeout_seconds: float = 10.0):
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
-        self.user_agent = "kalshi-weather-cli/0.1"
+        self.user_agent = "kalshi-weather-markets-cli/0.1"
 
     def list_series(self, category: str = "Climate and Weather") -> list[dict]:
         payload = self._get_json("/series", {"category": category})

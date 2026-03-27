@@ -1,13 +1,13 @@
-# kalshi-weather-cli
+# kalshi-weather-markets-cli
 
 Small Python CLI for inspecting Kalshi daily high-temperature markets for a city.
 
 Examples:
 
 ```bash
-uv run --package kalshi-weather-cli kalshi-weather Seattle
-uv run --package kalshi-weather-cli kalshi-weather --list-cities
-uv run --package kalshi-weather-cli kalshi-weather Seattle --format json
+uv run --package kalshi-weather-markets-cli kalshi-weather-markets Seattle
+uv run --package kalshi-weather-markets-cli kalshi-weather-markets --list-cities
+uv run --package kalshi-weather-markets-cli kalshi-weather-markets Seattle --format json
 ```
 
 Notes:

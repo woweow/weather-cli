@@ -4,15 +4,15 @@ requires-python = ">=3.11"
 
 [manifest]
 members = [
-    "kalshi-weather-cli",
+    "kalshi-weather-markets-cli",
     "weather-cli",
     "weather-dashboard-cli",
 ]
 
 [[package]]
-name = "kalshi-weather-cli"
+name = "kalshi-weather-markets-cli"
 version = "0.1.0"
-source = { editable = "packages/kalshi-weather-cli" }
+source = { editable = "packages/kalshi-weather-markets-cli" }
 
 [[package]]
 name = "weather-cli"

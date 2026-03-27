@@ -1,4 +1,7 @@
-from kalshi_weather_cli.catalog import build_city_catalog, documented_cities_help_text
+from kalshi_weather_markets_cli.catalog import (
+    build_city_catalog,
+    documented_cities_help_text,
+)
 
 
 def test_build_city_catalog_filters_and_sorts_candidates():

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from kalshi_weather_cli.models import LadderSnapshot
+from kalshi_weather_markets_cli.models import LadderSnapshot
 
 
 def render_json(snapshot: LadderSnapshot) -> str:

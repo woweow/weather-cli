@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from kalshi_weather_cli.models import CitySeriesCandidate
+from kalshi_weather_markets_cli.models import CitySeriesCandidate
 
 
 DOCUMENTED_CITIES = (

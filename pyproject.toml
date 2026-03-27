@@ -1,7 +1,7 @@
 [tool.uv.workspace]
 members = [
     "packages/weather-cli",
-    "packages/kalshi-weather-cli",
+    "packages/kalshi-weather-markets-cli",
     "packages/weather-dashboard-cli",
 ]
 

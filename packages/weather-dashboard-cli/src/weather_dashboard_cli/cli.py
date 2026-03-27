@@ -65,7 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
             "Agent workflow:\n"
             "  1. Use `weather` to build hourly forecast rows from each city's local current time\n"
             "     through local midnight.\n"
-            "  2. Use `kalshi-weather --format json` to fetch the full active market ladder for the\n"
+            "  2. Use `kalshi-weather-markets --format json` to fetch the full active market ladder for the\n"
             "     city's current daily event.\n"
             "  3. Normalize those results into the schema documented in\n"
             "     `weather-dashboard generate-html --help`.\n"

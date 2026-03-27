@@ -3,11 +3,11 @@ from __future__ import annotations
 import argparse
 import sys
 
-from kalshi_weather_cli.catalog import documented_cities_help_text
-from kalshi_weather_cli.client import KalshiPublicClient
-from kalshi_weather_cli.errors import KalshiWeatherCliError
-from kalshi_weather_cli.formatting import render_json, render_text
-from kalshi_weather_cli.service import KalshiWeatherService
+from kalshi_weather_markets_cli.catalog import documented_cities_help_text
+from kalshi_weather_markets_cli.client import KalshiPublicClient
+from kalshi_weather_markets_cli.errors import KalshiWeatherCliError
+from kalshi_weather_markets_cli.formatting import render_json, render_text
+from kalshi_weather_markets_cli.service import KalshiWeatherService
 
 
 class HelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -16,7 +16,7 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="kalshi-weather",
+        prog="kalshi-weather-markets",
         description=(
             "Inspect Kalshi daily high-temperature market ladders for a supported city.\n\n"
             "This CLI uses Kalshi's public market-data endpoints and does not require API keys."
@@ -41,11 +41,11 @@ def build_parser() -> argparse.ArgumentParser:
             "Supported exact city names:\n"
             f"  {documented_cities_help_text()}\n\n"
             "Examples:\n"
-            "  kalshi-weather Seattle\n"
-            "  kalshi-weather \"Los Angeles\"\n"
-            "  kalshi-weather --list-cities\n"
-            "  kalshi-weather Seattle --format json\n"
-            "  kalshi-weather Seattle --format json > seattle-market.json\n\n"
+            "  kalshi-weather-markets Seattle\n"
+            "  kalshi-weather-markets \"Los Angeles\"\n"
+            "  kalshi-weather-markets --list-cities\n"
+            "  kalshi-weather-markets Seattle --format json\n"
+            "  kalshi-weather-markets Seattle --format json > seattle-market.json\n\n"
             "Errors:\n"
             "  Prints a message to stderr and exits non-zero on unsupported cities or API failures."
         ),
