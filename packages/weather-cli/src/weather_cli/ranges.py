@@ -8,7 +8,7 @@ from weather_cli.errors import InputError
 
 
 UTC = ZoneInfo("UTC")
-VALID_RANGES = ("yesterday", "today", "previous-24h", "next-24h")
+VALID_RANGES = ("yesterday", "today", "previous-24h", "next-24h", "rest-of-today")
 
 
 @dataclass(frozen=True)
@@ -34,7 +34,7 @@ def resolve_time_window(range_name: str, timezone: str, now: datetime | None = N
         raise InputError("The supplied 'now' value must be timezone-aware.")
 
     local_now = now.astimezone(zone)
-    mode = "forecast" if range_name == "next-24h" else "observations"
+    mode = "forecast" if range_name in {"next-24h", "rest-of-today"} else "observations"
 
     if range_name == "yesterday":
         today_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -46,6 +46,9 @@ def resolve_time_window(range_name: str, timezone: str, now: datetime | None = N
     elif range_name == "previous-24h":
         end = local_now
         start = local_now - timedelta(hours=24)
+    elif range_name == "rest-of-today":
+        start = local_now
+        end = local_now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
     else:
         start = local_now
         end = local_now + timedelta(hours=24)

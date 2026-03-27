@@ -175,6 +175,63 @@ def test_fetch_filters_forecast_window():
     assert payload["periods"][0]["summary"] == "Sunny"
 
 
+class RestOfTodayNoaaApi(FakeNoaaApi):
+    def get_hourly_forecast(self, forecast_url):
+        self.last_forecast_url = forecast_url
+        return [
+            {
+                "startTime": "2026-03-26T12:00:00-07:00",
+                "endTime": "2026-03-26T13:00:00-07:00",
+                "temperature": 51,
+                "relativeHumidity": {"value": 50},
+                "probabilityOfPrecipitation": {"value": 0},
+                "windSpeed": "5 mph",
+                "windDirection": "NW",
+                "shortForecast": "Sunny",
+                "isDaytime": True,
+            },
+            {
+                "startTime": "2026-03-26T23:00:00-07:00",
+                "endTime": "2026-03-27T00:00:00-07:00",
+                "temperature": 44,
+                "relativeHumidity": {"value": 70},
+                "probabilityOfPrecipitation": {"value": 5},
+                "windSpeed": "4 mph",
+                "windDirection": "N",
+                "shortForecast": "Mostly Cloudy",
+                "isDaytime": False,
+            },
+            {
+                "startTime": "2026-03-27T00:00:00-07:00",
+                "endTime": "2026-03-27T01:00:00-07:00",
+                "temperature": 42,
+                "relativeHumidity": {"value": 75},
+                "probabilityOfPrecipitation": {"value": 5},
+                "windSpeed": "3 mph",
+                "windDirection": "N",
+                "shortForecast": "Cloudy",
+                "isDaytime": False,
+            },
+        ]
+
+
+def test_fetch_rest_of_today_includes_current_hour_and_excludes_tomorrow():
+    noaa_api = RestOfTodayNoaaApi()
+    service = WeatherService(FakeGeocoder(), noaa_api)
+    payload = service.fetch(
+        "Seattle,WA",
+        "rest-of-today",
+        now=datetime(2026, 3, 26, 19, 30, tzinfo=ZoneInfo("UTC")),
+    )
+
+    assert payload["station"]["identifier"] == "KSEA"
+    assert payload["source"]["station_selection"] == "preset"
+    assert [period["start"] for period in payload["periods"]] == [
+        "2026-03-26T12:00:00-07:00",
+        "2026-03-26T23:00:00-07:00",
+    ]
+
+
 class CapturingNoaaApi(FakeNoaaApi):
     def __init__(self):
         self.last_station_override = None

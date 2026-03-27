@@ -36,3 +36,12 @@ def test_next_24h_switches_to_forecast_mode():
     assert window.start.isoformat() == "2026-03-26T12:30:00-07:00"
     assert window.end.isoformat() == "2026-03-27T12:30:00-07:00"
     assert window.mode == "forecast"
+
+
+def test_rest_of_today_stops_at_next_local_midnight():
+    now = datetime(2026, 3, 26, 19, 30, tzinfo=ZoneInfo("UTC"))
+    window = resolve_time_window("rest-of-today", "America/Los_Angeles", now=now)
+
+    assert window.start.isoformat() == "2026-03-26T12:30:00-07:00"
+    assert window.end.isoformat() == "2026-03-27T00:00:00-07:00"
+    assert window.mode == "forecast"
