@@ -114,3 +114,23 @@ def test_get_station_observations_follows_cursor():
     observations = api.get_station_observations("KSEA", window)
 
     assert len(observations) == 2
+
+
+def test_get_station_selection_extracts_station_coordinates():
+    responses = {
+        ("https://api.weather.gov/stations/KSEA", ()): {
+            "geometry": {"coordinates": [-122.3, 47.45]},
+            "properties": {
+                "stationIdentifier": "KSEA",
+                "name": "Seattle-Tacoma International Airport",
+                "timeZone": "America/Los_Angeles",
+            },
+        }
+    }
+
+    api = NoaaApi(FakeHttpClient(responses))
+    station = api.get_station_selection("KSEA")
+
+    assert station.station_id == "KSEA"
+    assert station.latitude == 47.45
+    assert station.longitude == -122.3

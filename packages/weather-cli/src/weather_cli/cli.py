@@ -27,7 +27,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="weather",
         description=(
             "Query NOAA weather.gov observations and hourly forecasts for a strict city,state place.\n\n"
-            "Observation presets:\n"
+            "Settlement-aligned station presets:\n"
             f"{station_presets}"
         ),
         epilog=(
@@ -70,12 +70,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--station",
-        help="Force a NOAA station ID for observation queries, e.g. KSEA or KLAX",
+        help="Force a NOAA station ID for observation or forecast anchoring, e.g. KSEA or KLAX",
     )
     parser.add_argument(
         "--nearest-station",
         action="store_true",
-        help="Ignore built-in city presets and use the nearest station with data",
+        help="Ignore built-in city presets. Observations use the nearest station with data; forecasts use the resolved city point.",
     )
     parser.add_argument(
         "--contact-email",

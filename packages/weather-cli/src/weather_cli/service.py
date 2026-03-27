@@ -7,7 +7,7 @@ from weather_cli.errors import DataNotFoundError
 from weather_cli.geocoding import OpenMeteoGeocoder, ResolvedPlace
 from weather_cli.noaa import NoaaApi, StationSelection
 from weather_cli.ranges import TimeWindow, resolve_time_window
-from weather_cli.station_presets import resolve_station_preset
+from weather_cli.station_presets import resolve_station_anchor, resolve_station_preset
 
 
 def celsius_to_fahrenheit(value: float | None) -> float | None:
@@ -50,28 +50,28 @@ class WeatherService:
     ) -> dict[str, Any]:
         resolved = self._geocoder.resolve(place)
         window = resolve_time_window(range_name, resolved.timezone, now=now)
-        point = self._noaa_api.get_point(resolved.latitude, resolved.longitude)
-        station_selection = "forecast"
 
         if window.mode == "forecast":
+            point, station, station_selection = self._resolve_forecast_source(
+                resolved,
+                station_override=station_override,
+                use_station_presets=use_station_presets,
+            )
             periods = self._normalize_forecast(
                 self._noaa_api.get_hourly_forecast(point["properties"]["forecastHourly"]),
                 window,
             )
             if not periods:
                 raise DataNotFoundError(f"No NOAA forecast periods overlapped {window.name}.")
-            station = None
         else:
-            resolved_station_override = station_override
-            if resolved_station_override is not None:
-                station_selection = "override"
-            elif use_station_presets:
-                resolved_station_override = resolve_station_preset(resolved)
-                station_selection = "preset" if resolved_station_override else "nearest"
-            else:
-                station_selection = "nearest"
-
-            station = self._noaa_api.select_station(point, window, resolved_station_override)
+            point = self._noaa_api.get_point(resolved.latitude, resolved.longitude)
+            station, station_selection = self._resolve_observation_source(
+                resolved,
+                point,
+                window,
+                station_override=station_override,
+                use_station_presets=use_station_presets,
+            )
             periods = self._normalize_observations(
                 self._noaa_api.get_station_observations(station.station_id, window),
                 window,
@@ -82,6 +82,54 @@ class WeatherService:
                 )
 
         return self._build_payload(resolved, window, point, station, periods, station_selection)
+
+    def _resolve_forecast_source(
+        self,
+        resolved: ResolvedPlace,
+        *,
+        station_override: str | None,
+        use_station_presets: bool,
+    ) -> tuple[dict[str, Any], StationSelection | None, str]:
+        if station_override is not None:
+            station = self._noaa_api.get_station_selection(station_override)
+            return self._forecast_point_for_station(station), station, "override"
+
+        if use_station_presets:
+            anchor = resolve_station_anchor(resolved)
+            if anchor is not None:
+                station = self._noaa_api.get_station_selection(anchor.station_id)
+                return self._forecast_point_for_station(station), station, "preset"
+
+        point = self._noaa_api.get_point(resolved.latitude, resolved.longitude)
+        return point, None, "forecast"
+
+    def _resolve_observation_source(
+        self,
+        resolved: ResolvedPlace,
+        point: dict[str, Any],
+        window: TimeWindow,
+        *,
+        station_override: str | None,
+        use_station_presets: bool,
+    ) -> tuple[StationSelection, str]:
+        resolved_station_override = station_override
+        if resolved_station_override is not None:
+            station_selection = "override"
+        elif use_station_presets:
+            resolved_station_override = resolve_station_preset(resolved)
+            station_selection = "preset" if resolved_station_override else "nearest"
+        else:
+            station_selection = "nearest"
+
+        station = self._noaa_api.select_station(point, window, resolved_station_override)
+        return station, station_selection
+
+    def _forecast_point_for_station(self, station: StationSelection) -> dict[str, Any]:
+        if station.latitude is None or station.longitude is None:
+            raise DataNotFoundError(
+                f"Station {station.station_id} did not include coordinates for forecast lookup."
+            )
+        return self._noaa_api.get_point(station.latitude, station.longitude)
 
     def _build_payload(
         self,
@@ -129,7 +177,7 @@ class WeatherService:
                 "latitude": station.latitude,
                 "longitude": station.longitude,
             }
-        else:
+        if window.mode == "forecast":
             payload["source"]["forecast_url"] = point_properties.get("forecastHourly")
 
         return payload

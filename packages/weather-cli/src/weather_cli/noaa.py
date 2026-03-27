@@ -34,6 +34,10 @@ class NoaaApi:
         data = self._http_client.get_json(forecast_url, params={"units": "us"})
         return data.get("properties", {}).get("periods", [])
 
+    def get_station_selection(self, station_id: str) -> StationSelection:
+        station = self.get_station(station_id)
+        return self._station_selection_from_station(station)
+
     def get_station(self, station_id: str) -> dict[str, Any]:
         return self._http_client.get_json(f"{NOAA_API_ROOT}/stations/{station_id}")
 

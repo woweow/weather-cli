@@ -20,9 +20,10 @@ uv run --package weather-cli weather "Los Angeles,CA" --range yesterday --neares
 Notes:
 
 - Historical observations come from the nearest NOAA station with data for the requested window unless a city preset applies.
-- These cities default to official airport climate-report stations for observation queries:
+- These cities default to official airport climate-report stations for both observation queries and `next-24h` forecasts:
   `Denver,CO -> KDEN`, `Las Vegas,NV -> KLAS`, `Los Angeles,CA -> KLAX`,
   `Phoenix,AZ -> KPHX`, `San Francisco,CA -> KSFO`, `Seattle,WA -> KSEA`.
-- Use `--nearest-station` to ignore presets, or `--station <ID>` to force a specific NOAA station.
+- Use `--nearest-station` to ignore presets. Observation queries then use the nearest station with data, while forecasts fall back to the resolved city point.
+- Use `--station <ID>` to force a specific NOAA station for either observations or forecast anchoring.
 - City lookup uses Open-Meteo geocoding; weather data comes from NOAA.
 - Override the NOAA contact email with `WEATHER_CLI_CONTACT_EMAIL` or `--contact-email`.

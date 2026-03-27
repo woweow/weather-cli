@@ -22,24 +22,79 @@ class FakeGeocoder:
 class FakeNoaaApi:
     def __init__(self):
         self.last_station_override = None
+        self.last_point_lookup = None
+        self.last_forecast_url = None
 
     def get_point(self, latitude, longitude):
+        self.last_point_lookup = (latitude, longitude)
+        if (latitude, longitude) == (47.45, -122.3):
+            return {
+                "id": "https://api.weather.gov/points/47.45,-122.3",
+                "properties": {
+                    "forecastHourly": "https://api.weather.gov/gridpoints/SEW/124,60/forecast/hourly"
+                },
+            }
+        if (latitude, longitude) == (33.93806, -118.38889):
+            return {
+                "id": "https://api.weather.gov/points/33.9381,-118.3889",
+                "properties": {
+                    "forecastHourly": "https://api.weather.gov/gridpoints/LOX/149,41/forecast/hourly"
+                },
+            }
+        if (latitude, longitude) == (34.05223, -118.24368):
+            return {
+                "id": "https://api.weather.gov/points/34.0522,-118.2437",
+                "properties": {
+                    "forecastHourly": "https://api.weather.gov/gridpoints/LOX/155,45/forecast/hourly"
+                },
+            }
         return {
-            "id": "https://api.weather.gov/points/47.6062,-122.3321",
+            "id": f"https://api.weather.gov/points/{latitude},{longitude}",
             "properties": {
-                "forecastHourly": "https://api.weather.gov/gridpoints/SEW/125,68/forecast/hourly"
+                "forecastHourly": "https://api.weather.gov/gridpoints/GEN/0,0/forecast/hourly"
             },
         }
 
+    def get_station_selection(self, station_id):
+        if station_id == "KSEA":
+            return StationSelection(
+                station_id="KSEA",
+                station_name="Seattle-Tacoma International Airport",
+                timezone="America/Los_Angeles",
+                distance_meters=None,
+                latitude=47.45,
+                longitude=-122.3,
+            )
+        if station_id == "KLAX":
+            return StationSelection(
+                station_id="KLAX",
+                station_name="Los Angeles International Airport",
+                timezone="America/Los_Angeles",
+                distance_meters=None,
+                latitude=33.93806,
+                longitude=-118.38889,
+            )
+        if station_id == "KBFI":
+            return StationSelection(
+                station_id="KBFI",
+                station_name="Boeing Field",
+                timezone="America/Los_Angeles",
+                distance_meters=None,
+                latitude=47.53,
+                longitude=-122.3,
+            )
+        raise AssertionError(f"Unexpected station lookup for {station_id}")
+
     def select_station(self, point, window, station_override):
         self.last_station_override = station_override
+        station = self.get_station_selection(station_override or "KSEA")
         return StationSelection(
-            station_id=station_override or "KSEA",
-            station_name="Seattle-Tacoma International Airport",
-            timezone="America/Los_Angeles",
-            distance_meters=2000,
-            latitude=47.45,
-            longitude=-122.3,
+            station_id=station.station_id,
+            station_name=station.station_name,
+            timezone=station.timezone,
+            distance_meters=2000 if station_override is None else None,
+            latitude=station.latitude,
+            longitude=station.longitude,
         )
 
     def get_station_observations(self, station_id, window):
@@ -60,6 +115,7 @@ class FakeNoaaApi:
         ]
 
     def get_hourly_forecast(self, forecast_url):
+        self.last_forecast_url = forecast_url
         return [
             {
                 "startTime": "2026-03-26T13:00:00-07:00",
@@ -103,15 +159,18 @@ def test_fetch_normalizes_observations():
 
 
 def test_fetch_filters_forecast_window():
-    service = WeatherService(FakeGeocoder(), FakeNoaaApi())
+    noaa_api = FakeNoaaApi()
+    service = WeatherService(FakeGeocoder(), noaa_api)
     payload = service.fetch(
         "Seattle,WA",
         "next-24h",
         now=datetime(2026, 3, 26, 19, 30, tzinfo=ZoneInfo("UTC")),
     )
 
-    assert payload["station"] is None
-    assert payload["source"]["station_selection"] == "forecast"
+    assert payload["station"]["identifier"] == "KSEA"
+    assert payload["source"]["station_selection"] == "preset"
+    assert payload["source"]["forecast_url"] == "https://api.weather.gov/gridpoints/SEW/124,60/forecast/hourly"
+    assert noaa_api.last_point_lookup == (47.45, -122.3)
     assert len(payload["periods"]) == 1
     assert payload["periods"][0]["summary"] == "Sunny"
 
@@ -191,3 +250,64 @@ def test_fetch_can_disable_station_presets():
 
     assert noaa_api.last_station_override is None
     assert payload["source"]["station_selection"] == "nearest"
+
+
+def test_fetch_forecast_can_disable_station_presets():
+    noaa_api = FakeNoaaApi()
+    service = WeatherService(LosAngelesGeocoder(), noaa_api)
+
+    payload = service.fetch(
+        "Los Angeles,CA",
+        "next-24h",
+        use_station_presets=False,
+        now=datetime(2026, 3, 26, 19, 30, tzinfo=ZoneInfo("UTC")),
+    )
+
+    assert payload["station"] is None
+    assert payload["source"]["station_selection"] == "forecast"
+    assert payload["source"]["forecast_url"] == "https://api.weather.gov/gridpoints/LOX/155,45/forecast/hourly"
+    assert noaa_api.last_point_lookup == (34.05223, -118.24368)
+
+
+def test_fetch_forecast_can_use_station_override():
+    noaa_api = FakeNoaaApi()
+    service = WeatherService(FakeGeocoder(), noaa_api)
+
+    payload = service.fetch(
+        "Seattle,WA",
+        "next-24h",
+        station_override="KBFI",
+        now=datetime(2026, 3, 26, 19, 30, tzinfo=ZoneInfo("UTC")),
+    )
+
+    assert payload["station"]["identifier"] == "KBFI"
+    assert payload["source"]["station_selection"] == "override"
+    assert noaa_api.last_point_lookup == (47.53, -122.3)
+
+
+class PortlandGeocoder:
+    def resolve(self, place):
+        return ResolvedPlace(
+            raw_input=place,
+            city="Portland",
+            state_code="OR",
+            state_name="Oregon",
+            latitude=45.52306,
+            longitude=-122.67648,
+            timezone="America/Los_Angeles",
+        )
+
+
+def test_fetch_forecast_for_non_preset_city_remains_generic():
+    noaa_api = FakeNoaaApi()
+    service = WeatherService(PortlandGeocoder(), noaa_api)
+
+    payload = service.fetch(
+        "Portland,OR",
+        "next-24h",
+        now=datetime(2026, 3, 26, 19, 30, tzinfo=ZoneInfo("UTC")),
+    )
+
+    assert payload["station"] is None
+    assert payload["source"]["station_selection"] == "forecast"
+    assert noaa_api.last_point_lookup == (45.52306, -122.67648)
