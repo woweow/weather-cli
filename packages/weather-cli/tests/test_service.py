@@ -1,9 +1,9 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from weather_cli.geocoding import ResolvedPlace
-from weather_cli.noaa import StationSelection
-from weather_cli.service import WeatherService
+from weather_cli.adapters.geocoding import ResolvedPlace
+from weather_cli.adapters.noaa import StationSelection
+from weather_cli.application.service import WeatherService
 
 
 class FakeGeocoder:

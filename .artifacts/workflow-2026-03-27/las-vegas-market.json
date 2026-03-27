@@ -1,0 +1,75 @@
+{
+  "city": "Las Vegas",
+  "event_date_label": "Mar 27, 2026",
+  "event_ticker": "KXHIGHTLV-26MAR27",
+  "markets": [
+    {
+      "label": "88\u00b0 or below",
+      "last_price_cents": 1,
+      "no_ask_cents": 100,
+      "no_bid_cents": 99,
+      "sort_key": 88.0,
+      "ticker": "KXHIGHTLV-26MAR27-T89",
+      "title": "Will the maximum temperature be  <89\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 1,
+      "yes_bid_cents": 0
+    },
+    {
+      "label": "89\u00b0 to 90\u00b0",
+      "last_price_cents": 6,
+      "no_ask_cents": 92,
+      "no_bid_cents": 91,
+      "sort_key": 89.0,
+      "ticker": "KXHIGHTLV-26MAR27-B89.5",
+      "title": "Will the maximum temperature be  89-90\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 9,
+      "yes_bid_cents": 8
+    },
+    {
+      "label": "91\u00b0 to 92\u00b0",
+      "last_price_cents": 73,
+      "no_ask_cents": 27,
+      "no_bid_cents": 21,
+      "sort_key": 91.0,
+      "ticker": "KXHIGHTLV-26MAR27-B91.5",
+      "title": "Will the maximum temperature be  91-92\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 79,
+      "yes_bid_cents": 73
+    },
+    {
+      "label": "93\u00b0 to 94\u00b0",
+      "last_price_cents": 14,
+      "no_ask_cents": 88,
+      "no_bid_cents": 84,
+      "sort_key": 93.0,
+      "ticker": "KXHIGHTLV-26MAR27-B93.5",
+      "title": "Will the maximum temperature be  93-94\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 16,
+      "yes_bid_cents": 12
+    },
+    {
+      "label": "95\u00b0 to 96\u00b0",
+      "last_price_cents": 1,
+      "no_ask_cents": 100,
+      "no_bid_cents": 97,
+      "sort_key": 95.0,
+      "ticker": "KXHIGHTLV-26MAR27-B95.5",
+      "title": "Will the maximum temperature be  95-96\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 3,
+      "yes_bid_cents": 0
+    },
+    {
+      "label": "97\u00b0 or above",
+      "last_price_cents": 3,
+      "no_ask_cents": 100,
+      "no_bid_cents": 98,
+      "sort_key": 97.0,
+      "ticker": "KXHIGHTLV-26MAR27-T96",
+      "title": "Will the maximum temperature be  >96\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 2,
+      "yes_bid_cents": 0
+    }
+  ],
+  "series_ticker": "KXHIGHTLV",
+  "series_title": "Las Vegas Max Daily Temperature"
+}

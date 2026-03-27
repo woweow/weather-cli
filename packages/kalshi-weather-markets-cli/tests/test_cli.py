@@ -1,5 +1,7 @@
+import importlib
+
 from kalshi_weather_markets_cli.cli import build_parser, main
-from kalshi_weather_markets_cli.models import LadderSnapshot, MarketRange
+from kalshi_weather_markets_cli.application.models import LadderSnapshot, MarketRange
 
 
 def test_help_includes_examples_and_supported_cities():
@@ -32,10 +34,9 @@ def test_list_cities_prints_supported_city_names(monkeypatch, capsys):
         def list_supported_cities(self):
             return ["Los Angeles", "Seattle"]
 
-    monkeypatch.setattr("kalshi_weather_markets_cli.cli.KalshiPublicClient", StubClient)
-    monkeypatch.setattr(
-        "kalshi_weather_markets_cli.cli.KalshiWeatherService", StubService
-    )
+    cli_module = importlib.import_module("kalshi_weather_markets_cli.cli.main")
+    monkeypatch.setattr(cli_module, "KalshiPublicClient", StubClient)
+    monkeypatch.setattr(cli_module, "KalshiWeatherService", StubService)
 
     exit_code = main(["--list-cities"])
 
@@ -80,10 +81,9 @@ def test_json_output_uses_normalized_snapshot(monkeypatch, capsys):
             assert city == "Seattle"
             return snapshot
 
-    monkeypatch.setattr("kalshi_weather_markets_cli.cli.KalshiPublicClient", StubClient)
-    monkeypatch.setattr(
-        "kalshi_weather_markets_cli.cli.KalshiWeatherService", StubService
-    )
+    cli_module = importlib.import_module("kalshi_weather_markets_cli.cli.main")
+    monkeypatch.setattr(cli_module, "KalshiPublicClient", StubClient)
+    monkeypatch.setattr(cli_module, "KalshiWeatherService", StubService)
 
     exit_code = main(["Seattle", "--format", "json"])
 

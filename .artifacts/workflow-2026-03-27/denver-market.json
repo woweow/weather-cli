@@ -1,0 +1,75 @@
+{
+  "city": "Denver",
+  "event_date_label": "Mar 27, 2026",
+  "event_ticker": "KXHIGHDEN-26MAR27",
+  "markets": [
+    {
+      "label": "48\u00b0 or below",
+      "last_price_cents": 22,
+      "no_ask_cents": 85,
+      "no_bid_cents": 81,
+      "sort_key": 48.0,
+      "ticker": "KXHIGHDEN-26MAR27-T49",
+      "title": "Will the **high temp in Denver** be <49\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 19,
+      "yes_bid_cents": 15
+    },
+    {
+      "label": "49\u00b0 to 50\u00b0",
+      "last_price_cents": 25,
+      "no_ask_cents": 81,
+      "no_bid_cents": 78,
+      "sort_key": 49.0,
+      "ticker": "KXHIGHDEN-26MAR27-B49.5",
+      "title": "Will the **high temp in Denver** be 49-50\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 22,
+      "yes_bid_cents": 19
+    },
+    {
+      "label": "51\u00b0 to 52\u00b0",
+      "last_price_cents": 22,
+      "no_ask_cents": 78,
+      "no_bid_cents": 77,
+      "sort_key": 51.0,
+      "ticker": "KXHIGHDEN-26MAR27-B51.5",
+      "title": "Will the **high temp in Denver** be 51-52\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 23,
+      "yes_bid_cents": 22
+    },
+    {
+      "label": "53\u00b0 to 54\u00b0",
+      "last_price_cents": 28,
+      "no_ask_cents": 73,
+      "no_bid_cents": 72,
+      "sort_key": 53.0,
+      "ticker": "KXHIGHDEN-26MAR27-B53.5",
+      "title": "Will the **high temp in Denver** be 53-54\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 28,
+      "yes_bid_cents": 27
+    },
+    {
+      "label": "55\u00b0 to 56\u00b0",
+      "last_price_cents": 11,
+      "no_ask_cents": 90,
+      "no_bid_cents": 89,
+      "sort_key": 55.0,
+      "ticker": "KXHIGHDEN-26MAR27-B55.5",
+      "title": "Will the **high temp in Denver** be 55-56\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 11,
+      "yes_bid_cents": 10
+    },
+    {
+      "label": "57\u00b0 or above",
+      "last_price_cents": 2,
+      "no_ask_cents": 98,
+      "no_bid_cents": 95,
+      "sort_key": 57.0,
+      "ticker": "KXHIGHDEN-26MAR27-T56",
+      "title": "Will the **high temp in Denver** be >56\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 5,
+      "yes_bid_cents": 2
+    }
+  ],
+  "series_ticker": "KXHIGHDEN",
+  "series_title": "Highest temperature in Denver"
+}

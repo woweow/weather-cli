@@ -1,0 +1,75 @@
+{
+  "city": "Seattle",
+  "event_date_label": "Mar 27, 2026",
+  "event_ticker": "KXHIGHTSEA-26MAR27",
+  "markets": [
+    {
+      "label": "52\u00b0 or below",
+      "last_price_cents": 5,
+      "no_ask_cents": 100,
+      "no_bid_cents": 95,
+      "sort_key": 52.0,
+      "ticker": "KXHIGHTSEA-26MAR27-T53",
+      "title": "Will the maximum temperature be  <53\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 5,
+      "yes_bid_cents": 0
+    },
+    {
+      "label": "53\u00b0 to 54\u00b0",
+      "last_price_cents": 21,
+      "no_ask_cents": 79,
+      "no_bid_cents": 78,
+      "sort_key": 53.0,
+      "ticker": "KXHIGHTSEA-26MAR27-B53.5",
+      "title": "Will the maximum temperature be  53-54\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 22,
+      "yes_bid_cents": 21
+    },
+    {
+      "label": "55\u00b0 to 56\u00b0",
+      "last_price_cents": 54,
+      "no_ask_cents": 49,
+      "no_bid_cents": 46,
+      "sort_key": 55.0,
+      "ticker": "KXHIGHTSEA-26MAR27-B55.5",
+      "title": "Will the maximum temperature be  55-56\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 54,
+      "yes_bid_cents": 51
+    },
+    {
+      "label": "57\u00b0 to 58\u00b0",
+      "last_price_cents": 25,
+      "no_ask_cents": 75,
+      "no_bid_cents": 73,
+      "sort_key": 57.0,
+      "ticker": "KXHIGHTSEA-26MAR27-B57.5",
+      "title": "Will the maximum temperature be  57-58\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 27,
+      "yes_bid_cents": 25
+    },
+    {
+      "label": "59\u00b0 to 60\u00b0",
+      "last_price_cents": 2,
+      "no_ask_cents": 98,
+      "no_bid_cents": 94,
+      "sort_key": 59.0,
+      "ticker": "KXHIGHTSEA-26MAR27-B59.5",
+      "title": "Will the maximum temperature be  59-60\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 6,
+      "yes_bid_cents": 2
+    },
+    {
+      "label": "61\u00b0 or above",
+      "last_price_cents": 2,
+      "no_ask_cents": 100,
+      "no_bid_cents": 98,
+      "sort_key": 61.0,
+      "ticker": "KXHIGHTSEA-26MAR27-T60",
+      "title": "Will the maximum temperature be  >60\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 2,
+      "yes_bid_cents": 0
+    }
+  ],
+  "series_ticker": "KXHIGHTSEA",
+  "series_title": "Seattle Maximum Temperature Daily"
+}

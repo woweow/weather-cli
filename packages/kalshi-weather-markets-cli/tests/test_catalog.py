@@ -1,4 +1,4 @@
-from kalshi_weather_markets_cli.catalog import (
+from kalshi_weather_markets_cli.application.catalog import (
     build_city_catalog,
     documented_cities_help_text,
 )

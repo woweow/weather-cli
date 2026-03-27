@@ -1,20 +1,20 @@
 ---
 name: build-weather-bet-dashboard
-description: Build or refresh the repo's multi-city weather betting dashboard by coordinating the installed `weather`, `kalshi-weather-markets`, and `weather-dashboard` CLIs. Use when Codex needs to pull live data for the cities listed in `cities.txt`, normalize forecast hours plus Kalshi ladders into the dashboard schema, and generate fresh `dashboard.json` and `dashboard.html` output for review or local use.
+description: Build or refresh the repo's multi-city weather betting dashboard by coordinating the installed `weather`, `kalshi-weather-markets`, and `weather-dashboard` CLIs. Use when Codex needs to pull live data for the cities listed in `cities.txt`, normalize forecast hours plus Kalshi ladders into the dashboard schema, and produce fresh `dashboard.json` plus the local app command for review or live use.
 ---
 
 # Build Weather Bet Dashboard
 
 ## Overview
 
-Generate the validated six-city dashboard workflow without re-deriving the data plumbing each time. Use the bundled script to pull weather and market data, write raw JSON artifacts, build the normalized payload, and render the final HTML.
+Generate the validated six-city dashboard workflow without re-deriving the data plumbing each time. Use the bundled script to pull weather and market data, write raw JSON artifacts, build the normalized payload, optionally export HTML, and then run the local dashboard server.
 
 ## Quick Start
 
 1. Run `scripts/build_dashboard.py`.
-2. Return the generated `dashboard.html` and `dashboard.json` paths.
-3. Tell the user to open the HTML file directly, or run a simple static file server if they want a local URL.
-4. Run `weather-dashboard serve-bets` only if the user wants the `Record bets` button to persist selections.
+2. Return the generated `dashboard.json` path and the `weather-dashboard serve --input ...` command.
+3. Run the local dashboard server when the user wants the interactive UI.
+4. Mention the optional exported HTML path when relevant, but do not treat it as the main artifact.
 
 Example commands:
 
@@ -55,15 +55,15 @@ python /abs/path/to/skills/build-weather-bet-dashboard/scripts/build_dashboard.p
   - `cards` populated from the normalized weather and market data
 - Use the bundled script for this step instead of rebuilding the JSON transformation inline.
 
-### 5. Render HTML
+### 5. Start the local UI
 
-- Run `weather-dashboard generate-html --input <dashboard.json> --output <dashboard.html>`.
-- Keep the default save endpoint unless the user explicitly wants a different host or port.
-- Tell the user where the HTML file lives after generation.
+- Run `weather-dashboard serve --input <dashboard.json>`.
+- Report the local URL and keep the process running while the user makes selections.
+- The server writes into the local SQLite journal automatically when the user clicks Record.
 
-### 6. Handle optional persistence
+### 6. Optional HTML export
 
-- Only run `weather-dashboard serve-bets` if the user wants the `Record bets` button to persist selections.
+- Use `weather-dashboard export-html` only when the user explicitly wants a standalone file export.
 - Do not add Playwright or browser-validation steps unless the user explicitly asks for them.
 
 ## Bundled Script
@@ -75,8 +75,8 @@ Use `scripts/build_dashboard.py` for the actual orchestration. It:
 - supports `--city` to build only a subset
 - writes raw responses into `<output-dir>/raw/`
 - writes `<output-dir>/dashboard.json`
-- writes `<output-dir>/dashboard.html`
-- prints a JSON summary with the output paths and included cities
+- writes `<output-dir>/dashboard.html` as a secondary artifact
+- prints a JSON summary with the output paths, included cities, and the `weather-dashboard serve` command
 
 Default output directory:
 
@@ -87,6 +87,7 @@ Default output directory:
 ## Output Expectations
 
 - Return the absolute paths to the generated HTML and JSON.
+- Return the dashboard serve command.
 - Mention which cities were included.
-- Mention whether the save server is running when relevant.
+- Mention whether the local dashboard server is running when relevant.
 - If a requested city is missing from the built-in mapping, stop and update `scripts/build_dashboard.py` rather than guessing the `weather` place string.

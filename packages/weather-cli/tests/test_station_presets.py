@@ -1,7 +1,7 @@
 import pytest
 
-from weather_cli.geocoding import ResolvedPlace
-from weather_cli.station_presets import format_station_presets_for_help, resolve_station_preset
+from weather_cli.adapters.geocoding import ResolvedPlace
+from weather_cli.application.station_presets import format_station_presets_for_help, resolve_station_preset
 
 
 @pytest.mark.parametrize(

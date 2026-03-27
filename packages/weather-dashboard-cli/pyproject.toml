@@ -1,10 +1,10 @@
 [project]
 name = "weather-dashboard-cli"
 version = "0.1.0"
-description = "CLI for weather and Kalshi dashboard HTML generation"
+description = "CLI for serving and exporting the local weather decision dashboard"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["weather-bets"]
 
 [project.scripts]
 weather-dashboard = "weather_dashboard_cli.cli:main"

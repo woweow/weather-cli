@@ -1,7 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from weather_cli.ranges import resolve_time_window
+from weather_cli.application.ranges import resolve_time_window
 
 
 def test_yesterday_uses_full_previous_local_day():

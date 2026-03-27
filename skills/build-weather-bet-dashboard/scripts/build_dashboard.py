@@ -13,7 +13,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CITIES_FILE = REPO_ROOT / "cities.txt"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / ".artifacts" / "latest-dashboard"
-DEFAULT_SAVE_ENDPOINT = "http://127.0.0.1:8765/record-bets"
+DEFAULT_SAVE_ENDPOINT = "http://127.0.0.1:8765/api/decision-sessions"
 
 CITY_TO_WEATHER_PLACE = {
     "Los Angeles": "Los Angeles,CA",
@@ -171,10 +171,10 @@ def write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
-def render_dashboard_html(dashboard_json: Path, dashboard_html: Path, save_endpoint: str) -> None:
+def export_dashboard_html(dashboard_json: Path, dashboard_html: Path, save_endpoint: str) -> None:
     command = [
         "weather-dashboard",
-        "generate-html",
+        "export-html",
         "--input",
         str(dashboard_json),
         "--output",
@@ -237,7 +237,8 @@ def main(argv: list[str] | None = None) -> int:
         dashboard_json = output_dir / "dashboard.json"
         dashboard_html = output_dir / "dashboard.html"
         write_json(dashboard_json, dashboard_payload)
-        render_dashboard_html(dashboard_json, dashboard_html, args.save_endpoint)
+        export_dashboard_html(dashboard_json, dashboard_html, args.save_endpoint)
+        serve_command = f"weather-dashboard serve --input {dashboard_json}"
 
         print(
             json.dumps(
@@ -248,6 +249,7 @@ def main(argv: list[str] | None = None) -> int:
                     "dashboard_html": str(dashboard_html),
                     "raw_dir": str(raw_dir),
                     "save_endpoint": args.save_endpoint,
+                    "serve_command": serve_command,
                 },
                 indent=2,
             )

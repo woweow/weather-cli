@@ -1,0 +1,75 @@
+{
+  "city": "Los Angeles",
+  "event_date_label": "Mar 27, 2026",
+  "event_ticker": "KXHIGHLAX-26MAR27",
+  "markets": [
+    {
+      "label": "74\u00b0 or below",
+      "last_price_cents": 96,
+      "no_ask_cents": 4,
+      "no_bid_cents": 3,
+      "sort_key": 74.0,
+      "ticker": "KXHIGHLAX-26MAR27-T75",
+      "title": "Will the **high temp in LA** be <75\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 97,
+      "yes_bid_cents": 96
+    },
+    {
+      "label": "75\u00b0 to 76\u00b0",
+      "last_price_cents": 3,
+      "no_ask_cents": 99,
+      "no_bid_cents": 97,
+      "sort_key": 75.0,
+      "ticker": "KXHIGHLAX-26MAR27-B75.5",
+      "title": "Will the **high temp in LA** be 75-76\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 3,
+      "yes_bid_cents": 1
+    },
+    {
+      "label": "77\u00b0 to 78\u00b0",
+      "last_price_cents": 2,
+      "no_ask_cents": 100,
+      "no_bid_cents": 98,
+      "sort_key": 77.0,
+      "ticker": "KXHIGHLAX-26MAR27-B77.5",
+      "title": "Will the **high temp in LA** be 77-78\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 2,
+      "yes_bid_cents": 0
+    },
+    {
+      "label": "79\u00b0 to 80\u00b0",
+      "last_price_cents": 1,
+      "no_ask_cents": 100,
+      "no_bid_cents": 99,
+      "sort_key": 79.0,
+      "ticker": "KXHIGHLAX-26MAR27-B79.5",
+      "title": "Will the **high temp in LA** be 79-80\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 1,
+      "yes_bid_cents": 0
+    },
+    {
+      "label": "81\u00b0 to 82\u00b0",
+      "last_price_cents": 1,
+      "no_ask_cents": 100,
+      "no_bid_cents": 99,
+      "sort_key": 81.0,
+      "ticker": "KXHIGHLAX-26MAR27-B81.5",
+      "title": "Will the **high temp in LA** be 81-82\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 1,
+      "yes_bid_cents": 0
+    },
+    {
+      "label": "83\u00b0 or above",
+      "last_price_cents": 1,
+      "no_ask_cents": 100,
+      "no_bid_cents": 99,
+      "sort_key": 83.0,
+      "ticker": "KXHIGHLAX-26MAR27-T82",
+      "title": "Will the **high temp in LA** be >82\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 1,
+      "yes_bid_cents": 0
+    }
+  ],
+  "series_ticker": "KXHIGHLAX",
+  "series_title": "Highest temperature in Los Angeles"
+}

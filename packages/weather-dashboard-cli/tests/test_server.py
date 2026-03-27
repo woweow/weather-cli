@@ -5,20 +5,22 @@ import threading
 from pathlib import Path
 from urllib.request import Request, urlopen
 
-from weather_dashboard_cli.payload import normalize_dashboard_payload
-from weather_dashboard_cli.server import create_server
+from weather_bets.application import list_bet_selections, list_decision_sessions, show_decision_session
+from weather_bets.domain.snapshot import normalize_dashboard_snapshot
+from weather_dashboard_cli.http import create_server
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample_dashboard.json"
 
 
-def test_server_appends_snapshots_to_dated_file(tmp_path):
-    payload = normalize_dashboard_payload(json.loads(FIXTURE.read_text(encoding="utf-8")))
-    server = create_server("127.0.0.1", 0, save_dir=tmp_path)
+def test_server_records_sessions_to_sqlite(tmp_path):
+    payload = normalize_dashboard_snapshot(json.loads(FIXTURE.read_text(encoding="utf-8")))
+    db_path = tmp_path / "bets.db"
+    server = create_server(payload=payload, host="127.0.0.1", port=0, db_path=db_path)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        url = f"http://127.0.0.1:{server.server_port}/record-bets"
+        url = f"http://127.0.0.1:{server.server_port}/api/decision-sessions"
         for _ in range(2):
             request = Request(
                 url,
@@ -29,13 +31,17 @@ def test_server_appends_snapshots_to_dated_file(tmp_path):
             with urlopen(request) as response:
                 assert response.status == 200
                 body = json.load(response)
-                assert body["file_name"] == "27_03_2026_bets_placed.json"
+                assert body["selection_count"] == 2
 
-        saved_file = tmp_path / "27_03_2026_bets_placed.json"
-        contents = json.loads(saved_file.read_text(encoding="utf-8"))
-        assert len(contents) == 2
-        assert contents[0]["saved_at"]
-        assert contents[1]["cards"][0]["market"]["rows"][1]["selected_yes"] is True
+        sessions = list_decision_sessions(db_path=db_path)
+        bets = list_bet_selections(db_path=db_path)
+
+        assert len(sessions["sessions"]) == 2
+        assert len(bets["bets"]) == 4
+
+        first_session_id = sessions["sessions"][0]["id"]
+        session = show_decision_session(first_session_id, db_path=db_path)
+        assert session["snapshot"]["cards"][0]["market"]["rows"][1]["selected_yes"] is True
     finally:
         server.shutdown()
         thread.join(timeout=5)

@@ -1,8 +1,8 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from weather_cli.noaa import NoaaApi
-from weather_cli.ranges import resolve_time_window
+from weather_cli.adapters.noaa import NoaaApi
+from weather_cli.application.ranges import resolve_time_window
 
 
 class FakeHttpClient:

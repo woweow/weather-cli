@@ -1,0 +1,75 @@
+{
+  "city": "San Francisco",
+  "event_date_label": "Mar 27, 2026",
+  "event_ticker": "KXHIGHTSFO-26MAR27",
+  "markets": [
+    {
+      "label": "68\u00b0 or below",
+      "last_price_cents": 1,
+      "no_ask_cents": 100,
+      "no_bid_cents": 99,
+      "sort_key": 68.0,
+      "ticker": "KXHIGHTSFO-26MAR27-T69",
+      "title": "Will the maximum temperature be  <69\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 1,
+      "yes_bid_cents": 0
+    },
+    {
+      "label": "69\u00b0 to 70\u00b0",
+      "last_price_cents": 6,
+      "no_ask_cents": 100,
+      "no_bid_cents": 94,
+      "sort_key": 69.0,
+      "ticker": "KXHIGHTSFO-26MAR27-B69.5",
+      "title": "Will the maximum temperature be  69-70\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 6,
+      "yes_bid_cents": 0
+    },
+    {
+      "label": "71\u00b0 to 72\u00b0",
+      "last_price_cents": 6,
+      "no_ask_cents": 100,
+      "no_bid_cents": 95,
+      "sort_key": 71.0,
+      "ticker": "KXHIGHTSFO-26MAR27-B71.5",
+      "title": "Will the maximum temperature be  71-72\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 5,
+      "yes_bid_cents": 0
+    },
+    {
+      "label": "73\u00b0 to 74\u00b0",
+      "last_price_cents": 4,
+      "no_ask_cents": 97,
+      "no_bid_cents": 96,
+      "sort_key": 73.0,
+      "ticker": "KXHIGHTSFO-26MAR27-B73.5",
+      "title": "Will the maximum temperature be  73-74\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 4,
+      "yes_bid_cents": 3
+    },
+    {
+      "label": "75\u00b0 to 76\u00b0",
+      "last_price_cents": 23,
+      "no_ask_cents": 76,
+      "no_bid_cents": 67,
+      "sort_key": 75.0,
+      "ticker": "KXHIGHTSFO-26MAR27-B75.5",
+      "title": "Will the maximum temperature be  75-76\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 33,
+      "yes_bid_cents": 24
+    },
+    {
+      "label": "77\u00b0 or above",
+      "last_price_cents": 69,
+      "no_ask_cents": 33,
+      "no_bid_cents": 30,
+      "sort_key": 77.0,
+      "ticker": "KXHIGHTSFO-26MAR27-T76",
+      "title": "Will the maximum temperature be  >76\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 70,
+      "yes_bid_cents": 67
+    }
+  ],
+  "series_ticker": "KXHIGHTSFO",
+  "series_title": "San Francisco High Temperature Daily"
+}

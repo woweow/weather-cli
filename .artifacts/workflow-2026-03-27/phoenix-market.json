@@ -1,0 +1,75 @@
+{
+  "city": "Phoenix",
+  "event_date_label": "Mar 27, 2026",
+  "event_ticker": "KXHIGHTPHX-26MAR27",
+  "markets": [
+    {
+      "label": "97\u00b0 or below",
+      "last_price_cents": 1,
+      "no_ask_cents": 100,
+      "no_bid_cents": 99,
+      "sort_key": 97.0,
+      "ticker": "KXHIGHTPHX-26MAR27-T98",
+      "title": "Will the maximum temperature be  <98\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 1,
+      "yes_bid_cents": 0
+    },
+    {
+      "label": "98\u00b0 to 99\u00b0",
+      "last_price_cents": 11,
+      "no_ask_cents": 89,
+      "no_bid_cents": 87,
+      "sort_key": 98.0,
+      "ticker": "KXHIGHTPHX-26MAR27-B98.5",
+      "title": "Will the maximum temperature be  98-99\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 13,
+      "yes_bid_cents": 11
+    },
+    {
+      "label": "100\u00b0 to 101\u00b0",
+      "last_price_cents": 70,
+      "no_ask_cents": 34,
+      "no_bid_cents": 30,
+      "sort_key": 100.0,
+      "ticker": "KXHIGHTPHX-26MAR27-B100.5",
+      "title": "Will the maximum temperature be  100-101\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 70,
+      "yes_bid_cents": 66
+    },
+    {
+      "label": "102\u00b0 to 103\u00b0",
+      "last_price_cents": 24,
+      "no_ask_cents": 76,
+      "no_bid_cents": 75,
+      "sort_key": 102.0,
+      "ticker": "KXHIGHTPHX-26MAR27-B102.5",
+      "title": "Will the maximum temperature be  102-103\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 25,
+      "yes_bid_cents": 24
+    },
+    {
+      "label": "104\u00b0 to 105\u00b0",
+      "last_price_cents": 1,
+      "no_ask_cents": 100,
+      "no_bid_cents": 99,
+      "sort_key": 104.0,
+      "ticker": "KXHIGHTPHX-26MAR27-B104.5",
+      "title": "Will the maximum temperature be  104-105\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 1,
+      "yes_bid_cents": 0
+    },
+    {
+      "label": "106\u00b0 or above",
+      "last_price_cents": 1,
+      "no_ask_cents": 100,
+      "no_bid_cents": 99,
+      "sort_key": 106.0,
+      "ticker": "KXHIGHTPHX-26MAR27-T105",
+      "title": "Will the maximum temperature be  >105\u00b0 on Mar 27, 2026?",
+      "yes_ask_cents": 1,
+      "yes_bid_cents": 0
+    }
+  ],
+  "series_ticker": "KXHIGHTPHX",
+  "series_title": "Phoenix High Temperature Daily"
+}

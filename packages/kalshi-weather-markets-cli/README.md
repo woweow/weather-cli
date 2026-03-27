@@ -18,4 +18,4 @@ Notes:
 - JSON output contains the full active ladder for the selected daily event, sorted by
   temperature range.
 - Each ladder row includes the raw `last_price_cents` headline value plus Yes/No bid and ask
-  fields. This shape is intended to feed `weather-dashboard generate-html`.
+  fields. This shape is intended to feed `weather-dashboard serve`.

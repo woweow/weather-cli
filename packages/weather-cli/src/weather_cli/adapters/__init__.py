@@ -1,0 +1,1 @@
+"""Weather source-adapter layer."""

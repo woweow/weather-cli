@@ -1,7 +1,7 @@
 import pytest
 
-from weather_cli.geocoding import OpenMeteoGeocoder, parse_place
-from weather_cli.http import JsonHttpClient
+from weather_cli.adapters.geocoding import OpenMeteoGeocoder, parse_place
+from weather_cli.adapters.http import JsonHttpClient
 
 
 class FakeHttpClient(JsonHttpClient):
