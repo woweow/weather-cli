@@ -1,0 +1,193 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+from weather_cli.geocoding import ResolvedPlace
+from weather_cli.noaa import StationSelection
+from weather_cli.service import WeatherService
+
+
+class FakeGeocoder:
+    def resolve(self, place):
+        return ResolvedPlace(
+            raw_input=place,
+            city="Seattle",
+            state_code="WA",
+            state_name="Washington",
+            latitude=47.60621,
+            longitude=-122.33207,
+            timezone="America/Los_Angeles",
+        )
+
+
+class FakeNoaaApi:
+    def __init__(self):
+        self.last_station_override = None
+
+    def get_point(self, latitude, longitude):
+        return {
+            "id": "https://api.weather.gov/points/47.6062,-122.3321",
+            "properties": {
+                "forecastHourly": "https://api.weather.gov/gridpoints/SEW/125,68/forecast/hourly"
+            },
+        }
+
+    def select_station(self, point, window, station_override):
+        self.last_station_override = station_override
+        return StationSelection(
+            station_id=station_override or "KSEA",
+            station_name="Seattle-Tacoma International Airport",
+            timezone="America/Los_Angeles",
+            distance_meters=2000,
+            latitude=47.45,
+            longitude=-122.3,
+        )
+
+    def get_station_observations(self, station_id, window):
+        return [
+            {
+                "properties": {
+                    "timestamp": "2026-03-26T18:00:00+00:00",
+                    "textDescription": "Clear",
+                    "temperature": {"value": 10.0},
+                    "dewpoint": {"value": 2.0},
+                    "relativeHumidity": {"value": 60.0},
+                    "windSpeed": {"value": 10.0},
+                    "windGust": {"value": None},
+                    "windDirection": {"value": 180.0},
+                    "visibility": {"value": 16093.44},
+                }
+            }
+        ]
+
+    def get_hourly_forecast(self, forecast_url):
+        return [
+            {
+                "startTime": "2026-03-26T13:00:00-07:00",
+                "endTime": "2026-03-26T14:00:00-07:00",
+                "temperature": 52,
+                "relativeHumidity": {"value": 55},
+                "probabilityOfPrecipitation": {"value": 0},
+                "windSpeed": "5 mph",
+                "windDirection": "NW",
+                "shortForecast": "Sunny",
+                "isDaytime": True,
+            },
+            {
+                "startTime": "2026-03-27T14:00:00-07:00",
+                "endTime": "2026-03-27T15:00:00-07:00",
+                "temperature": 60,
+                "relativeHumidity": {"value": 40},
+                "probabilityOfPrecipitation": {"value": 0},
+                "windSpeed": "8 mph",
+                "windDirection": "W",
+                "shortForecast": "Sunny",
+                "isDaytime": True,
+            },
+        ]
+
+
+def test_fetch_normalizes_observations():
+    noaa_api = FakeNoaaApi()
+    service = WeatherService(FakeGeocoder(), noaa_api)
+    payload = service.fetch(
+        "Seattle,WA",
+        "today",
+        now=datetime(2026, 3, 26, 19, 30, tzinfo=ZoneInfo("UTC")),
+    )
+
+    assert noaa_api.last_station_override == "KSEA"
+    assert payload["station"]["identifier"] == "KSEA"
+    assert payload["source"]["station_selection"] == "preset"
+    assert payload["periods"][0]["temperature_f"] == 50.0
+    assert payload["periods"][0]["wind_speed_mph"] == 6.2
+
+
+def test_fetch_filters_forecast_window():
+    service = WeatherService(FakeGeocoder(), FakeNoaaApi())
+    payload = service.fetch(
+        "Seattle,WA",
+        "next-24h",
+        now=datetime(2026, 3, 26, 19, 30, tzinfo=ZoneInfo("UTC")),
+    )
+
+    assert payload["station"] is None
+    assert payload["source"]["station_selection"] == "forecast"
+    assert len(payload["periods"]) == 1
+    assert payload["periods"][0]["summary"] == "Sunny"
+
+
+class CapturingNoaaApi(FakeNoaaApi):
+    def __init__(self):
+        self.last_station_override = None
+
+    def select_station(self, point, window, station_override):
+        self.last_station_override = station_override
+        station_id = station_override or "FHMC1"
+        station_name = "Los Angeles, Los Angeles International Airport" if station_id == "KLAX" else "LOS ANGELES DOWNTOWN"
+        return StationSelection(
+            station_id=station_id,
+            station_name=station_name,
+            timezone="America/Los_Angeles",
+            distance_meters=1642 if station_id != "KLAX" else None,
+            latitude=33.93806 if station_id == "KLAX" else 34.06778,
+            longitude=-118.38889 if station_id == "KLAX" else -118.24167,
+        )
+
+    def get_station_observations(self, station_id, window):
+        return [
+            {
+                "properties": {
+                    "timestamp": "2026-03-25T20:00:00+00:00",
+                    "textDescription": "Sunny",
+                    "temperature": {"value": 20.0},
+                    "dewpoint": {"value": 10.0},
+                    "relativeHumidity": {"value": 50.0},
+                    "windSpeed": {"value": 8.0},
+                    "windGust": {"value": None},
+                    "windDirection": {"value": 250.0},
+                    "visibility": {"value": 16093.44},
+                }
+            }
+        ]
+
+
+class LosAngelesGeocoder:
+    def resolve(self, place):
+        return ResolvedPlace(
+            raw_input=place,
+            city="Los Angeles",
+            state_code="CA",
+            state_name="California",
+            latitude=34.05223,
+            longitude=-118.24368,
+            timezone="America/Los_Angeles",
+        )
+
+
+def test_fetch_uses_los_angeles_station_preset_by_default():
+    noaa_api = CapturingNoaaApi()
+    service = WeatherService(LosAngelesGeocoder(), noaa_api)
+
+    payload = service.fetch(
+        "Los Angeles,CA",
+        "yesterday",
+        now=datetime(2026, 3, 26, 19, 30, tzinfo=ZoneInfo("UTC")),
+    )
+
+    assert noaa_api.last_station_override == "KLAX"
+    assert payload["source"]["station_selection"] == "preset"
+
+
+def test_fetch_can_disable_station_presets():
+    noaa_api = CapturingNoaaApi()
+    service = WeatherService(LosAngelesGeocoder(), noaa_api)
+
+    payload = service.fetch(
+        "Los Angeles,CA",
+        "yesterday",
+        use_station_presets=False,
+        now=datetime(2026, 3, 26, 19, 30, tzinfo=ZoneInfo("UTC")),
+    )
+
+    assert noaa_api.last_station_override is None
+    assert payload["source"]["station_selection"] == "nearest"
