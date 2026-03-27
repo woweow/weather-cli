@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 members = [
     "kalshi-weather-cli",
     "weather-cli",
+    "weather-dashboard-cli",
 ]
 
 [[package]]
@@ -17,3 +18,8 @@ source = { editable = "packages/kalshi-weather-cli" }
 name = "weather-cli"
 version = "0.1.0"
 source = { editable = "packages/weather-cli" }
+
+[[package]]
+name = "weather-dashboard-cli"
+version = "0.1.0"
+source = { editable = "packages/weather-dashboard-cli" }

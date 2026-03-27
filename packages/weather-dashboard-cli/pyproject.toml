@@ -1,0 +1,14 @@
+[project]
+name = "weather-dashboard-cli"
+version = "0.1.0"
+description = "CLI for weather and Kalshi dashboard HTML generation"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+weather-dashboard = "weather_dashboard_cli.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

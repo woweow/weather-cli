@@ -101,5 +101,5 @@ def parse_timestamp(value: str) -> datetime:
 
 def format_event_date(event_ticker: str) -> str:
     date_token = event_ticker.rsplit("-", 1)[-1]
-    parsed = datetime.strptime(date_token, "%d%b%y")
+    parsed = datetime.strptime(date_token, "%y%b%d")
     return f"{parsed.strftime('%b')} {parsed.day}, {parsed.year}"

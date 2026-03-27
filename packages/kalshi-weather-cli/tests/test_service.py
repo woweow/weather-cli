@@ -1,7 +1,7 @@
 import pytest
 
 from kalshi_weather_cli.errors import UnsupportedCityError
-from kalshi_weather_cli.service import KalshiWeatherService
+from kalshi_weather_cli.service import KalshiWeatherService, format_event_date
 
 
 class FakeKalshiClient:
@@ -128,3 +128,7 @@ def test_fetch_city_ladder_rejects_unknown_city():
 
     with pytest.raises(UnsupportedCityError):
         service.fetch_city_ladder("Portland")
+
+
+def test_format_event_date_uses_year_month_day_ticker_order():
+    assert format_event_date("KXHIGHTSEA-26MAR27") == "Mar 27, 2026"
