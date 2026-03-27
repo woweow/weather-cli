@@ -2,7 +2,18 @@ version = 1
 revision = 1
 requires-python = ">=3.11"
 
+[manifest]
+members = [
+    "kalshi-weather-cli",
+    "weather-cli",
+]
+
+[[package]]
+name = "kalshi-weather-cli"
+version = "0.1.0"
+source = { editable = "packages/kalshi-weather-cli" }
+
 [[package]]
 name = "weather-cli"
 version = "0.1.0"
-source = { editable = "." }
+source = { editable = "packages/weather-cli" }
