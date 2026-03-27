@@ -32,12 +32,15 @@ def build_parser() -> argparse.ArgumentParser:
         ),
         epilog=(
             "Range semantics:\n"
-            "  yesterday    Previous local calendar day (00:00 to 23:59:59)\n"
-            "  today        Observations so far since local midnight\n"
-            "  previous-24h Rolling observation window from now minus 24 hours\n"
-            "  next-24h     Rolling 24-hour hourly forecast from now\n\n"
+            "  Observation ranges:\n"
+            "    yesterday    Previous local calendar day (00:00 to 23:59:59)\n"
+            "    today        Observations so far since local midnight\n"
+            "    previous-24h Rolling observation window from now minus 24 hours\n"
+            "  Forecast range:\n"
+            "    next-24h     Rolling 24-hour hourly forecast from now\n\n"
             "Examples:\n"
             "  weather \"Seattle,WA\" --range today\n"
+            "  weather \"Seattle,WA\" --range next-24h\n"
             "  weather \"Los Angeles,CA\" --range yesterday --format table\n"
             "  weather \"Los Angeles,CA\" --range yesterday --nearest-station\n"
             "  weather \"Seattle,WA\" --range yesterday --station KBFI\n"
@@ -55,7 +58,8 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         choices=VALID_RANGES,
         help=(
-            "Time window to query: yesterday, today, previous-24h, or next-24h"
+            "Time window to query. Observation ranges: yesterday, today, previous-24h. "
+            "Forecast range: next-24h."
         ),
     )
     parser.add_argument(
