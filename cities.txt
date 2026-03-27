@@ -1,6 +1,23 @@
-Seattle, WA
-San Francisco, CA
-Los Angeles, CA
-Las Vegas, NV
-Denver, CO
-Phoenix, AZ
+Los Angeles
+https://kalshi.com/markets/kxhighlax/highest-temperature-in-los-angeles/kxhighlax-26mar27
+https://forecast.weather.gov/product.php?site=LOX&product=CLI&issuedby=LAX
+
+Denver
+https://kalshi.com/markets/kxhighden/highest-temperature-in-denver/kxhighden-26mar27
+https://forecast.weather.gov/product.php?site=BOU&product=CLI&issuedby=DEN
+
+Seattle
+https://kalshi.com/markets/kxhightsea/seattle-maximum-temperature-daily/kxhightsea-26mar27
+https://forecast.weather.gov/product.php?site=SEW&product=CLI&issuedby=SEA
+
+Phoenix
+https://kalshi.com/markets/kxhightphx/phoenix-high-temperature-daily/kxhightphx-26mar27
+https://forecast.weather.gov/product.php?site=PSR&product=CLI&issuedby=PHX
+
+Las Vegas
+https://kalshi.com/markets/kxhightlv/las-vegas-max-daily-temperature/kxhightlv-26mar27
+https://forecast.weather.gov/product.php?site=VEF&product=CLI&issuedby=LAS
+
+San Francisco
+https://kalshi.com/markets/kxhightsfo/san-francisco-high-temperature-daily/kxhightsfo-26mar27
+https://forecast.weather.gov/product.php?site=MTR&product=CLI&issuedby=SFO
