@@ -11,6 +11,7 @@ from weather_study_cli.application.actuals import (
 )
 from weather_study_cli.application.ingest import IngestSummary, ingest_capture_directory
 from weather_study_cli.application.metrics import AccuracyMetricSummary, compute_accuracy_metrics
+from weather_study_cli.application.report import AccuracyDashboardReport, export_accuracy_html
 from weather_study_cli.application.raw_loader import (
     DEFAULT_MOCK_DATA_DIR,
     StudyDatasetSummary,
@@ -25,6 +26,7 @@ __all__ = [
     "DEFAULT_CONTACT_EMAIL",
     "DEFAULT_MOCK_DATA_DIR",
     "AccuracyMetricSummary",
+    "AccuracyDashboardReport",
     "DailyActualDerivationError",
     "DailyActualDerivationSummary",
     "IncompatibleStudyDatabaseError",
@@ -36,6 +38,7 @@ __all__ = [
     "derive_daily_actuals",
     "compute_accuracy_metrics",
     "ingest_capture_directory",
+    "export_accuracy_html",
     "load_capture_directory",
     "load_capture_file",
 ]

@@ -19,6 +19,7 @@ uv run --package weather-study-cli weather-study validate-raw
 uv run --package weather-study-cli weather-study ingest-raw --help
 uv run --package weather-study-cli weather-study derive-daily-actuals --help
 uv run --package weather-study-cli weather-study compute-accuracy-metrics --help
+uv run --package weather-study-cli weather-study export-accuracy-html --help
 uv run --package weather-dashboard-cli weather-dashboard serve --help
 uv run --package weather-dashboard-cli weather-dashboard export-html --help
 uv run --package weather-bets weather-bets sessions --help

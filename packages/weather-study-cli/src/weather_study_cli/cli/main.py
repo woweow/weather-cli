@@ -12,6 +12,7 @@ from weather_study_cli.application import (
     WeatherStudyCliError,
     compute_accuracy_metrics,
     derive_daily_actuals,
+    export_accuracy_html,
     ingest_capture_directory,
     load_capture_directory,
 )
@@ -166,6 +167,40 @@ def build_parser() -> argparse.ArgumentParser:
         default="text",
         help="Output format for the metric summary (default: %(default)s)",
     )
+
+    export = subparsers.add_parser(
+        "export-accuracy-html",
+        help="Export a self-contained local HTML view of hourly forecast accuracy.",
+        description=(
+            "Export a self-contained local HTML view of hourly forecast accuracy.\n\n"
+            "The document reads from already-computed `hourly_accuracy_metrics` rows and renders\n"
+            "a city selector, hourly accuracy chart, coverage cards, and thin-sample warning.\n\n"
+            "Examples:\n"
+            "  weather-study export-accuracy-html --output /tmp/weather-study.html\n"
+            "  weather-study export-accuracy-html --db-path /tmp/weather-study.db --place Seattle,WA\n"
+            "  weather-study export-accuracy-html --min-valid-sample 5 > accuracy.html"
+        ),
+        formatter_class=HelpFormatter,
+    )
+    export.add_argument(
+        "--db-path",
+        default=str(DEFAULT_DB_PATH),
+        help="SQLite database path for the study DB (default: %(default)s)",
+    )
+    export.add_argument(
+        "--output",
+        help="Path to write the HTML file. Omit to print HTML to stdout.",
+    )
+    export.add_argument(
+        "--place",
+        help='Optional strict city,state filter such as "Seattle,WA".',
+    )
+    export.add_argument(
+        "--min-valid-sample",
+        type=int,
+        default=5,
+        help="Threshold below which the UI shows a thin-sample warning (default: %(default)s)",
+    )
     return parser
 
 
@@ -206,6 +241,13 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(render_accuracy_text_summary(summary))
             return 0
+        if args.command == "export-accuracy-html":
+            return export_accuracy_html(
+                db_path=args.db_path,
+                output_path=args.output,
+                place=args.place,
+                min_valid_sample=args.min_valid_sample,
+            )
     except WeatherStudyCliError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
