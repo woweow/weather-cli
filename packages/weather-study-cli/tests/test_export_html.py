@@ -3,6 +3,7 @@ from __future__ import annotations
 from weather_study_cli.application import (
     DEFAULT_MOCK_DATA_DIR,
     compute_accuracy_metrics,
+    compute_market_opportunity_metrics,
     export_accuracy_html,
     ingest_capture_directory,
 )
@@ -34,10 +35,13 @@ def test_export_accuracy_html_writes_self_contained_dashboard(tmp_path):
         connection.commit()
 
     compute_accuracy_metrics(db_path=db_path)
+    compute_market_opportunity_metrics(db_path=db_path)
     export_accuracy_html(db_path=db_path, output_path=output_path, min_valid_sample=5)
 
     html = output_path.read_text(encoding="utf-8")
     assert "Forecast Confidence Atlas" in html
+    assert "Market Convergence" in html
+    assert "Avg winner" in html
     assert "Seattle,WA" in html
     assert "Denver,CO" in html
     assert "Thin sample" in html

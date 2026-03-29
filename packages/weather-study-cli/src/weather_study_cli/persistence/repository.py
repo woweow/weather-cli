@@ -567,6 +567,51 @@ def list_hourly_accuracy_metric_rows(
     ]
 
 
+def list_hourly_market_opportunity_metric_rows(
+    connection: sqlite3.Connection,
+    *,
+    place: str | None = None,
+) -> list[dict[str, Any]]:
+    clauses: list[str] = []
+    params: list[Any] = []
+    if place is not None:
+        clauses.append("place = ?")
+        params.append(place)
+    where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    rows = connection.execute(
+        f"""
+        SELECT
+            place,
+            timezone,
+            local_hour,
+            valid_day_count,
+            missing_day_count,
+            excluded_day_count,
+            leader_match_day_count,
+            leader_match_ratio,
+            avg_winning_bucket_last_price_cents
+        FROM hourly_market_opportunity_metrics
+        {where_sql}
+        ORDER BY place ASC, local_hour ASC
+        """,
+        params,
+    ).fetchall()
+    return [
+        {
+            "place": row["place"],
+            "timezone": row["timezone"],
+            "local_hour": row["local_hour"],
+            "valid_day_count": row["valid_day_count"],
+            "missing_day_count": row["missing_day_count"],
+            "excluded_day_count": row["excluded_day_count"],
+            "leader_match_day_count": row["leader_match_day_count"],
+            "leader_match_ratio": row["leader_match_ratio"],
+            "avg_winning_bucket_last_price_cents": row["avg_winning_bucket_last_price_cents"],
+        }
+        for row in rows
+    ]
+
+
 def build_capture_key(capture: StudyCapture) -> str:
     return "|".join(
         (

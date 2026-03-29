@@ -188,11 +188,26 @@ HTML_TEMPLATE = """<!doctype html>
         padding: 1.2rem;
       }}
 
+      .chart-pane {{
+        display: grid;
+        gap: 1rem;
+      }}
+
       .coverage-pane {{
         border-left: 1px solid var(--line);
         background:
           linear-gradient(180deg, rgba(255,255,255,0.3), rgba(255,255,255,0.55)),
           linear-gradient(180deg, rgba(198, 107, 45, 0.05), transparent 35%);
+      }}
+
+      .chart-stack {{
+        display: grid;
+        gap: 1rem;
+      }}
+
+      .chart-section {{
+        display: grid;
+        gap: 0.95rem;
       }}
 
       .section-head {{
@@ -222,7 +237,11 @@ HTML_TEMPLATE = """<!doctype html>
         border: 1px solid rgba(18, 61, 77, 0.08);
       }}
 
-      #accuracy-chart {{
+      .chart-frame.market-frame {{
+        background: linear-gradient(180deg, rgba(231, 179, 94, 0.22), rgba(255,255,255,0.55));
+      }}
+
+      #accuracy-chart, #market-chart {{
         width: 100%;
         height: auto;
         display: block;
@@ -291,6 +310,21 @@ HTML_TEMPLATE = """<!doctype html>
         color: var(--muted);
       }}
 
+      .market-meta {{
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 0.7rem;
+        padding-top: 0.7rem;
+        border-top: 1px dashed rgba(18, 61, 77, 0.1);
+        font-size: 0.79rem;
+        color: var(--muted);
+      }}
+
+      .market-meta-empty {{
+        color: rgba(109, 118, 112, 0.84);
+      }}
+
       .legend {{
         display: flex;
         gap: 0.85rem;
@@ -330,7 +364,7 @@ HTML_TEMPLATE = """<!doctype html>
         <h1>Forecast Confidence Atlas</h1>
         <p class="hero-copy">
           A local-first weather lab view of when each city's remaining-day forecast becomes trustworthy enough to matter.
-          Accuracy is shown alongside missing and excluded coverage so thin samples stay obvious.
+          Forecast accuracy sits beside market convergence so you can see when the signal sharpened and whether the ladder had already caught up.
         </p>
       </section>
 
@@ -353,6 +387,10 @@ HTML_TEMPLATE = """<!doctype html>
               <div class="chip-label">Captured Hours</div>
               <div class="chip-value" id="hour-count">-</div>
             </div>
+            <div class="chip">
+              <div class="chip-label">Market Hours</div>
+              <div class="chip-value" id="market-hour-count">-</div>
+            </div>
           </div>
         </div>
 
@@ -360,16 +398,34 @@ HTML_TEMPLATE = """<!doctype html>
 
         <div class="grid">
           <section class="chart-pane">
-            <div class="section-head">
-              <h2>Hourly Forecast Accuracy</h2>
-              <div class="section-note">Remaining-day max forecast versus final observed high</div>
-            </div>
-            <div class="chart-frame">
-              <svg id="accuracy-chart" viewBox="0 0 760 320" role="img" aria-label="Hourly forecast accuracy chart"></svg>
-            </div>
-            <div class="legend">
-              <span><span class="legend-dot" style="background: var(--storm);"></span>Accuracy line</span>
-              <span><span class="legend-dot" style="background: var(--gold);"></span>Coverage warnings appear when valid days stay under the sample threshold</span>
+            <div class="chart-stack">
+              <section class="chart-section">
+                <div class="section-head">
+                  <h2>Hourly Forecast Accuracy</h2>
+                  <div class="section-note">Remaining-day max forecast versus final observed high</div>
+                </div>
+                <div class="chart-frame">
+                  <svg id="accuracy-chart" viewBox="0 0 760 320" role="img" aria-label="Hourly forecast accuracy chart"></svg>
+                </div>
+                <div class="legend">
+                  <span><span class="legend-dot" style="background: var(--storm);"></span>Accuracy line</span>
+                  <span><span class="legend-dot" style="background: var(--gold);"></span>Coverage warnings appear when valid days stay under the sample threshold</span>
+                </div>
+              </section>
+
+              <section class="chart-section">
+                <div class="section-head">
+                  <h2>Market Convergence</h2>
+                  <div class="section-note">Did the bucket that eventually won already lead the ladder?</div>
+                </div>
+                <div class="chart-frame market-frame">
+                  <svg id="market-chart" viewBox="0 0 760 320" role="img" aria-label="Hourly market convergence chart"></svg>
+                </div>
+                <div class="legend">
+                  <span><span class="legend-dot" style="background: var(--sun);"></span>Winning bucket already leading</span>
+                  <span><span class="legend-dot" style="background: rgba(231, 179, 94, 0.88);"></span>Average last price on the bucket that ended up winning</span>
+                </div>
+              </section>
             </div>
           </section>
 
@@ -381,7 +437,7 @@ HTML_TEMPLATE = """<!doctype html>
             <div class="coverage-list" id="coverage-list"></div>
             <p class="footer-note">
               Missing means the city-day had no capture for that hour. Excluded means a capture existed,
-              but the final observed high or the weather payload was unavailable for finalized accuracy.
+              but the final observed high, weather payload, or winning market bucket could not be used in the finalized metrics.
             </p>
           </aside>
         </div>
@@ -395,9 +451,11 @@ HTML_TEMPLATE = """<!doctype html>
       const timezoneNode = document.getElementById("city-timezone");
       const studyDayNode = document.getElementById("study-day-count");
       const hourCountNode = document.getElementById("hour-count");
+      const marketHourNode = document.getElementById("market-hour-count");
       const warningNode = document.getElementById("sample-warning");
       const coverageList = document.getElementById("coverage-list");
-      const chart = document.getElementById("accuracy-chart");
+      const accuracyChart = document.getElementById("accuracy-chart");
+      const marketChart = document.getElementById("market-chart");
 
       report.cities.forEach((city, index) => {{
         const option = document.createElement("option");
@@ -406,27 +464,52 @@ HTML_TEMPLATE = """<!doctype html>
         select.appendChild(option);
       }});
 
+      function formatHourList(hours) {{
+        return hours.map((hour) => hour.toString().padStart(2, "0")).join(", ");
+      }}
+
+      function formatPriceCents(value) {{
+        if (value === null || value === undefined) {{
+          return "n/a";
+        }}
+        const rounded = Math.round(value * 10) / 10;
+        return Number.isInteger(rounded) ? `${rounded.toFixed(0)}c` : `${rounded.toFixed(1)}c`;
+      }}
+
       function renderCity(index) {{
         const city = report.cities[index];
+        const marketPoints = Array.isArray(city.market_points) ? city.market_points : [];
         timezoneNode.textContent = city.timezone;
         studyDayNode.textContent = String(city.study_day_count);
         hourCountNode.textContent = String(city.points.length);
+        marketHourNode.textContent = String(marketPoints.length);
 
+        const warnings = [];
         if (city.thin_sample_hours.length > 0) {{
+          warnings.push(
+            `Thin sample on forecast hours ${formatHourList(city.thin_sample_hours)} with fewer than ${report.min_valid_sample} valid study days.`
+          );
+        }}
+        if (city.market_thin_sample_hours.length > 0) {{
+          warnings.push(
+            `Thin sample on market hours ${formatHourList(city.market_thin_sample_hours)} with fewer than ${report.min_valid_sample} valid market days.`
+          );
+        }}
+
+        if (warnings.length > 0) {{
           warningNode.dataset.visible = "true";
-          warningNode.textContent =
-            `Thin sample: hours ${city.thin_sample_hours.map((hour) => hour.toString().padStart(2, "0")).join(", ")} ` +
-            `have fewer than ${report.min_valid_sample} valid study days.`;
+          warningNode.textContent = warnings.join(" ");
         }} else {{
           warningNode.dataset.visible = "false";
           warningNode.textContent = "";
         }}
 
-        renderChart(city);
+        renderAccuracyChart(city);
+        renderMarketChart(city);
         renderCoverage(city);
       }}
 
-      function renderChart(city) {{
+      function renderAccuracyChart(city) {{
         const points = city.points;
         const width = 760;
         const height = 320;
@@ -479,7 +562,7 @@ HTML_TEMPLATE = """<!doctype html>
           `;
         }}).join("");
 
-        chart.innerHTML = `
+        accuracyChart.innerHTML = `
           <rect x="0" y="0" width="${width}" height="${height}" rx="26" fill="rgba(255,255,255,0.16)"></rect>
           ${gridLines}
           <path d="${path}" fill="none" stroke="var(--storm)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -491,11 +574,133 @@ HTML_TEMPLATE = """<!doctype html>
         `;
       }}
 
+      function renderMarketChart(city) {{
+        const points = Array.isArray(city.market_points) ? city.market_points : [];
+        const width = 760;
+        const height = 320;
+        const margin = {{ top: 18, right: 24, bottom: 44, left: 52 }};
+        const plotWidth = width - margin.left - margin.right;
+        const plotHeight = height - margin.top - margin.bottom;
+
+        if (points.length === 0) {{
+          marketChart.innerHTML = `
+            <rect x="0" y="0" width="${width}" height="${height}" rx="26" fill="rgba(255,255,255,0.16)"></rect>
+            <text x="${width / 2}" y="${height / 2 - 6}" text-anchor="middle" fill="rgba(31,42,46,0.7)" font-size="20" font-family="Iowan Old Style, Palatino Linotype, serif">
+              Market metrics not loaded
+            </text>
+            <text x="${width / 2}" y="${height / 2 + 20}" text-anchor="middle" fill="rgba(31,42,46,0.55)" font-size="13">
+              Run compute-market-opportunity-metrics to add the ladder timing overlay.
+            </text>
+          `;
+          return;
+        }}
+
+        const minHour = Math.min(...points.map((point) => point.local_hour));
+        const maxHour = Math.max(...points.map((point) => point.local_hour));
+        const xForHour = (hour) =>
+          margin.left + ((hour - minHour) / Math.max(1, maxHour - minHour)) * plotWidth;
+        const yForRatio = (ratio) => margin.top + (1 - ratio) * plotHeight;
+        const barWidth = Math.max(20, Math.min(54, plotWidth / Math.max(points.length * 1.9, 6)));
+
+        const gridLines = [0, 0.5, 1].map((ratio) => {{
+          const y = yForRatio(ratio);
+          return `
+            <line x1="${margin.left}" y1="${y}" x2="${width - margin.right}" y2="${y}"
+                  stroke="rgba(198, 107, 45, 0.16)" stroke-dasharray="4 6" />
+            <text x="${margin.left - 12}" y="${y + 4}" text-anchor="end" fill="rgba(31,42,46,0.6)" font-size="12">
+              ${Math.round(ratio * 100)}%
+            </text>
+          `;
+        }}).join("");
+
+        const xLabels = points.map((point) => {{
+          const x = xForHour(point.local_hour);
+          return `
+            <text x="${x}" y="${height - 14}" text-anchor="middle" fill="rgba(31,42,46,0.65)" font-size="12">
+              ${String(point.local_hour).padStart(2, "0")}
+            </text>
+          `;
+        }}).join("");
+
+        const priceBars = points.map((point) => {{
+          if (point.avg_winning_bucket_last_price_cents === null || point.avg_winning_bucket_last_price_cents === undefined) {{
+            return "";
+          }}
+          const x = xForHour(point.local_hour);
+          const barHeight = (point.avg_winning_bucket_last_price_cents / 100) * plotHeight;
+          const y = margin.top + plotHeight - barHeight;
+          const labelY = Math.max(margin.top + 14, y - 8);
+          return `
+            <g>
+              <rect
+                x="${x - barWidth / 2}"
+                y="${y}"
+                width="${barWidth}"
+                height="${barHeight}"
+                rx="12"
+                fill="rgba(231, 179, 94, 0.78)"
+              ></rect>
+              <text x="${x}" y="${labelY}" text-anchor="middle" fill="rgba(31,42,46,0.72)" font-size="12" font-weight="700">
+                ${formatPriceCents(point.avg_winning_bucket_last_price_cents)}
+              </text>
+            </g>
+          `;
+        }}).join("");
+
+        const path = points.map((point, index) => {{
+          const x = xForHour(point.local_hour);
+          const y = yForRatio(point.leader_match_ratio);
+          return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+        }}).join(" ");
+
+        const pointNodes = points.map((point) => {{
+          const x = xForHour(point.local_hour);
+          const y = yForRatio(point.leader_match_ratio);
+          const thin = point.valid_day_count < report.min_valid_sample;
+          return `
+            <g>
+              <circle cx="${x}" cy="${y}" r="8" fill="${thin ? "var(--gold)" : "var(--sun)"}" stroke="rgba(255,255,255,0.9)" stroke-width="3" />
+              <text x="${x}" y="${y - 14}" text-anchor="middle" fill="rgba(31,42,46,0.78)" font-size="12" font-weight="700">
+                ${Math.round(point.leader_match_ratio * 100)}%
+              </text>
+            </g>
+          `;
+        }}).join("");
+
+        marketChart.innerHTML = `
+          <rect x="0" y="0" width="${width}" height="${height}" rx="26" fill="rgba(255,255,255,0.16)"></rect>
+          ${gridLines}
+          ${priceBars}
+          <path d="${path}" fill="none" stroke="var(--sun)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
+          ${pointNodes}
+          ${xLabels}
+          <text x="${width - margin.right}" y="${margin.top + 4}" text-anchor="end" fill="rgba(31,42,46,0.55)" font-size="12">
+            Line = winning bucket already leading
+          </text>
+        `;
+      }}
+
       function renderCoverage(city) {{
         coverageList.innerHTML = "";
+        const marketPointByHour = new Map(
+          (Array.isArray(city.market_points) ? city.market_points : []).map((point) => [point.local_hour, point])
+        );
         city.points.forEach((point) => {{
           const total = point.valid_day_count + point.missing_day_count + point.excluded_day_count;
           const safeTotal = Math.max(1, total);
+          const marketPoint = marketPointByHour.get(point.local_hour);
+          const marketMeta = marketPoint
+            ? `
+              <div class="market-meta">
+                <div>Market lead ${marketPoint.valid_day_count > 0 ? `${marketPoint.leader_match_day_count}/${marketPoint.valid_day_count} days` : "0 valid days"}</div>
+                <div>Avg winner ${formatPriceCents(marketPoint.avg_winning_bucket_last_price_cents)}</div>
+              </div>
+            `
+            : `
+              <div class="market-meta market-meta-empty">
+                <div>Market metrics unavailable for this hour.</div>
+              </div>
+            `;
           const card = document.createElement("article");
           card.className = "coverage-card";
           card.innerHTML = `
@@ -519,6 +724,7 @@ HTML_TEMPLATE = """<!doctype html>
               <div>Missing ${point.missing_day_count}</div>
               <div>Excluded ${point.excluded_day_count}</div>
             </div>
+            ${marketMeta}
           `;
           coverageList.appendChild(card);
         }});
