@@ -17,7 +17,7 @@ from weather_study_cli.application.market_metrics import (
 )
 from weather_study_cli.application.metrics import AccuracyMetricSummary, compute_accuracy_metrics
 from weather_study_cli.application.raw_loader import DEFAULT_MOCK_DATA_DIR
-from weather_study_cli.application.report import export_accuracy_html
+from weather_study_cli.application.report import export_accuracy_html, load_accuracy_dashboard_report
 from weather_study_cli.application.s3 import (
     DEFAULT_AWS_PROFILE,
     DEFAULT_S3_DOWNLOAD_DIR,
@@ -32,6 +32,28 @@ DEFAULT_HTML_REPORT_PATH = Path(".study") / "weather-study.html"
 
 
 @dataclass(frozen=True)
+class BuildStudyCitySummary:
+    place: str
+    timezone: str
+    study_day_count: int
+    capture_day_count: int
+    resolved_actual_day_count: int
+    capture_window_start_date: str | None
+    capture_window_end_date: str | None
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "place": self.place,
+            "timezone": self.timezone,
+            "study_day_count": self.study_day_count,
+            "capture_day_count": self.capture_day_count,
+            "resolved_actual_day_count": self.resolved_actual_day_count,
+            "capture_window_start_date": self.capture_window_start_date,
+            "capture_window_end_date": self.capture_window_end_date,
+        }
+
+
+@dataclass(frozen=True)
 class BuildStudyReportSummary:
     input_root: Path
     db_path: Path
@@ -42,6 +64,7 @@ class BuildStudyReportSummary:
     accuracy_metrics: AccuracyMetricSummary
     market_metrics: MarketOpportunityMetricSummary
     gaps: CollectionGapReport
+    cities: tuple[BuildStudyCitySummary, ...]
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -54,6 +77,7 @@ class BuildStudyReportSummary:
             "accuracy_metrics": self.accuracy_metrics.to_dict(),
             "market_metrics": self.market_metrics.to_dict(),
             "gaps": self.gaps.to_dict(),
+            "cities": [city.to_dict() for city in self.cities],
         }
 
 
@@ -104,6 +128,31 @@ def build_study_report(
         place=place,
         min_valid_sample=min_valid_sample,
     )
+    report = load_accuracy_dashboard_report(
+        db_path=db_path,
+        place=place,
+        min_valid_sample=min_valid_sample,
+    )
+    city_summaries = tuple(
+        BuildStudyCitySummary(
+            place=str(city["place"]),
+            timezone=str(city["timezone"]),
+            study_day_count=int(city["study_day_count"]),
+            capture_day_count=int(city["capture_day_count"]),
+            resolved_actual_day_count=int(city["resolved_actual_day_count"]),
+            capture_window_start_date=(
+                None
+                if city["capture_window_start_date"] is None
+                else str(city["capture_window_start_date"])
+            ),
+            capture_window_end_date=(
+                None
+                if city["capture_window_end_date"] is None
+                else str(city["capture_window_end_date"])
+            ),
+        )
+        for city in report.cities
+    )
 
     return BuildStudyReportSummary(
         input_root=source_input,
@@ -115,4 +164,5 @@ def build_study_report(
         accuracy_metrics=accuracy_summary,
         market_metrics=market_summary,
         gaps=gap_summary,
+        cities=city_summaries,
     )

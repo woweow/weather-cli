@@ -732,6 +732,23 @@ def render_build_report_text_summary(summary: BuildStudyReportSummary) -> str:
             ),
         ]
     )
+    if summary.cities:
+        lines.append("city maturity:")
+        for city in summary.cities:
+            window = (
+                "n/a"
+                if city.capture_window_start_date is None and city.capture_window_end_date is None
+                else city.capture_window_start_date
+                if city.capture_window_start_date == city.capture_window_end_date
+                or city.capture_window_end_date is None
+                else f"{city.capture_window_start_date} -> {city.capture_window_end_date}"
+            )
+            lines.append(
+                (
+                    f"  {city.place}: {city.resolved_actual_day_count}/{city.capture_day_count} resolved days, "
+                    f"window {window}"
+                )
+            )
     return "\n".join(lines)
 
 
