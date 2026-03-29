@@ -22,4 +22,5 @@ Notes:
 
 - The deploy script packages the in-repo collector, study, weather, and Kalshi source packages into one Lambda zip.
 - It creates or updates a minimal IAM role for Lambda basic logs plus S3 writes to the configured bucket/prefix.
+- It can also create or update an hourly EventBridge Scheduler target that invokes the deployed Lambda.
 - The Lambda writes the same raw capture contract already validated by `weather-study-cli`.

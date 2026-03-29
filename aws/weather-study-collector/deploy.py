@@ -16,6 +16,7 @@ DEPLOY_ROOT = Path(__file__).resolve().parent
 DIST_DIR = DEPLOY_ROOT / "dist"
 ZIP_PATH = DIST_DIR / "weather-study-collector-lambda.zip"
 ROLE_POLICY_NAME = "weather-study-collector-s3-write"
+SCHEDULER_ROLE_POLICY_NAME = "weather-study-collector-lambda-invoke"
 MANAGED_POLICY_ARN = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 
 PACKAGE_SOURCES = (
@@ -47,12 +48,36 @@ def main(argv: list[str] | None = None) -> int:
         region=args.region,
         contact_email=args.contact_email,
     )
+    function_arn = get_function_arn(
+        function_name=args.function_name,
+        profile=args.profile,
+        region=args.region,
+    )
+    if not args.skip_schedule:
+        scheduler_role_arn = ensure_scheduler_role(
+            role_name=args.scheduler_role_name,
+            function_arn=function_arn,
+            profile=args.profile,
+        )
+        upsert_schedule(
+            schedule_name=args.schedule_name,
+            schedule_expression=args.schedule_expression,
+            function_arn=function_arn,
+            role_arn=scheduler_role_arn,
+            profile=args.profile,
+            region=args.region,
+            state=args.schedule_state,
+        )
 
     print(
         json.dumps(
             {
                 "function_name": args.function_name,
                 "role_name": args.role_name,
+                "scheduler_role_name": None if args.skip_schedule else args.scheduler_role_name,
+                "schedule_name": None if args.skip_schedule else args.schedule_name,
+                "schedule_expression": None if args.skip_schedule else args.schedule_expression,
+                "schedule_state": None if args.skip_schedule else args.schedule_state,
                 "bucket": args.bucket,
                 "prefix": args.prefix,
                 "region": args.region,
@@ -103,6 +128,32 @@ def build_parser() -> argparse.ArgumentParser:
         "--contact-email",
         default="weather-cli@example.com",
         help="Contact email passed through to the collector for NOAA User-Agent headers.",
+    )
+    parser.add_argument(
+        "--skip-schedule",
+        action="store_true",
+        help="Deploy the Lambda only and skip EventBridge Scheduler creation or update.",
+    )
+    parser.add_argument(
+        "--schedule-name",
+        default="weather-study-collector-hourly",
+        help="EventBridge Scheduler name (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--scheduler-role-name",
+        default="weather-study-collector-scheduler-role",
+        help="IAM role name used by EventBridge Scheduler to invoke the Lambda (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--schedule-expression",
+        default="rate(1 hour)",
+        help="EventBridge Scheduler expression (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--schedule-state",
+        choices=("ENABLED", "DISABLED"),
+        default="ENABLED",
+        help="Whether the schedule should be enabled after deployment (default: %(default)s)",
     )
     return parser
 
@@ -305,6 +356,160 @@ def deploy_lambda(
             region=region,
         )
     wait_for_lambda_ready(function_name=function_name, profile=profile, region=region)
+
+
+def get_function_arn(*, function_name: str, profile: str, region: str) -> str:
+    payload = json.loads(
+        run_aws(
+            ["lambda", "get-function", "--function-name", function_name],
+            profile=profile,
+            region=region,
+        ).stdout
+    )
+    return payload["Configuration"]["FunctionArn"]
+
+
+def ensure_scheduler_role(*, role_name: str, function_arn: str, profile: str) -> str:
+    existing = run_aws(
+        ["iam", "get-role", "--role-name", role_name],
+        profile=profile,
+        region=None,
+        check=False,
+    )
+    if existing.returncode == 0:
+        role_arn = json.loads(existing.stdout)["Role"]["Arn"]
+    else:
+        trust_policy = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Service": "scheduler.amazonaws.com"},
+                    "Action": "sts:AssumeRole",
+                }
+            ],
+        }
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".json", delete=False) as trust_file:
+            json.dump(trust_policy, trust_file)
+            trust_path = Path(trust_file.name)
+        try:
+            created = run_aws(
+                [
+                    "iam",
+                    "create-role",
+                    "--role-name",
+                    role_name,
+                    "--assume-role-policy-document",
+                    f"file://{trust_path}",
+                ],
+                profile=profile,
+                region=None,
+            )
+        finally:
+            trust_path.unlink(missing_ok=True)
+        role_arn = json.loads(created.stdout)["Role"]["Arn"]
+        time.sleep(10)
+
+    inline_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["lambda:InvokeFunction"],
+                "Resource": function_arn,
+            }
+        ],
+    }
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".json", delete=False) as policy_file:
+        json.dump(inline_policy, policy_file)
+        policy_path = Path(policy_file.name)
+    try:
+        run_aws(
+            [
+                "iam",
+                "put-role-policy",
+                "--role-name",
+                role_name,
+                "--policy-name",
+                SCHEDULER_ROLE_POLICY_NAME,
+                "--policy-document",
+                f"file://{policy_path}",
+            ],
+            profile=profile,
+            region=None,
+        )
+    finally:
+        policy_path.unlink(missing_ok=True)
+
+    return role_arn
+
+
+def upsert_schedule(
+    *,
+    schedule_name: str,
+    schedule_expression: str,
+    function_arn: str,
+    role_arn: str,
+    profile: str,
+    region: str,
+    state: str,
+) -> None:
+    target_payload = json.dumps(
+        {
+            "Arn": function_arn,
+            "RoleArn": role_arn,
+            "Input": "{}",
+        }
+    )
+    flexible_window_payload = json.dumps({"Mode": "OFF"})
+    exists = run_aws(
+        ["scheduler", "get-schedule", "--name", schedule_name, "--group-name", "default"],
+        profile=profile,
+        region=region,
+        check=False,
+    )
+    if exists.returncode == 0:
+        run_aws(
+            [
+                "scheduler",
+                "update-schedule",
+                "--name",
+                schedule_name,
+                "--group-name",
+                "default",
+                "--schedule-expression",
+                schedule_expression,
+                "--flexible-time-window",
+                flexible_window_payload,
+                "--target",
+                target_payload,
+                "--state",
+                state,
+            ],
+            profile=profile,
+            region=region,
+        )
+    else:
+        run_aws(
+            [
+                "scheduler",
+                "create-schedule",
+                "--name",
+                schedule_name,
+                "--group-name",
+                "default",
+                "--schedule-expression",
+                schedule_expression,
+                "--flexible-time-window",
+                flexible_window_payload,
+                "--target",
+                target_payload,
+                "--state",
+                state,
+            ],
+            profile=profile,
+            region=region,
+        )
 
 
 def wait_for_lambda_ready(*, function_name: str, profile: str, region: str, timeout_seconds: int = 180) -> None:
