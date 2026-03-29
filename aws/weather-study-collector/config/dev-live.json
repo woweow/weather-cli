@@ -1,0 +1,13 @@
+{
+  "bucket": "weather-study-raw-084375548651-us-west-2",
+  "prefix": "raw",
+  "function_name": "weather-study-collector-dev",
+  "role_name": "weather-study-collector-lambda-role",
+  "profile": "dev",
+  "region": "us-west-2",
+  "contact_email": "weather-cli@example.com",
+  "schedule_name": "weather-study-collector-hourly",
+  "scheduler_role_name": "weather-study-collector-scheduler-role",
+  "schedule_expression": "rate(1 hour)",
+  "schedule_state": "ENABLED"
+}

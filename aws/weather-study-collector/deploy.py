@@ -25,11 +25,28 @@ PACKAGE_SOURCES = (
     REPO_ROOT / "packages" / "weather-cli" / "src" / "weather_cli",
     REPO_ROOT / "packages" / "kalshi-weather-markets-cli" / "src" / "kalshi_weather_markets_cli",
 )
+CONFIG_KEYS = {
+    "bucket",
+    "prefix",
+    "function_name",
+    "role_name",
+    "profile",
+    "region",
+    "contact_email",
+    "skip_schedule",
+    "schedule_name",
+    "scheduler_role_name",
+    "schedule_expression",
+    "schedule_state",
+}
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+    raw_argv = argv if argv is not None else sys.argv[1:]
+    parser = build_parser(defaults=load_parser_defaults(raw_argv))
+    args = parser.parse_args(raw_argv)
+    if not args.bucket:
+        parser.error("--bucket is required unless it is supplied by --config")
 
     zip_path = build_lambda_zip(ZIP_PATH)
     role_arn = ensure_lambda_role(
@@ -82,6 +99,7 @@ def main(argv: list[str] | None = None) -> int:
                 "prefix": args.prefix,
                 "region": args.region,
                 "profile": args.profile,
+                "config": str(Path(args.config).expanduser().resolve()) if args.config else None,
                 "zip_path": str(zip_path),
             },
             indent=2,
@@ -90,13 +108,16 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser(*, defaults: dict[str, object] | None = None) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Package and deploy the weather study collector Lambda.",
     )
     parser.add_argument(
+        "--config",
+        help="Optional JSON file that provides default deploy arguments.",
+    )
+    parser.add_argument(
         "--bucket",
-        required=True,
         help="S3 bucket where the Lambda will write raw study captures.",
     )
     parser.add_argument(
@@ -155,7 +176,29 @@ def build_parser() -> argparse.ArgumentParser:
         default="ENABLED",
         help="Whether the schedule should be enabled after deployment (default: %(default)s)",
     )
+    parser.set_defaults(**(defaults or {}))
     return parser
+
+
+def load_parser_defaults(argv: list[str]) -> dict[str, object]:
+    config_parser = argparse.ArgumentParser(add_help=False)
+    config_parser.add_argument("--config")
+    args, _ = config_parser.parse_known_args(argv)
+    if not args.config:
+        return {}
+    return load_deploy_config(Path(args.config).expanduser())
+
+
+def load_deploy_config(path: Path) -> dict[str, object]:
+    resolved = path.resolve()
+    data = json.loads(resolved.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"Deploy config {resolved} must be a JSON object.")
+    unknown = sorted(set(data) - CONFIG_KEYS)
+    if unknown:
+        joined = ", ".join(unknown)
+        raise ValueError(f"Deploy config {resolved} contained unknown keys: {joined}")
+    return data
 
 
 def build_lambda_zip(target_zip: Path) -> Path:
