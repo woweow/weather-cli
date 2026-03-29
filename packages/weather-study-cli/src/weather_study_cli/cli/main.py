@@ -7,14 +7,17 @@ from pathlib import Path
 
 from weather_study_cli.application import (
     AccuracyMetricSummary,
+    BuildStudyReportSummary,
     CollectionGapReport,
     DEFAULT_AWS_PROFILE,
     DEFAULT_DB_PATH,
+    DEFAULT_HTML_REPORT_PATH,
     DEFAULT_MOCK_DATA_DIR,
     DEFAULT_CONTACT_EMAIL,
     DEFAULT_S3_DOWNLOAD_DIR,
     DEFAULT_S3_PREFIX,
     MarketOpportunityMetricSummary,
+    build_study_report,
     StudyDayDrilldownReport,
     WeatherStudyCliError,
     compute_accuracy_metrics,
@@ -298,6 +301,87 @@ def build_parser() -> argparse.ArgumentParser:
         help="Threshold below which the UI shows a thin-sample warning (default: %(default)s)",
     )
 
+    build_report = subparsers.add_parser(
+        "build-report",
+        help="Sync, ingest, derive, compute, and export the local study report in one pass.",
+        description=(
+            "Run the full local study-report build pipeline in one pass.\n\n"
+            "The command optionally syncs raw captures from S3, resets the study DB from those raw\n"
+            "files, derives completed daily actual highs, recomputes both metric tables, and writes\n"
+            "the self-contained HTML export.\n\n"
+            "Examples:\n"
+            "  weather-study build-report\n"
+            "  weather-study build-report --output /tmp/weather-study.html --db-path /tmp/weather-study.db\n"
+            "  weather-study build-report --bucket my-study-bucket --prefix raw-mock-seed --output /tmp/weather-study.html"
+        ),
+        formatter_class=HelpFormatter,
+    )
+    build_report.add_argument(
+        "--input",
+        default=str(DEFAULT_MOCK_DATA_DIR),
+        help="Local raw root to build from when --bucket is not supplied (default: %(default)s)",
+    )
+    build_report.add_argument(
+        "--bucket",
+        help="Optional S3 bucket to sync from before rebuilding the local study DB.",
+    )
+    build_report.add_argument(
+        "--prefix",
+        default=DEFAULT_S3_PREFIX,
+        help="S3 prefix to sync from when --bucket is supplied (default: %(default)s)",
+    )
+    build_report.add_argument(
+        "--sync-output-root",
+        default=str(DEFAULT_S3_DOWNLOAD_DIR),
+        help="Local root directory for synced S3 raw files (default: %(default)s)",
+    )
+    build_report.add_argument(
+        "--profile",
+        default=DEFAULT_AWS_PROFILE,
+        help="AWS CLI profile to use when syncing from S3 (default: %(default)s)",
+    )
+    build_report.add_argument(
+        "--delete",
+        action="store_true",
+        help="Delete local synced raw files that no longer exist under the S3 prefix.",
+    )
+    build_report.add_argument(
+        "--skip-sync-validate",
+        action="store_true",
+        help="Skip raw-contract validation after S3 sync.",
+    )
+    build_report.add_argument(
+        "--db-path",
+        default=str(DEFAULT_DB_PATH),
+        help="SQLite database path for the study DB (default: %(default)s)",
+    )
+    build_report.add_argument(
+        "--output",
+        default=str(DEFAULT_HTML_REPORT_PATH),
+        help="Path to write the HTML report (default: %(default)s)",
+    )
+    build_report.add_argument(
+        "--place",
+        help='Optional strict city,state filter such as "Seattle,WA" for actuals, metrics, and export.',
+    )
+    build_report.add_argument(
+        "--contact-email",
+        default=DEFAULT_CONTACT_EMAIL,
+        help="Contact email embedded in the NOAA User-Agent header (default: %(default)s)",
+    )
+    build_report.add_argument(
+        "--min-valid-sample",
+        type=int,
+        default=5,
+        help="Threshold below which the UI shows a thin-sample warning (default: %(default)s)",
+    )
+    build_report.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format for the build summary (default: %(default)s)",
+    )
+
     gaps = subparsers.add_parser(
         "report-gaps",
         help="Report missing city-hours from ingested raw captures.",
@@ -438,6 +522,26 @@ def main(argv: list[str] | None = None) -> int:
                 place=args.place,
                 min_valid_sample=args.min_valid_sample,
             )
+        if args.command == "build-report":
+            summary = build_study_report(
+                input_path=args.input,
+                db_path=args.db_path,
+                output_path=args.output,
+                place=args.place,
+                min_valid_sample=args.min_valid_sample,
+                bucket=args.bucket,
+                prefix=args.prefix,
+                sync_output_root=args.sync_output_root,
+                profile=args.profile,
+                delete=args.delete,
+                validate_sync=not args.skip_sync_validate,
+                contact_email=args.contact_email,
+            )
+            if args.format == "json":
+                print(json.dumps(summary.to_dict(), indent=2, sort_keys=False))
+            else:
+                print(render_build_report_text_summary(summary))
+            return 0
         if args.command == "report-gaps":
             summary = load_collection_gap_report(db_path=args.db_path, place=args.place)
             if args.format == "json":
@@ -588,6 +692,33 @@ def render_gap_text_summary(summary: CollectionGapReport) -> str:
                     f"{date.expected_end_hour:02d}, observed {observed_hours}, missing {missing_hours}"
                 )
             )
+    return "\n".join(lines)
+
+
+def render_build_report_text_summary(summary: BuildStudyReportSummary) -> str:
+    lines = [
+        f"Built study report from {summary.input_root}",
+        f"SQLite database: {summary.db_path}",
+        f"HTML report: {summary.output_path}",
+    ]
+    if summary.sync is not None:
+        lines.extend(
+            [
+                f"S3 source: {summary.sync.source_uri}",
+                f"AWS profile: {summary.sync.profile}",
+            ]
+        )
+    lines.extend(
+        [
+            f"raw_captures: {summary.ingest.raw_capture_count}",
+            f"forecast_periods: {summary.ingest.forecast_period_count}",
+            f"market_rows: {summary.ingest.market_row_count}",
+            f"daily_actuals: {summary.actuals.daily_actual_count}",
+            f"hourly_accuracy_metrics: {summary.accuracy_metrics.metric_row_count}",
+            f"hourly_market_opportunity_metrics: {summary.market_metrics.metric_row_count}",
+            f"skipped incomplete local dates: {summary.actuals.skipped_incomplete_count}",
+        ]
+    )
     return "\n".join(lines)
 
 
