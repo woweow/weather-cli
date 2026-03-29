@@ -9,6 +9,7 @@ from weather_study_cli.application.actuals import (
     ObservedHighService,
     derive_daily_actuals,
 )
+from weather_study_cli.application.gaps import CollectionGapReport, load_collection_gap_report
 from weather_study_cli.application.ingest import IngestSummary, ingest_capture_directory
 from weather_study_cli.application.market_metrics import (
     MarketOpportunityMetricSummary,
@@ -40,6 +41,7 @@ class BuildStudyReportSummary:
     actuals: DailyActualDerivationSummary
     accuracy_metrics: AccuracyMetricSummary
     market_metrics: MarketOpportunityMetricSummary
+    gaps: CollectionGapReport
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -51,6 +53,7 @@ class BuildStudyReportSummary:
             "actuals": self.actuals.to_dict(),
             "accuracy_metrics": self.accuracy_metrics.to_dict(),
             "market_metrics": self.market_metrics.to_dict(),
+            "gaps": self.gaps.to_dict(),
         }
 
 
@@ -92,6 +95,7 @@ def build_study_report(
     )
     accuracy_summary = compute_accuracy_metrics(db_path=db_path, place=place)
     market_summary = compute_market_opportunity_metrics(db_path=db_path, place=place)
+    gap_summary = load_collection_gap_report(db_path=db_path, place=place)
 
     target_output = Path(output_path).expanduser().resolve()
     export_accuracy_html(
@@ -110,4 +114,5 @@ def build_study_report(
         actuals=actuals_summary,
         accuracy_metrics=accuracy_summary,
         market_metrics=market_summary,
+        gaps=gap_summary,
     )

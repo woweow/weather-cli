@@ -722,6 +722,14 @@ def render_build_report_text_summary(summary: BuildStudyReportSummary) -> str:
             f"hourly_accuracy_metrics: {summary.accuracy_metrics.metric_row_count}",
             f"hourly_market_opportunity_metrics: {summary.market_metrics.metric_row_count}",
             f"skipped incomplete local dates: {summary.actuals.skipped_incomplete_count}",
+            f"configured study cities: {summary.gaps.configured_place_count}",
+            f"places in gap report: {summary.gaps.place_count}",
+            (
+                "supported cities without captures: none"
+                if not summary.gaps.missing_supported_places
+                else "supported cities without captures: "
+                + ", ".join(summary.gaps.missing_supported_places)
+            ),
         ]
     )
     return "\n".join(lines)
