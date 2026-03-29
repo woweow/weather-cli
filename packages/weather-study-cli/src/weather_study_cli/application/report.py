@@ -7,6 +7,7 @@ from pathlib import Path
 
 from weather_study_cli.application.day_report import load_day_drilldown_report
 from weather_study_cli.application.errors import StudyValidationError
+from weather_study_cli.application.gaps import load_collection_gap_report
 from weather_study_cli.persistence.connection import DEFAULT_DB_PATH, open_connection
 from weather_study_cli.persistence.migrations import initialize_schema
 from weather_study_cli.persistence.repository import (
@@ -43,6 +44,7 @@ def load_accuracy_dashboard_report(
         rows = list_hourly_accuracy_metric_rows(connection, place=place)
         market_rows = list_hourly_market_opportunity_metric_rows(connection, place=place)
         day_targets = list_daily_actual_targets(connection, place=place)
+    gap_report = load_collection_gap_report(db_path=target_db_path, place=place)
 
     if not rows:
         raise StudyValidationError(
@@ -52,6 +54,7 @@ def load_accuracy_dashboard_report(
     grouped: dict[str, list[dict[str, object]]] = {}
     market_by_place: dict[str, list[dict[str, object]]] = {}
     day_targets_by_place: dict[str, list[dict[str, str]]] = {}
+    gap_by_place = {place_summary.place: place_summary.to_dict() for place_summary in gap_report.places}
     timezone_by_place: dict[str, str] = {}
     for row in rows:
         grouped.setdefault(row["place"], []).append(row)
@@ -103,6 +106,7 @@ def load_accuracy_dashboard_report(
                 "study_day_count": study_day_count,
                 "thin_sample_hours": thin_sample_hours,
                 "market_thin_sample_hours": market_thin_sample_hours,
+                "gap_summary": gap_by_place.get(current_place),
                 "day_drilldowns": day_drilldowns,
                 "points": [
                     {

@@ -43,6 +43,7 @@ def test_export_accuracy_html_writes_self_contained_dashboard(tmp_path):
     assert "Market Convergence" in html
     assert "Single-Day Drilldown" in html
     assert "Example Days" in html
+    assert "Collection Gaps" in html
     assert "Avg winner" in html
     assert "Seattle,WA" in html
     assert "Denver,CO" in html

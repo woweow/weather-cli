@@ -574,6 +574,51 @@ HTML_TEMPLATE = """<!doctype html>
         color: var(--danger);
       }}
 
+      .gaps-panel {{
+        padding: 1.2rem;
+        border-top: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.32), rgba(255,255,255,0.52)),
+          linear-gradient(135deg, rgba(166, 64, 52, 0.04), rgba(231, 179, 94, 0.08));
+      }}
+
+      .gap-list {{
+        display: grid;
+        gap: 0.7rem;
+        margin-top: 1rem;
+      }}
+
+      .gap-card {{
+        padding: 0.9rem 1rem;
+        border-radius: 1rem;
+        background: rgba(255,255,255,0.8);
+        border: 1px solid rgba(18, 61, 77, 0.08);
+      }}
+
+      .gap-top {{
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: baseline;
+      }}
+
+      .gap-date {{
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+        font-size: 1.05rem;
+      }}
+
+      .gap-stat {{
+        font-size: 0.82rem;
+        color: var(--muted);
+      }}
+
+      .gap-note {{
+        margin-top: 0.4rem;
+        color: var(--muted);
+        font-size: 0.8rem;
+        line-height: 1.45;
+      }}
+
       .legend {{
         display: flex;
         gap: 0.85rem;
@@ -752,6 +797,31 @@ HTML_TEMPLATE = """<!doctype html>
             The market status below is taken from the first captured hour that matched the final high. That makes it easier to see whether the forecast arrived before the ladder fully centered on the winner.
           </p>
         </section>
+
+        <section class="gaps-panel">
+          <div class="section-head">
+            <h2>Collection Gaps</h2>
+            <div class="section-note">Operational visibility for missing city-hours derived from the same ingested raw captures.</div>
+          </div>
+          <div class="summary-strip" style="justify-content: flex-start;">
+            <div class="chip">
+              <div class="chip-label">Coverage</div>
+              <div class="chip-value" id="gap-coverage-ratio">-</div>
+            </div>
+            <div class="chip">
+              <div class="chip-label">Missing Hours</div>
+              <div class="chip-value" id="gap-missing-hours">-</div>
+            </div>
+            <div class="chip">
+              <div class="chip-label">Gap Dates</div>
+              <div class="chip-value" id="gap-date-count">-</div>
+            </div>
+          </div>
+          <div class="gap-list" id="gap-list"></div>
+          <p class="footer-note">
+            Current local dates are shown as in-progress windows, so a same-day gap means a missing scheduled capture, not a missing future hour.
+          </p>
+        </section>
       </section>
     </main>
 
@@ -772,6 +842,10 @@ HTML_TEMPLATE = """<!doctype html>
       const dayCaptureList = document.getElementById("day-capture-list");
       const earlyExampleTable = document.getElementById("early-example-table");
       const lateExampleTable = document.getElementById("late-example-table");
+      const gapCoverageRatioNode = document.getElementById("gap-coverage-ratio");
+      const gapMissingHoursNode = document.getElementById("gap-missing-hours");
+      const gapDateCountNode = document.getElementById("gap-date-count");
+      const gapList = document.getElementById("gap-list");
       const accuracyChart = document.getElementById("accuracy-chart");
       const marketChart = document.getElementById("market-chart");
 
@@ -809,6 +883,10 @@ HTML_TEMPLATE = """<!doctype html>
         return timestamp.slice(11, 16);
       }}
 
+      function formatPercent(ratio) {{
+        return `${Math.round(Number(ratio) * 100)}%`;
+      }}
+
       function escapeHtml(value) {{
         return String(value)
           .replaceAll("&", "&amp;")
@@ -820,6 +898,17 @@ HTML_TEMPLATE = """<!doctype html>
 
       function roundHalfUp(value) {{
         return Math.floor(Number(value) + 0.5);
+      }}
+
+      function summarizeHours(hours) {{
+        if (!Array.isArray(hours) || hours.length === 0) {{
+          return "none";
+        }}
+        if (hours.length <= 6) {{
+          return hours.map((hour) => hour.toString().padStart(2, "0")).join(", ");
+        }}
+        const head = hours.slice(0, 4).map((hour) => hour.toString().padStart(2, "0")).join(", ");
+        return `${head} +${hours.length - 4} more`;
       }}
 
       function labelContainsTemperature(label, temperatureF) {{
@@ -889,6 +978,7 @@ HTML_TEMPLATE = """<!doctype html>
         daySelect.disabled = dayDrilldowns.length === 0;
         renderDayDrilldown(city, dayDrilldowns.length === 0 ? -1 : 0);
         renderExampleDays(city);
+        renderGapSummary(city);
       }}
 
       function renderAccuracyChart(city) {{
@@ -1378,6 +1468,44 @@ HTML_TEMPLATE = """<!doctype html>
           lateRows,
           "No resolved city-days are available yet for late-confidence examples."
         );
+      }}
+
+      function renderGapSummary(city) {{
+        const gapSummary = city.gap_summary;
+        if (!gapSummary) {{
+          gapCoverageRatioNode.textContent = "-";
+          gapMissingHoursNode.textContent = "-";
+          gapDateCountNode.textContent = "-";
+          gapList.innerHTML = `<div class="empty-state">No gap summary is available for this city yet.</div>`;
+          return;
+        }}
+
+        gapCoverageRatioNode.textContent = formatPercent(gapSummary.coverage_ratio);
+        gapMissingHoursNode.textContent = String(gapSummary.missing_hour_count);
+        gapDateCountNode.textContent = String(gapSummary.gap_date_count);
+
+        const gapDates = (gapSummary.dates || []).filter((date) => date.missing_hour_count > 0);
+        if (gapDates.length === 0) {{
+          gapList.innerHTML = `<div class="empty-state">No missing city-hours are currently recorded for this city.</div>`;
+          return;
+        }}
+
+        gapList.innerHTML = gapDates
+          .slice(0, 4)
+          .map((date) => `
+            <article class="gap-card">
+              <div class="gap-top">
+                <div class="gap-date">${escapeHtml(date.local_date)}${date.is_current_local_date ? " (in progress)" : ""}</div>
+                <div class="gap-stat">${date.observed_hour_count}/${date.expected_hour_count} hours present</div>
+              </div>
+              <div class="gap-note">
+                Window ${String(date.expected_start_hour).padStart(2, "0")}-${String(date.expected_end_hour).padStart(2, "0")} ·
+                observed ${escapeHtml(summarizeHours(date.observed_hours))} ·
+                missing ${escapeHtml(summarizeHours(date.missing_hours))}
+              </div>
+            </article>
+          `)
+          .join("");
       }}
 
       select.addEventListener("change", () => renderCity(Number(select.value)));
