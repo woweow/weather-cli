@@ -47,3 +47,18 @@ def test_export_accuracy_html_writes_self_contained_dashboard(tmp_path):
     assert "Seattle,WA" in html
     assert "Denver,CO" in html
     assert "Thin sample" in html
+
+
+def test_export_accuracy_html_marks_zero_valid_hours_as_unresolved(tmp_path):
+    db_path = tmp_path / "study.db"
+    output_path = tmp_path / "accuracy-unresolved.html"
+    ingest_capture_directory(DEFAULT_MOCK_DATA_DIR, db_path=db_path)
+
+    compute_accuracy_metrics(db_path=db_path)
+    compute_market_opportunity_metrics(db_path=db_path)
+    export_accuracy_html(db_path=db_path, output_path=output_path, min_valid_sample=5)
+
+    html = output_path.read_text(encoding="utf-8")
+    assert "No finalized accuracy days yet" in html
+    assert "No finalized market days yet" in html
+    assert "Unresolved" in html

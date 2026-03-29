@@ -851,6 +851,12 @@ HTML_TEMPLATE = """<!doctype html>
         marketHourNode.textContent = String(marketPoints.length);
 
         const warnings = [];
+        if (city.points.length > 0 && city.points.every((point) => point.valid_day_count === 0)) {{
+          warnings.push("No finalized forecast days exist yet for these captured hours.");
+        }}
+        if (marketPoints.length > 0 && marketPoints.every((point) => point.valid_day_count === 0)) {{
+          warnings.push("No finalized market-opportunity days exist yet for these captured hours.");
+        }}
         if (city.thin_sample_hours.length > 0) {{
           warnings.push(
             `Thin sample on forecast hours ${formatHourList(city.thin_sample_hours)} with fewer than ${report.min_valid_sample} valid study days.`
@@ -887,11 +893,24 @@ HTML_TEMPLATE = """<!doctype html>
 
       function renderAccuracyChart(city) {{
         const points = city.points;
+        const resolvedPoints = points.filter((point) => point.valid_day_count > 0);
         const width = 760;
         const height = 320;
         const margin = {{ top: 18, right: 24, bottom: 44, left: 52 }};
         const plotWidth = width - margin.left - margin.right;
         const plotHeight = height - margin.top - margin.bottom;
+        if (points.length === 0 || resolvedPoints.length === 0) {{
+          accuracyChart.innerHTML = `
+            <rect x="0" y="0" width="${width}" height="${height}" rx="26" fill="rgba(255,255,255,0.16)"></rect>
+            <text x="${width / 2}" y="${height / 2 - 6}" text-anchor="middle" fill="rgba(31,42,46,0.7)" font-size="20" font-family="Iowan Old Style, Palatino Linotype, serif">
+              No finalized accuracy days yet
+            </text>
+            <text x="${width / 2}" y="${height / 2 + 20}" text-anchor="middle" fill="rgba(31,42,46,0.55)" font-size="13">
+              Captures exist, but every city-day is still missing a resolved observed high for this hour.
+            </text>
+          `;
+          return;
+        }}
         const minHour = Math.min(...points.map((point) => point.local_hour));
         const maxHour = Math.max(...points.map((point) => point.local_hour));
         const xForHour = (hour) =>
@@ -918,13 +937,13 @@ HTML_TEMPLATE = """<!doctype html>
           `;
         }}).join("");
 
-        const path = points.map((point, index) => {{
+        const path = resolvedPoints.map((point, index) => {{
           const x = xForHour(point.local_hour);
           const y = yForRatio(point.accuracy_ratio);
           return `${index === 0 ? "M" : "L"} ${x} ${y}`;
         }}).join(" ");
 
-        const pointNodes = points.map((point) => {{
+        const pointNodes = resolvedPoints.map((point) => {{
           const x = xForHour(point.local_hour);
           const y = yForRatio(point.accuracy_ratio);
           const thin = point.valid_day_count < report.min_valid_sample;
@@ -938,11 +957,27 @@ HTML_TEMPLATE = """<!doctype html>
           `;
         }}).join("");
 
+        const unresolvedNodes = points
+          .filter((point) => point.valid_day_count === 0)
+          .map((point) => {{
+            const x = xForHour(point.local_hour);
+            const y = margin.top + plotHeight - 12;
+            return `
+              <g>
+                <circle cx="${x}" cy="${y}" r="7" fill="rgba(255,255,255,0.9)" stroke="var(--gold)" stroke-width="3" />
+                <text x="${x}" y="${y - 14}" text-anchor="middle" fill="rgba(31,42,46,0.7)" font-size="11" font-weight="700">
+                  n/a
+                </text>
+              </g>
+            `;
+          }}).join("");
+
         accuracyChart.innerHTML = `
           <rect x="0" y="0" width="${width}" height="${height}" rx="26" fill="rgba(255,255,255,0.16)"></rect>
           ${gridLines}
           <path d="${path}" fill="none" stroke="var(--storm)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
           ${pointNodes}
+          ${unresolvedNodes}
           ${xLabels}
           <text x="${width - margin.right}" y="${margin.top + 4}" text-anchor="end" fill="rgba(31,42,46,0.55)" font-size="12">
             Higher is better
@@ -952,6 +987,7 @@ HTML_TEMPLATE = """<!doctype html>
 
       function renderMarketChart(city) {{
         const points = Array.isArray(city.market_points) ? city.market_points : [];
+        const resolvedPoints = points.filter((point) => point.valid_day_count > 0);
         const width = 760;
         const height = 320;
         const margin = {{ top: 18, right: 24, bottom: 44, left: 52 }};
@@ -966,6 +1002,18 @@ HTML_TEMPLATE = """<!doctype html>
             </text>
             <text x="${width / 2}" y="${height / 2 + 20}" text-anchor="middle" fill="rgba(31,42,46,0.55)" font-size="13">
               Run compute-market-opportunity-metrics to add the ladder timing overlay.
+            </text>
+          `;
+          return;
+        }}
+        if (resolvedPoints.length === 0) {{
+          marketChart.innerHTML = `
+            <rect x="0" y="0" width="${width}" height="${height}" rx="26" fill="rgba(255,255,255,0.16)"></rect>
+            <text x="${width / 2}" y="${height / 2 - 6}" text-anchor="middle" fill="rgba(31,42,46,0.7)" font-size="20" font-family="Iowan Old Style, Palatino Linotype, serif">
+              No finalized market days yet
+            </text>
+            <text x="${width / 2}" y="${height / 2 + 20}" text-anchor="middle" fill="rgba(31,42,46,0.55)" font-size="13">
+              Captures exist, but no city-day has both a resolved actual high and a usable winning bucket here.
             </text>
           `;
           return;
@@ -998,7 +1046,7 @@ HTML_TEMPLATE = """<!doctype html>
           `;
         }}).join("");
 
-        const priceBars = points.map((point) => {{
+        const priceBars = resolvedPoints.map((point) => {{
           if (point.avg_winning_bucket_last_price_cents === null || point.avg_winning_bucket_last_price_cents === undefined) {{
             return "";
           }}
@@ -1023,13 +1071,13 @@ HTML_TEMPLATE = """<!doctype html>
           `;
         }}).join("");
 
-        const path = points.map((point, index) => {{
+        const path = resolvedPoints.map((point, index) => {{
           const x = xForHour(point.local_hour);
           const y = yForRatio(point.leader_match_ratio);
           return `${index === 0 ? "M" : "L"} ${x} ${y}`;
         }}).join(" ");
 
-        const pointNodes = points.map((point) => {{
+        const pointNodes = resolvedPoints.map((point) => {{
           const x = xForHour(point.local_hour);
           const y = yForRatio(point.leader_match_ratio);
           const thin = point.valid_day_count < report.min_valid_sample;
@@ -1043,12 +1091,28 @@ HTML_TEMPLATE = """<!doctype html>
           `;
         }}).join("");
 
+        const unresolvedNodes = points
+          .filter((point) => point.valid_day_count === 0)
+          .map((point) => {{
+            const x = xForHour(point.local_hour);
+            const y = margin.top + plotHeight - 12;
+            return `
+              <g>
+                <circle cx="${x}" cy="${y}" r="7" fill="rgba(255,255,255,0.9)" stroke="var(--gold)" stroke-width="3" />
+                <text x="${x}" y="${y - 14}" text-anchor="middle" fill="rgba(31,42,46,0.7)" font-size="11" font-weight="700">
+                  n/a
+                </text>
+              </g>
+            `;
+          }}).join("");
+
         marketChart.innerHTML = `
           <rect x="0" y="0" width="${width}" height="${height}" rx="26" fill="rgba(255,255,255,0.16)"></rect>
           ${gridLines}
           ${priceBars}
           <path d="${path}" fill="none" stroke="var(--sun)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
           ${pointNodes}
+          ${unresolvedNodes}
           ${xLabels}
           <text x="${width - margin.right}" y="${margin.top + 4}" text-anchor="end" fill="rgba(31,42,46,0.55)" font-size="12">
             Line = winning bucket already leading
@@ -1068,7 +1132,7 @@ HTML_TEMPLATE = """<!doctype html>
           const marketMeta = marketPoint
             ? `
               <div class="market-meta">
-                <div>Market lead ${marketPoint.valid_day_count > 0 ? `${marketPoint.leader_match_day_count}/${marketPoint.valid_day_count} days` : "0 valid days"}</div>
+                <div>Market lead ${marketPoint.valid_day_count > 0 ? `${marketPoint.leader_match_day_count}/${marketPoint.valid_day_count} days` : "Unresolved"}</div>
                 <div>Avg winner ${formatPriceCents(marketPoint.avg_winning_bucket_last_price_cents)}</div>
               </div>
             `
@@ -1082,7 +1146,7 @@ HTML_TEMPLATE = """<!doctype html>
           card.innerHTML = `
             <div class="coverage-top">
               <div class="coverage-hour">${String(point.local_hour).padStart(2, "0")}:00</div>
-              <div class="coverage-ratio">${point.correct_day_count}/${Math.max(1, point.valid_day_count)} correct</div>
+              <div class="coverage-ratio">${point.valid_day_count > 0 ? `${point.correct_day_count}/${point.valid_day_count} correct` : "Unresolved"}</div>
             </div>
             <div class="stack">
               <div>
