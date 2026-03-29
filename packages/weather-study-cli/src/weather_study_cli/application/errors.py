@@ -7,3 +7,7 @@ class WeatherStudyCliError(Exception):
 
 class StudyValidationError(WeatherStudyCliError):
     """Raised when raw study captures do not match the expected contract."""
+
+
+class IncompatibleStudyDatabaseError(WeatherStudyCliError):
+    """Raised when the local study SQLite schema version is incompatible."""

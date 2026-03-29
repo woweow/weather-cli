@@ -86,6 +86,42 @@ class StudyCapture:
     def error_sources(self) -> set[str]:
         return {entry.source for entry in self.errors}
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "captured_at_utc": self.captured_at_utc,
+            "collector": {
+                "name": self.collector_name,
+                "version": self.collector_version,
+            },
+            "city": {
+                "name": self.city_name,
+                "state": self.state_code,
+                "place": self.place,
+                "timezone": self.timezone,
+            },
+            "capture_context": {
+                "local_timestamp": self.local_timestamp,
+                "local_date": self.local_date,
+                "local_hour": self.local_hour,
+            },
+            "weather": {
+                "source": self.weather.source,
+                "payload": self.weather.payload,
+            },
+            "market": {
+                "source": self.market.source,
+                "payload": self.market.payload,
+            },
+            "errors": [
+                {
+                    "source": entry.source,
+                    "message": entry.message,
+                }
+                for entry in self.errors
+            ],
+        }
+
     @classmethod
     def from_dict(
         cls,
