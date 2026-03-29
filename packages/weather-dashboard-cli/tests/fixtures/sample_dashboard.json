@@ -1,6 +1,7 @@
 {
-  "schema_version": "1",
-  "dashboard_date": "2026-03-27",
+  "schema_version": "2",
+  "dashboard_date": "2026-03-26",
+  "generated_at": "2026-03-26T17:30:00Z",
   "cards": [
     {
       "city": "Seattle",
@@ -8,78 +9,140 @@
       "timezone": "America/Los_Angeles",
       "weather_hours": [
         {
-          "start": "2026-03-27T07:00:00-07:00",
-          "end": "2026-03-27T08:00:00-07:00",
-          "temperature_f": 39,
-          "summary": "Partly Sunny",
-          "precipitation_probability_pct": 0,
-          "wind_speed": "2 mph"
-        },
-        {
-          "start": "2026-03-27T08:00:00-07:00",
-          "end": "2026-03-27T09:00:00-07:00",
-          "temperature_f": 42,
+          "start": "2026-03-26T08:00:00-07:00",
+          "end": "2026-03-26T09:00:00-07:00",
+          "temperature_f": 43,
           "summary": "Mostly Sunny",
           "precipitation_probability_pct": 0,
-          "wind_speed": "3 mph"
+          "wind_speed": "4 mph"
+        },
+        {
+          "start": "2026-03-26T14:00:00-07:00",
+          "end": "2026-03-26T15:00:00-07:00",
+          "temperature_f": 51,
+          "summary": "Sunny",
+          "precipitation_probability_pct": 0,
+          "wind_speed": "7 mph"
         }
       ],
-        "market": {
-          "series_title": "Seattle Maximum Temperature Daily",
-          "event_ticker": "KXHIGHTSEA-26MAR27",
-          "event_date_label": "Mar 27, 2026",
-          "rows": [
-            {
-              "label": "55°F to 56°F",
-              "last_price_cents": 46,
-              "yes_bid_cents": 45,
-              "yes_ask_cents": 46,
-              "no_bid_cents": 54,
-              "no_ask_cents": 57,
-              "selected_yes": false,
-              "selected_no": false
-            },
-            {
-              "label": "57°F to 58°F",
-              "last_price_cents": 32,
-              "yes_bid_cents": 32,
-              "yes_ask_cents": 33,
-              "no_bid_cents": 67,
-              "no_ask_cents": 68,
+      "market": {
+        "provider": "kalshi",
+        "provider_series_ticker": "KXHIGHTSEA",
+        "provider_event_ticker": "KXHIGHTSEA-26MAR26",
+        "event_date": "2026-03-26",
+        "series_title": "Seattle Maximum Temperature Daily",
+        "event_date_label": "Mar 26, 2026",
+        "rows": [
+          {
+            "provider_market_ticker": "KXHIGHTSEA-26MAR26-B49.5",
+            "label": "49° to 50°",
+            "last_price_cents": 12,
+            "yes_bid_cents": 11,
+            "yes_ask_cents": 12,
+            "no_bid_cents": 88,
+            "no_ask_cents": 90,
+            "selected_yes": false,
+            "selected_no": false,
+            "yes_stake_usd": null,
+            "no_stake_usd": null
+          },
+          {
+            "provider_market_ticker": "KXHIGHTSEA-26MAR26-B53.5",
+            "label": "53° to 54°",
+            "last_price_cents": 44,
+            "yes_bid_cents": 43,
+            "yes_ask_cents": 45,
+            "no_bid_cents": 55,
+            "no_ask_cents": 57,
             "selected_yes": true,
-            "selected_no": false
+            "selected_no": false,
+            "yes_stake_usd": "12.50",
+            "no_stake_usd": null
+          },
+          {
+            "provider_market_ticker": "KXHIGHTSEA-26MAR26-T56",
+            "label": "57° or above",
+            "last_price_cents": 6,
+            "yes_bid_cents": 5,
+            "yes_ask_cents": 7,
+            "no_bid_cents": 93,
+            "no_ask_cents": 95,
+            "selected_yes": false,
+            "selected_no": false,
+            "yes_stake_usd": null,
+            "no_stake_usd": null
           }
         ]
       }
     },
     {
-      "city": "Denver",
-      "state": "CO",
-      "timezone": "America/Denver",
+      "city": "Las Vegas",
+      "state": "NV",
+      "timezone": "America/Los_Angeles",
       "weather_hours": [
         {
-          "start": "2026-03-27T08:00:00-06:00",
-          "end": "2026-03-27T09:00:00-06:00",
-          "temperature_f": 48,
+          "start": "2026-03-26T11:00:00-07:00",
+          "end": "2026-03-26T12:00:00-07:00",
+          "temperature_f": 86,
           "summary": "Sunny",
           "precipitation_probability_pct": 0,
           "wind_speed": "5 mph"
+        },
+        {
+          "start": "2026-03-26T15:00:00-07:00",
+          "end": "2026-03-26T16:00:00-07:00",
+          "temperature_f": 92,
+          "summary": "Hot and Sunny",
+          "precipitation_probability_pct": 0,
+          "wind_speed": "9 mph"
         }
       ],
-        "market": {
-          "series_title": "Denver Maximum Temperature Daily",
-          "event_ticker": "KXHIGHTDEN-26MAR27",
-          "event_date_label": "Mar 27, 2026",
-          "rows": [
-            {
-              "label": "68°F to 69°F",
-              "last_price_cents": 35,
-              "yes_bid_cents": 34,
-              "yes_ask_cents": 35,
-              "no_bid_cents": 64,
-              "no_ask_cents": 66,
+      "market": {
+        "provider": "kalshi",
+        "provider_series_ticker": "KXHIGHTLV",
+        "provider_event_ticker": "KXHIGHTLV-26MAR26",
+        "event_date": "2026-03-26",
+        "series_title": "Las Vegas Max Daily Temperature",
+        "event_date_label": "Mar 26, 2026",
+        "rows": [
+          {
+            "provider_market_ticker": "KXHIGHTLV-26MAR26-B90.5",
+            "label": "91° to 92°",
+            "last_price_cents": 31,
+            "yes_bid_cents": 30,
+            "yes_ask_cents": 32,
+            "no_bid_cents": 68,
+            "no_ask_cents": 70,
             "selected_yes": false,
-            "selected_no": true
+            "selected_no": false,
+            "yes_stake_usd": null,
+            "no_stake_usd": null
+          },
+          {
+            "provider_market_ticker": "KXHIGHTLV-26MAR26-B92.5",
+            "label": "93° to 94°",
+            "last_price_cents": 62,
+            "yes_bid_cents": 61,
+            "yes_ask_cents": 63,
+            "no_bid_cents": 36,
+            "no_ask_cents": 38,
+            "selected_yes": false,
+            "selected_no": true,
+            "yes_stake_usd": null,
+            "no_stake_usd": "8.00"
+          },
+          {
+            "provider_market_ticker": "KXHIGHTLV-26MAR26-T97",
+            "label": "98° or above",
+            "last_price_cents": 18,
+            "yes_bid_cents": 17,
+            "yes_ask_cents": 19,
+            "no_bid_cents": 80,
+            "no_ask_cents": 82,
+            "selected_yes": false,
+            "selected_no": false,
+            "yes_stake_usd": null,
+            "no_stake_usd": null
           }
         ]
       }

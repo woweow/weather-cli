@@ -210,7 +210,14 @@ HTML_TEMPLATE = """<!doctype html>
       }
 
       .market-row {
-        grid-template-columns: 1fr auto auto;
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
+
+      .market-top {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.75rem;
         align-items: center;
       }
 
@@ -230,6 +237,13 @@ HTML_TEMPLATE = """<!doctype html>
         display: none;
       }
 
+      .market-meta {
+        color: var(--muted);
+        font-size: 0.74rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
       .headline {
         min-width: 4rem;
         text-align: center;
@@ -244,6 +258,14 @@ HTML_TEMPLATE = """<!doctype html>
       .headline.unavailable {
         background: #ece7df;
         color: #8b857d;
+      }
+
+      .market-controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
       }
 
       .toggles {
@@ -273,6 +295,58 @@ HTML_TEMPLATE = """<!doctype html>
       .toggle.active-no {
         background: var(--no-bg);
         color: var(--no);
+      }
+
+      .stake-panels {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .stake-panel {
+        display: grid;
+        gap: 0.35rem;
+        padding: 0.6rem 0.7rem;
+        border-radius: 0.8rem;
+        border: 1px solid rgba(24, 35, 45, 0.08);
+        background: rgba(245, 239, 226, 0.7);
+      }
+
+      .stake-panel.yes {
+        background: rgba(223, 246, 238, 0.75);
+      }
+
+      .stake-panel.no {
+        background: rgba(253, 228, 234, 0.75);
+      }
+
+      .stake-row {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+      }
+
+      .stake-label {
+        min-width: 4rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .stake-input {
+        width: 7rem;
+        padding: 0.42rem 0.55rem;
+        border-radius: 0.55rem;
+        border: 1px solid rgba(24, 35, 45, 0.14);
+        background: rgba(255, 255, 255, 0.88);
+        color: var(--ink);
+        font: inherit;
+      }
+
+      .stake-help {
+        color: var(--muted);
+        font-size: 0.76rem;
+        line-height: 1.35;
       }
 
       .footer {
@@ -337,9 +411,10 @@ HTML_TEMPLATE = """<!doctype html>
           grid-template-columns: 1fr;
         }
 
-        .headline,
-        .toggles {
-          justify-self: start;
+        .market-top,
+        .market-controls {
+          grid-template-columns: 1fr;
+          justify-items: start;
         }
       }
     </style>
@@ -350,10 +425,9 @@ HTML_TEMPLATE = """<!doctype html>
         <div class="eyebrow">Daily Weather Desk</div>
         <h1>Weather and Kalshi bet board.</h1>
         <p class="hero-copy">
-          Forecast hours run from local now through midnight. Market rows only show exact
-          upstream values included in the input payload. The market headline uses Kalshi's
-          raw last price when available and falls back to a disabled no-data state when it
-          is missing.
+          Market rows show the exact provider values included in the input payload. When you
+          select a side, enter a simulated USD stake and the dashboard will save that side,
+          the displayed quote, and the provider market id for later settlement.
         </p>
       </section>
 
@@ -407,6 +481,17 @@ HTML_TEMPLATE = """<!doctype html>
         return `${value}¢`;
       }
 
+      function formatUsd(value) {
+        if (value === null || value === undefined || value === "") {
+          return "n/a";
+        }
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) {
+          return "n/a";
+        }
+        return `$${numeric.toFixed(2)}`;
+      }
+
       function formatHeadline(row) {
         if (row.last_price_cents === null || row.last_price_cents === undefined) {
           return null;
@@ -433,27 +518,88 @@ HTML_TEMPLATE = """<!doctype html>
         }).join("");
       }
 
+      function buildStakePanel(side, row, cardIndex, rowIndex) {
+        const isYes = side === "yes";
+        const sideLabel = isYes ? "Yes" : "No";
+        const stakeKey = isYes ? "yes_stake_usd" : "no_stake_usd";
+        const quote = isYes ? row.yes_ask_cents : row.no_ask_cents;
+        const stakeValue = row[stakeKey] || "";
+        const preview = buildPreview(side, row);
+        return `
+          <div class="stake-panel ${side}">
+            <div class="stake-row">
+              <div class="stake-label">${sideLabel} stake</div>
+              <input
+                class="stake-input"
+                type="number"
+                min="0"
+                step="0.01"
+                inputmode="decimal"
+                placeholder="0.00"
+                value="${stakeValue}"
+                data-stake-input="true"
+                data-card-index="${cardIndex}"
+                data-row-index="${rowIndex}"
+                data-side="${side}"
+              />
+              <div class="market-meta">Ask ${formatCents(quote)}</div>
+            </div>
+            <div class="stake-help">${preview}</div>
+          </div>
+        `;
+      }
+
+      function buildPreview(side, row) {
+        const isYes = side === "yes";
+        const stakeText = isYes ? row.yes_stake_usd : row.no_stake_usd;
+        const quote = isYes ? row.yes_ask_cents : row.no_ask_cents;
+        if (!stakeText) {
+          return "Enter a USD stake to estimate contracts and simulated payout.";
+        }
+        const stake = Number(stakeText);
+        if (!Number.isFinite(stake) || stake <= 0) {
+          return "Enter a valid positive USD amount.";
+        }
+        if (quote === null || quote === undefined || quote <= 0) {
+          return `Stake ${formatUsd(stake)} recorded. No ask quote is available for simulator math.`;
+        }
+        const contracts = stake / (quote / 100);
+        const gross = contracts;
+        const net = gross - stake;
+        return `Stake ${formatUsd(stake)} • ~${contracts.toFixed(4)} contracts • Gross ${formatUsd(gross)} • Net ${formatUsd(net)}`;
+      }
+
       function buildMarketRows(cardIndex, card) {
         return card.market.rows.map((row, rowIndex) => {
           const headline = formatHeadline(row);
           const yesClass = row.selected_yes ? "toggle active-yes" : "toggle";
           const noClass = row.selected_no ? "toggle active-no" : "toggle";
+          const stakePanels = [
+            row.selected_yes ? buildStakePanel("yes", row, cardIndex, rowIndex) : "",
+            row.selected_no ? buildStakePanel("no", row, cardIndex, rowIndex) : ""
+          ].join("");
           return `
             <div class="market-row">
-              <div class="market-main">
-                <div class="market-label">${row.label}</div>
-                <div class="market-prices">
-                  <span>Yes bid ${formatCents(row.yes_bid_cents)}</span>
-                  <span>Yes ask ${formatCents(row.yes_ask_cents)}</span>
-                  <span>No bid ${formatCents(row.no_bid_cents)}</span>
-                  <span>No ask ${formatCents(row.no_ask_cents)}</span>
+              <div class="market-top">
+                <div class="market-main">
+                  <div class="market-label">${row.label}</div>
+                  <div class="market-prices">
+                    <span>Yes bid ${formatCents(row.yes_bid_cents)}</span>
+                    <span>Yes ask ${formatCents(row.yes_ask_cents)}</span>
+                    <span>No bid ${formatCents(row.no_bid_cents)}</span>
+                    <span>No ask ${formatCents(row.no_ask_cents)}</span>
+                  </div>
+                </div>
+                <div class="market-meta">${row.provider_market_ticker}</div>
+              </div>
+              <div class="market-controls">
+                <div class="headline ${headline ? "" : "unavailable"}">${headline || "No last price"}</div>
+                <div class="toggles" role="group" aria-label="${row.label}">
+                  <button type="button" class="${yesClass}" data-card-index="${cardIndex}" data-row-index="${rowIndex}" data-side="yes">Yes</button>
+                  <button type="button" class="${noClass}" data-card-index="${cardIndex}" data-row-index="${rowIndex}" data-side="no">No</button>
                 </div>
               </div>
-              <div class="headline ${headline ? "" : "unavailable"}">${headline || "No last price"}</div>
-              <div class="toggles" role="group" aria-label="${row.label}">
-                <button type="button" class="${yesClass}" data-card-index="${cardIndex}" data-row-index="${rowIndex}" data-side="yes">Yes</button>
-                <button type="button" class="${noClass}" data-card-index="${cardIndex}" data-row-index="${rowIndex}" data-side="no">No</button>
-              </div>
+              <div class="stake-panels">${stakePanels}</div>
             </div>
           `;
         }).join("");
@@ -505,7 +651,7 @@ HTML_TEMPLATE = """<!doctype html>
           if (!response.ok) {
             throw new Error(payload.error || "Save failed");
           }
-          statusEl.textContent = `Saved session ${payload.session_id} at ${payload.saved_at}.`;
+          statusEl.textContent = `Saved session ${payload.session_id} at ${payload.saved_at} with ${payload.selection_count} selections.`;
         } catch (error) {
           statusEl.textContent = error.message || "Unable to record bets.";
         } finally {
@@ -526,6 +672,27 @@ HTML_TEMPLATE = """<!doctype html>
           row.selected_yes = !row.selected_yes;
         } else if (side === "no") {
           row.selected_no = !row.selected_no;
+        }
+        render();
+      });
+
+      document.addEventListener("input", (event) => {
+        const target = event.target.closest("input[data-stake-input]");
+        if (!target) {
+          return;
+        }
+        const cardIndex = Number(target.dataset.cardIndex);
+        const rowIndex = Number(target.dataset.rowIndex);
+        const side = target.dataset.side;
+        const row = state.cards[cardIndex].market.rows[rowIndex];
+        const key = side === "yes" ? "yes_stake_usd" : "no_stake_usd";
+        row[key] = target.value.trim() || null;
+      });
+
+      document.addEventListener("change", (event) => {
+        const target = event.target.closest("input[data-stake-input]");
+        if (!target) {
+          return;
         }
         render();
       });

@@ -4,10 +4,14 @@ members = [
     "packages/kalshi-weather-markets-cli",
     "packages/weather-dashboard-cli",
     "packages/weather-bets",
+    "packages/weather-bets-sync",
 ]
 
 [tool.uv.sources]
 weather-bets = { workspace = true }
+weather-cli = { workspace = true }
+kalshi-weather-markets-cli = { workspace = true }
+weather-bets-sync = { workspace = true }
 
 [tool.pytest.ini_options]
 addopts = "--import-mode=importlib"

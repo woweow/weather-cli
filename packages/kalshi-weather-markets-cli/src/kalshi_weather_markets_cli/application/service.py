@@ -59,10 +59,12 @@ class KalshiWeatherService:
             key=lambda market: market.sort_key,
         )
         return LadderSnapshot(
+            provider="kalshi",
             city=candidate.city,
             series_ticker=candidate.series_ticker,
             series_title=candidate.title,
             event_ticker=event_ticker,
+            event_date=format_event_date_iso(event_ticker),
             event_date_label=format_event_date(event_ticker),
             markets=ladder,
         )
@@ -107,3 +109,9 @@ def format_event_date(event_ticker: str) -> str:
     date_token = event_ticker.rsplit("-", 1)[-1]
     parsed = datetime.strptime(date_token, "%y%b%d")
     return f"{parsed.strftime('%b')} {parsed.day}, {parsed.year}"
+
+
+def format_event_date_iso(event_ticker: str) -> str:
+    date_token = event_ticker.rsplit("-", 1)[-1]
+    parsed = datetime.strptime(date_token, "%y%b%d")
+    return parsed.strftime("%Y-%m-%d")

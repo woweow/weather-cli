@@ -20,3 +20,7 @@ def test_help_includes_examples_and_presets():
     assert "today        Observations so far since local midnight" in help_text
     assert "rest-of-today Forecast from now through local midnight" in help_text
     assert "next-24h     Rolling 24-hour hourly forecast from now" in help_text
+    assert "Output contract:" in help_text
+    assert "JSON output includes `location`, `resolved_coordinates`, `range`, `source`," in help_text
+    assert "Forecast rows use `start` / `end` and observation rows use the observation" in help_text
+    assert 'weather "Seattle,WA" --range next-24h --format json' in help_text

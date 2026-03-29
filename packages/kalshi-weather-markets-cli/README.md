@@ -17,5 +17,6 @@ Notes:
 - Output defaults to readable text; `--format json` returns the normalized snapshot payload.
 - JSON output contains the full active ladder for the selected daily event, sorted by
   temperature range.
-- Each ladder row includes the raw `last_price_cents` headline value plus Yes/No bid and ask
-  fields. This shape is intended to feed `weather-dashboard serve`.
+- The normalized payload includes `provider`, `event_date`, `event_ticker`, and each row's
+  exact `ticker`, plus the raw `last_price_cents` headline value and Yes/No bid and ask fields.
+- This shape is intended to feed `weather-dashboard serve` and later exact-match settlement.

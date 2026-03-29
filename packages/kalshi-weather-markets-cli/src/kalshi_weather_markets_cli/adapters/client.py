@@ -23,20 +23,32 @@ class KalshiPublicClient:
 
     def get_markets(
         self,
-        series_ticker: str,
+        series_ticker: str | None = None,
         *,
         status: str = "open",
+        event_ticker: str | None = None,
+        tickers: list[str] | None = None,
         limit: int = 1000,
     ) -> list[dict]:
+        params: dict[str, object] = {"status": status, "limit": limit}
+        if series_ticker is not None:
+            params["series_ticker"] = series_ticker
+        if event_ticker is not None:
+            params["event_ticker"] = event_ticker
+        if tickers:
+            params["tickers"] = ",".join(tickers)
         payload = self._get_json(
             "/markets",
-            {
-                "series_ticker": series_ticker,
-                "status": status,
-                "limit": limit,
-            },
+            params,
         )
         return payload.get("markets", [])
+
+    def get_market(self, ticker: str) -> dict:
+        payload = self._get_json("/markets", {"tickers": ticker, "limit": 1})
+        markets = payload.get("markets", [])
+        if not markets:
+            raise KalshiHttpError(f"Kalshi API request failed: market {ticker!r} was not found")
+        return markets[0]
 
     def _get_json(self, path: str, params: dict[str, object] | None = None) -> dict:
         query = urlencode(params or {})

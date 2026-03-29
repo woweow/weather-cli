@@ -6,7 +6,7 @@ from typing import Any
 from weather_cli.adapters.geocoding import OpenMeteoGeocoder, ResolvedPlace
 from weather_cli.adapters.noaa import NoaaApi, StationSelection
 from weather_cli.application.errors import DataNotFoundError
-from weather_cli.application.ranges import TimeWindow, resolve_time_window
+from weather_cli.application.ranges import TimeWindow, resolve_local_day_window, resolve_time_window
 from weather_cli.application.station_presets import resolve_station_anchor, resolve_station_preset
 
 
@@ -82,6 +82,54 @@ class WeatherService:
                 )
 
         return self._build_payload(resolved, window, point, station, periods, station_selection)
+
+    def fetch_observed_high_for_date(
+        self,
+        place: str,
+        event_date: str,
+        *,
+        station_override: str | None = None,
+        use_station_presets: bool = True,
+    ) -> dict[str, Any]:
+        resolved = self._geocoder.resolve(place)
+        window = resolve_local_day_window(event_date, resolved.timezone)
+        point = self._noaa_api.get_point(resolved.latitude, resolved.longitude)
+        station, station_selection = self._resolve_observation_source(
+            resolved,
+            point,
+            window,
+            station_override=station_override,
+            use_station_presets=use_station_presets,
+        )
+        periods = self._normalize_observations(
+            self._noaa_api.get_station_observations(station.station_id, window),
+            window,
+        )
+        if not periods:
+            raise DataNotFoundError(
+                f"Station {station.station_id} returned no observations inside {event_date}."
+            )
+        temperatures = [period["temperature_f"] for period in periods if period["temperature_f"] is not None]
+        if not temperatures:
+            raise DataNotFoundError(
+                f"Station {station.station_id} returned no temperature observations inside {event_date}."
+            )
+        return {
+            "location": {
+                "input": resolved.raw_input,
+                "city": resolved.city,
+                "state": resolved.state_code,
+                "timezone": resolved.timezone,
+            },
+            "event_date": event_date,
+            "observed_high_temperature_f": max(temperatures),
+            "station": {
+                "identifier": station.station_id,
+                "name": station.station_name,
+                "timezone": station.timezone,
+            },
+            "station_selection": station_selection,
+        }
 
     def _resolve_forecast_source(
         self,

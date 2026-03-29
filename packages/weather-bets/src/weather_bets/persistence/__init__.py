@@ -1,4 +1,14 @@
 from weather_bets.persistence.connection import connect, open_connection
-from weather_bets.persistence.migrations import apply_migrations
+from weather_bets.persistence.migrations import (
+    SCHEMA_VERSION,
+    initialize_schema,
+    reset_database_file,
+)
 
-__all__ = ["apply_migrations", "connect", "open_connection"]
+__all__ = [
+    "SCHEMA_VERSION",
+    "connect",
+    "initialize_schema",
+    "open_connection",
+    "reset_database_file",
+]

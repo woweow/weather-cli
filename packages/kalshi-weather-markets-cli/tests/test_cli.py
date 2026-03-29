@@ -12,6 +12,8 @@ def test_help_includes_examples_and_supported_cities():
     assert "earliest close time" in help_text
     assert "Normalized snapshot payload for scripting." in help_text
     assert "full active ladder" in help_text
+    assert "The JSON payload includes `city`, `series_ticker`, `series_title`," in help_text
+    assert "`event_ticker`, `event_date_label`, and `markets[]`." in help_text
     assert "`last_price_cents`" in help_text
     assert "weather-dashboard input" in help_text
     assert "Supported exact city names:" in help_text
@@ -47,10 +49,12 @@ def test_list_cities_prints_supported_city_names(monkeypatch, capsys):
 
 def test_json_output_uses_normalized_snapshot(monkeypatch, capsys):
     snapshot = LadderSnapshot(
+        provider="kalshi",
         city="Seattle",
         series_ticker="KXHIGHTSEA",
         series_title="Seattle Maximum Temperature Daily",
         event_ticker="KXHIGHTSEA-26MAR26",
+        event_date="2026-03-26",
         event_date_label="Mar 26, 2026",
         markets=[
             MarketRange(
@@ -90,4 +94,5 @@ def test_json_output_uses_normalized_snapshot(monkeypatch, capsys):
     captured = capsys.readouterr()
     assert exit_code == 0
     assert '"city": "Seattle"' in captured.out
+    assert '"provider": "kalshi"' in captured.out
     assert '"label": "53\\u00b0 to 54\\u00b0"' in captured.out

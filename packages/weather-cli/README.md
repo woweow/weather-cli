@@ -28,5 +28,6 @@ Notes:
 - Use `--nearest-station` to ignore presets. Observation queries then use the nearest station with data, while forecasts fall back to the resolved city point.
 - Use `rest-of-today` when you want the remaining hourly forecast for the current local day. It includes the current overlapping hour and stops at local midnight.
 - Use `--station <ID>` to force a specific NOAA station for either observations or forecast anchoring.
+- The application layer also exposes exact local-day observed-high lookup for settlement enrichment.
 - City lookup uses Open-Meteo geocoding; weather data comes from NOAA.
 - Override the NOAA contact email with `WEATHER_CLI_CONTACT_EMAIL` or `--contact-email`.

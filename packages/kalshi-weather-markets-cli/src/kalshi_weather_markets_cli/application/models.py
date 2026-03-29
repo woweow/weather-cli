@@ -26,10 +26,12 @@ class MarketRange:
 
 @dataclass(frozen=True)
 class LadderSnapshot:
+    provider: str
     city: str
     series_ticker: str
     series_title: str
     event_ticker: str
+    event_date: str
     event_date_label: str
     markets: list[MarketRange]
 

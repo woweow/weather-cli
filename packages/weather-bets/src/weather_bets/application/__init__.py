@@ -3,6 +3,7 @@ from weather_bets.application.journal import (
     list_bet_selections,
     list_decision_sessions,
     record_decision_session,
+    resolve_bet_selection,
     settle_bet_selection,
     show_decision_session,
 )
@@ -12,6 +13,7 @@ __all__ = [
     "list_bet_selections",
     "list_decision_sessions",
     "record_decision_session",
+    "resolve_bet_selection",
     "settle_bet_selection",
     "show_decision_session",
 ]

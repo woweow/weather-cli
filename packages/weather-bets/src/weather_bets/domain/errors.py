@@ -11,3 +11,7 @@ class SnapshotValidationError(WeatherBetsError):
 
 class BetSelectionNotFoundError(WeatherBetsError):
     """Raised when a requested bet selection does not exist."""
+
+
+class IncompatibleDatabaseError(WeatherBetsError):
+    """Raised when the local SQLite journal schema is incompatible with the current app."""

@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 members = [
     "kalshi-weather-markets-cli",
     "weather-bets",
+    "weather-bets-sync",
     "weather-cli",
     "weather-dashboard-cli",
 ]
@@ -19,6 +20,23 @@ source = { editable = "packages/kalshi-weather-markets-cli" }
 name = "weather-bets"
 version = "0.1.0"
 source = { editable = "packages/weather-bets" }
+
+[[package]]
+name = "weather-bets-sync"
+version = "0.1.0"
+source = { editable = "packages/weather-bets-sync" }
+dependencies = [
+    { name = "kalshi-weather-markets-cli" },
+    { name = "weather-bets" },
+    { name = "weather-cli" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "kalshi-weather-markets-cli", editable = "packages/kalshi-weather-markets-cli" },
+    { name = "weather-bets", editable = "packages/weather-bets" },
+    { name = "weather-cli", editable = "packages/weather-cli" },
+]
 
 [[package]]
 name = "weather-cli"

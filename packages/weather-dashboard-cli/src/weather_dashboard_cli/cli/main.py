@@ -11,9 +11,9 @@ from weather_dashboard_cli.http.server import DEFAULT_HOST, DEFAULT_PORT, serve_
 
 SCHEMA_SNIPPET = """Input schema:
   {
-    "schema_version": "1",
-    "dashboard_date": "2026-03-27",
-    "generated_at": "2026-03-27T14:02:00Z",
+    "schema_version": "2",
+    "dashboard_date": "2026-03-26",
+    "generated_at": "2026-03-26T17:30:00Z",
     "cards": [
       {
         "city": "Seattle",
@@ -21,8 +21,8 @@ SCHEMA_SNIPPET = """Input schema:
         "timezone": "America/Los_Angeles",
         "weather_hours": [
           {
-            "start": "2026-03-27T07:00:00-07:00",
-            "end": "2026-03-27T08:00:00-07:00",
+            "start": "2026-03-26T07:00:00-07:00",
+            "end": "2026-03-26T08:00:00-07:00",
             "temperature_f": 39,
             "summary": "Partly Sunny",
             "precipitation_probability_pct": 0,
@@ -30,17 +30,23 @@ SCHEMA_SNIPPET = """Input schema:
           }
         ],
         "market": {
+          "provider": "kalshi",
+          "provider_series_ticker": "KXHIGHTSEA",
+          "provider_event_ticker": "KXHIGHTSEA-26MAR26",
+          "event_date": "2026-03-26",
           "series_title": "Seattle Maximum Temperature Daily",
-          "event_ticker": "KXHIGHTSEA-26MAR27",
-          "event_date_label": "Mar 27, 2026",
+          "event_date_label": "Mar 26, 2026",
           "rows": [
             {
-              "label": "55°F to 56°F",
-              "last_price_cents": 46,
-              "yes_bid_cents": 45,
-              "yes_ask_cents": 46,
-              "no_bid_cents": 54,
+              "provider_market_ticker": "KXHIGHTSEA-26MAR26-B53.5",
+              "label": "53°F to 54°F",
+              "last_price_cents": 44,
+              "yes_bid_cents": 43,
+              "yes_ask_cents": 45,
+              "no_bid_cents": 55,
               "no_ask_cents": 57,
+              "yes_stake_usd": "12.50",
+              "no_stake_usd": null,
               "selected_yes": false,
               "selected_no": false
             }
@@ -61,6 +67,9 @@ def build_parser() -> argparse.ArgumentParser:
         prog="weather-dashboard",
         description=(
             "Serve the local weather decision UI or export it as standalone HTML.\n\n"
+            "Runtime behavior:\n"
+            "  - `serve` hosts the local UI and writes decision sessions into the SQLite journal.\n"
+            "  - `export-html` writes a standalone HTML file with a save endpoint embedded.\n\n"
             "Agent workflow:\n"
             "  1. Use `weather` to build hourly forecast rows from each city's local current time\n"
             "     through local midnight.\n"
@@ -69,7 +78,9 @@ def build_parser() -> argparse.ArgumentParser:
             "  3. Normalize those results into the schema documented in\n"
             "     `weather-dashboard serve --help`.\n"
             "  4. Run `weather-dashboard serve --input <dashboard.json>`.\n"
-            "  5. Open the local URL, make decisions, and record them into the SQLite journal."
+            "  5. Open the local URL, make decisions, and record them into the SQLite journal.\n"
+            "  6. Inspect or settle those rows with `weather-bets`.\n"
+            "  7. Reconcile open Kalshi rows with `weather-bets-sync kalshi settle-open`."
         ),
         formatter_class=HelpFormatter,
     )
@@ -86,12 +97,22 @@ def build_parser() -> argparse.ArgumentParser:
             "    through local midnight, in Fahrenheit.\n"
             "  - `market.rows` must contain the full active ladder for the selected daily event,\n"
             "    not a filtered subset.\n"
+            "  - `provider`, `provider_event_ticker`, and `provider_market_ticker` are required;\n"
+            "    they are persisted for later exact-match settlement.\n"
             "  - `last_price_cents` is the primary headline market value shown on each row.\n"
             "  - `selected_yes` and `selected_no` are optional, independent booleans.\n"
+            "  - `yes_stake_usd` and `no_stake_usd` are optional per-side USD simulator stakes.\n"
             "  - Input may include extra metadata fields; the renderer ignores what it does not need.\n\n"
+            "Server routes:\n"
+            "  GET  /                      rendered dashboard UI\n"
+            "  GET  /health                JSON health check\n"
+            "  POST /api/decision-sessions record the current dashboard state into SQLite\n\n"
+            "POST response contract:\n"
+            "  JSON with `saved_at`, `session_id`, `selection_count`, and `db_path`.\n\n"
             "Examples:\n"
             "  weather-dashboard serve --input dashboard.json\n"
             "  weather-dashboard serve --input dashboard.json --port 8877\n"
+            "  weather-dashboard serve --input dashboard.json --db-path /tmp/weather-bets.db\n"
         ),
         formatter_class=HelpFormatter,
     )
@@ -123,6 +144,11 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Export a standalone HTML document from normalized JSON.\n\n"
             f"{SCHEMA_SNIPPET}\n"
+            "Notes:\n"
+            "  - This command does not start a server or create a database.\n"
+            "  - The exported file posts to `--save-endpoint` when the user clicks Record.\n"
+            "  - The input schema is identical to `serve`, including provider ids and optional stake fields.\n"
+            "  - If nothing is listening at that endpoint, the UI will render but saving will fail.\n\n"
             "Examples:\n"
             "  cat dashboard.json | weather-dashboard export-html > dashboard.html\n"
             "  weather-dashboard export-html --input dashboard.json --output dashboard.html\n"

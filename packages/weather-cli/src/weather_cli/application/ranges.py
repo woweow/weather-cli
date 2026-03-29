@@ -62,5 +62,21 @@ def resolve_time_window(range_name: str, timezone: str, now: datetime | None = N
     )
 
 
+def resolve_local_day_window(date_iso: str, timezone: str) -> TimeWindow:
+    zone = ZoneInfo(timezone)
+    try:
+        start = datetime.strptime(date_iso, "%Y-%m-%d").replace(tzinfo=zone)
+    except ValueError as exc:
+        raise InputError(f"Date must use YYYY-MM-DD format, got {date_iso!r}") from exc
+    end = start + timedelta(days=1)
+    return TimeWindow(
+        name=date_iso,
+        mode="observations",
+        timezone=timezone,
+        start=start,
+        end=end,
+    )
+
+
 def isoformat_utc(value: datetime) -> str:
     return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
