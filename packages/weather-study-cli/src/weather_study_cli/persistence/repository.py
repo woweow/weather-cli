@@ -244,6 +244,114 @@ def upsert_daily_actual(
     )
 
 
+def list_accuracy_capture_rows(
+    connection: sqlite3.Connection,
+    *,
+    place: str | None = None,
+) -> list[dict[str, Any]]:
+    clauses: list[str] = []
+    params: list[Any] = []
+    if place is not None:
+        clauses.append("rc.place = ?")
+        params.append(place)
+    where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    rows = connection.execute(
+        f"""
+        SELECT
+            rc.place,
+            rc.timezone,
+            rc.local_date,
+            rc.local_hour,
+            rc.captured_at_utc,
+            MAX(fp.temperature_f) AS forecast_high_f
+        FROM raw_captures AS rc
+        LEFT JOIN forecast_periods AS fp ON fp.raw_capture_id = rc.id
+        {where_sql}
+        GROUP BY rc.id
+        ORDER BY rc.place ASC, rc.local_date ASC, rc.local_hour ASC, rc.captured_at_utc ASC
+        """,
+        params,
+    ).fetchall()
+    return [
+        {
+            "place": row["place"],
+            "timezone": row["timezone"],
+            "local_date": row["local_date"],
+            "local_hour": row["local_hour"],
+            "captured_at_utc": row["captured_at_utc"],
+            "forecast_high_f": row["forecast_high_f"],
+        }
+        for row in rows
+    ]
+
+
+def list_accuracy_actual_rows(
+    connection: sqlite3.Connection,
+    *,
+    place: str | None = None,
+) -> list[dict[str, Any]]:
+    clauses: list[str] = []
+    params: list[Any] = []
+    if place is not None:
+        clauses.append("place = ?")
+        params.append(place)
+    where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    rows = connection.execute(
+        f"""
+        SELECT place, local_date, observed_high_temperature_f
+        FROM daily_actuals
+        {where_sql}
+        ORDER BY place ASC, local_date ASC
+        """,
+        params,
+    ).fetchall()
+    return [
+        {
+            "place": row["place"],
+            "local_date": row["local_date"],
+            "observed_high_temperature_f": row["observed_high_temperature_f"],
+        }
+        for row in rows
+    ]
+
+
+def replace_hourly_accuracy_metrics(
+    connection: sqlite3.Connection,
+    *,
+    place: str,
+    metrics: list[dict[str, Any]],
+) -> None:
+    connection.execute("DELETE FROM hourly_accuracy_metrics WHERE place = ?", (place,))
+    for metric in metrics:
+        connection.execute(
+            """
+            INSERT INTO hourly_accuracy_metrics (
+                place,
+                timezone,
+                local_hour,
+                valid_day_count,
+                missing_day_count,
+                excluded_day_count,
+                correct_day_count,
+                accuracy_ratio,
+                computed_at_utc
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                metric["place"],
+                metric["timezone"],
+                metric["local_hour"],
+                metric["valid_day_count"],
+                metric["missing_day_count"],
+                metric["excluded_day_count"],
+                metric["correct_day_count"],
+                metric["accuracy_ratio"],
+                metric["computed_at_utc"],
+            ),
+        )
+
+
 def build_capture_key(capture: StudyCapture) -> str:
     return "|".join(
         (

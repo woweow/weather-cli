@@ -9,6 +9,7 @@ Current scope:
 - one local loader path that works for the bundled mock tree and future S3 downloads copied to disk
 - dedicated SQLite study schema plus first raw ingest path into normalized tables
 - NOAA-backed daily actual-high derivation for completed local dates
+- hourly forecast-confidence metric derivation into `hourly_accuracy_metrics`
 
 Examples:
 
@@ -17,6 +18,7 @@ uv run --package weather-study-cli weather-study validate-raw
 uv run --package weather-study-cli weather-study validate-raw --input packages/weather-study-cli/mock-data/raw --format json
 uv run --package weather-study-cli weather-study ingest-raw --reset
 uv run --package weather-study-cli weather-study derive-daily-actuals --db-path /tmp/weather-study.db
+uv run --package weather-study-cli weather-study compute-accuracy-metrics --db-path /tmp/weather-study.db
 ```
 
 Notes:
@@ -26,4 +28,5 @@ Notes:
 - Partial failures are valid as long as one source payload remains present and the missing source is recorded in `errors`.
 - `ingest-raw` creates a local SQLite database at `.study/weather-study.db` by default and populates `raw_captures`, `forecast_periods`, and `market_rows`, with placeholder tables for later daily actuals and derived metrics.
 - `derive-daily-actuals` reads distinct place/date pairs from `raw_captures`, skips any local date that has not finished yet in that city's timezone, and upserts NOAA observed highs into `daily_actuals`.
+- `compute-accuracy-metrics` derives the first hourly forecast-confidence rows from `raw_captures` plus `daily_actuals`, including valid, missing, excluded, and correct day counts.
 - This package is the home for future SQLite ingest, derivations, and study visualization. It does not write to `.bets/bets.db`.

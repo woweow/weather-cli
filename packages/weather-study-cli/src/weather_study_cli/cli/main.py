@@ -5,10 +5,12 @@ import json
 import sys
 
 from weather_study_cli.application import (
+    AccuracyMetricSummary,
     DEFAULT_DB_PATH,
     DEFAULT_MOCK_DATA_DIR,
     DEFAULT_CONTACT_EMAIL,
     WeatherStudyCliError,
+    compute_accuracy_metrics,
     derive_daily_actuals,
     ingest_capture_directory,
     load_capture_directory,
@@ -133,6 +135,37 @@ def build_parser() -> argparse.ArgumentParser:
         default="text",
         help="Output format for the derivation summary (default: %(default)s)",
     )
+
+    metrics = subparsers.add_parser(
+        "compute-accuracy-metrics",
+        help="Compute hourly forecast-confidence metrics from the study DB.",
+        description=(
+            "Compute hourly forecast-confidence metrics from ingested captures and daily actuals.\n\n"
+            "The command compares each city-day capture hour's remaining-day forecast high against\n"
+            "the derived final observed high for that local date, then writes aggregated rows into\n"
+            "`hourly_accuracy_metrics`.\n\n"
+            "Examples:\n"
+            "  weather-study compute-accuracy-metrics\n"
+            "  weather-study compute-accuracy-metrics --db-path /tmp/weather-study.db --format json\n"
+            "  weather-study compute-accuracy-metrics --place Seattle,WA"
+        ),
+        formatter_class=HelpFormatter,
+    )
+    metrics.add_argument(
+        "--db-path",
+        default=str(DEFAULT_DB_PATH),
+        help="SQLite database path for the study DB (default: %(default)s)",
+    )
+    metrics.add_argument(
+        "--place",
+        help='Optional strict city,state filter such as "Seattle,WA".',
+    )
+    metrics.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format for the metric summary (default: %(default)s)",
+    )
     return parser
 
 
@@ -165,6 +198,13 @@ def main(argv: list[str] | None = None) -> int:
                 print(json.dumps(summary.to_dict(), indent=2, sort_keys=False))
             else:
                 print(render_actuals_text_summary(summary))
+            return 0
+        if args.command == "compute-accuracy-metrics":
+            summary = compute_accuracy_metrics(db_path=args.db_path, place=args.place)
+            if args.format == "json":
+                print(json.dumps(summary.to_dict(), indent=2, sort_keys=False))
+            else:
+                print(render_accuracy_text_summary(summary))
             return 0
     except WeatherStudyCliError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -219,5 +259,14 @@ def render_actuals_text_summary(summary) -> str:
         f"resolved daily actuals: {summary.resolved_count}",
         f"skipped incomplete local dates: {summary.skipped_incomplete_count}",
         f"daily_actuals rows: {summary.daily_actual_count}",
+    ]
+    return "\n".join(lines)
+
+
+def render_accuracy_text_summary(summary: AccuracyMetricSummary) -> str:
+    lines = [
+        f"SQLite database: {summary.db_path}",
+        f"places with metrics: {summary.place_count}",
+        f"hourly_accuracy_metrics rows: {summary.metric_row_count}",
     ]
     return "\n".join(lines)
