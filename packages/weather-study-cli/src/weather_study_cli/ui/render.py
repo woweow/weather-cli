@@ -488,6 +488,92 @@ HTML_TEMPLATE = """<!doctype html>
         border: 1px solid rgba(18, 61, 77, 0.06);
       }}
 
+      .examples-panel {{
+        padding: 1.2rem;
+        border-top: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.3), rgba(255,255,255,0.52)),
+          linear-gradient(90deg, rgba(231, 179, 94, 0.08), rgba(53, 106, 122, 0.06));
+      }}
+
+      .example-grid {{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 1rem;
+      }}
+
+      .example-card {{
+        padding: 1rem;
+        border-radius: 1.2rem;
+        background: rgba(255,255,255,0.78);
+        border: 1px solid rgba(18, 61, 77, 0.08);
+      }}
+
+      .example-title {{
+        font-size: 0.82rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }}
+
+      .example-table {{
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 0.8rem;
+      }}
+
+      .example-table th,
+      .example-table td {{
+        padding: 0.7rem 0;
+        border-bottom: 1px solid rgba(18, 61, 77, 0.08);
+        text-align: left;
+        vertical-align: top;
+      }}
+
+      .example-table th {{
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }}
+
+      .example-main {{
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+        font-size: 1rem;
+      }}
+
+      .example-sub {{
+        margin-top: 0.18rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }}
+
+      .signal-pill {{
+        display: inline-block;
+        padding: 0.3rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }}
+
+      .signal-pill.aligned {{
+        background: rgba(53, 106, 122, 0.14);
+        color: var(--storm-deep);
+      }}
+
+      .signal-pill.lagging {{
+        background: rgba(198, 107, 45, 0.14);
+        color: var(--sun);
+      }}
+
+      .signal-pill.none {{
+        background: rgba(166, 64, 52, 0.12);
+        color: var(--danger);
+      }}
+
       .legend {{
         display: flex;
         gap: 0.85rem;
@@ -521,6 +607,7 @@ HTML_TEMPLATE = """<!doctype html>
         .drilldown-strip {{ justify-content: flex-start; }}
         .capture-meta {{ grid-template-columns: 1fr 1fr; }}
         .detail-columns {{ grid-template-columns: 1fr; }}
+        .example-grid {{ grid-template-columns: 1fr; }}
       }}
 
       @media (max-width: 620px) {{
@@ -645,6 +732,26 @@ HTML_TEMPLATE = """<!doctype html>
             Each capture card keeps the hourly forecast snapshot, market leader, and any partial-failure errors in the same export so you can inspect a day without leaving this file.
           </p>
         </section>
+
+        <section class="examples-panel">
+          <div class="section-head">
+            <h2>Example Days</h2>
+            <div class="section-note">Concrete resolved days where the forecast snapped into focus early or only corrected late.</div>
+          </div>
+          <div class="example-grid">
+            <section class="example-card">
+              <div class="example-title">Early Confidence</div>
+              <div id="early-example-table"></div>
+            </section>
+            <section class="example-card">
+              <div class="example-title">Late Confidence</div>
+              <div id="late-example-table"></div>
+            </section>
+          </div>
+          <p class="footer-note">
+            The market status below is taken from the first captured hour that matched the final high. That makes it easier to see whether the forecast arrived before the ladder fully centered on the winner.
+          </p>
+        </section>
       </section>
     </main>
 
@@ -663,6 +770,8 @@ HTML_TEMPLATE = """<!doctype html>
       const dayCaptureCountNode = document.getElementById("day-capture-count");
       const dayCorrectCountNode = document.getElementById("day-correct-count");
       const dayCaptureList = document.getElementById("day-capture-list");
+      const earlyExampleTable = document.getElementById("early-example-table");
+      const lateExampleTable = document.getElementById("late-example-table");
       const accuracyChart = document.getElementById("accuracy-chart");
       const marketChart = document.getElementById("market-chart");
 
@@ -709,6 +818,29 @@ HTML_TEMPLATE = """<!doctype html>
           .replaceAll("'", "&#39;");
       }}
 
+      function roundHalfUp(value) {{
+        return Math.floor(Number(value) + 0.5);
+      }}
+
+      function labelContainsTemperature(label, temperatureF) {{
+        const normalized = String(label || "").toLowerCase();
+        const values = String(label || "").match(/-?\\d+/g);
+        if (!values || values.length === 0) {{
+          return false;
+        }}
+        const ints = values.map((value) => Number(value));
+        if (normalized.includes("or below")) {{
+          return temperatureF <= ints[0];
+        }}
+        if (normalized.includes("or above")) {{
+          return temperatureF >= ints[0];
+        }}
+        if (normalized.includes("to") && ints.length >= 2) {{
+          return temperatureF >= ints[0] && temperatureF <= ints[1];
+        }}
+        return false;
+      }}
+
       function renderCity(index) {{
         const city = report.cities[index];
         const marketPoints = Array.isArray(city.market_points) ? city.market_points : [];
@@ -750,6 +882,7 @@ HTML_TEMPLATE = """<!doctype html>
         }});
         daySelect.disabled = dayDrilldowns.length === 0;
         renderDayDrilldown(city, dayDrilldowns.length === 0 ? -1 : 0);
+        renderExampleDays(city);
       }}
 
       function renderAccuracyChart(city) {{
@@ -1076,6 +1209,111 @@ HTML_TEMPLATE = """<!doctype html>
         }}).join("");
 
         dayCaptureList.innerHTML = captureCards;
+      }}
+
+      function buildExampleRows(city) {{
+        const dayDrilldowns = Array.isArray(city.day_drilldowns) ? city.day_drilldowns : [];
+        return dayDrilldowns
+          .filter((day) => day.actual_high_temperature_f !== null && day.actual_high_temperature_f !== undefined)
+          .map((day) => {{
+            const firstCorrectCapture = day.captures.find((capture) => capture.forecast_matches_actual === true) || null;
+            const roundedActual = roundHalfUp(day.actual_high_temperature_f);
+            const marketAligned = firstCorrectCapture
+              ? labelContainsTemperature(firstCorrectCapture.market_leader_label, roundedActual)
+              : false;
+            return {{
+              local_date: day.local_date,
+              actual_high_temperature_f: day.actual_high_temperature_f,
+              capture_count: day.capture_count,
+              correct_capture_count: day.correct_capture_count,
+              first_correct_hour: firstCorrectCapture ? firstCorrectCapture.local_hour : null,
+              first_correct_label: firstCorrectCapture ? firstCorrectCapture.market_leader_label : null,
+              first_correct_price: firstCorrectCapture ? firstCorrectCapture.market_leader_last_price_cents : null,
+              market_aligned: firstCorrectCapture ? marketAligned : null,
+            }};
+          }});
+      }}
+
+      function renderExampleTable(node, rows, emptyMessage) {{
+        if (rows.length === 0) {{
+          node.innerHTML = `<div class="empty-state">${escapeHtml(emptyMessage)}</div>`;
+          return;
+        }}
+
+        node.innerHTML = `
+          <table class="example-table">
+            <thead>
+              <tr>
+                <th>Day</th>
+                <th>First Correct</th>
+                <th>Market</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((row) => {{
+                const hourLabel = row.first_correct_hour === null
+                  ? "Never"
+                  : `${String(row.first_correct_hour).padStart(2, "0")}:00`;
+                const pillClass = row.market_aligned === true ? "aligned" : row.market_aligned === false ? "lagging" : "none";
+                const pillLabel = row.market_aligned === true ? "Winner Leading" : row.market_aligned === false ? "Leader Elsewhere" : "No Match";
+                const marketLabel = row.first_correct_label
+                  ? `${escapeHtml(row.first_correct_label)}${row.first_correct_price === null || row.first_correct_price === undefined ? "" : ` · ${escapeHtml(formatPriceCents(row.first_correct_price))}`}`
+                  : "No correct capture";
+                return `
+                  <tr>
+                    <td>
+                      <div class="example-main">${escapeHtml(row.local_date)}</div>
+                      <div class="example-sub">Actual ${escapeHtml(formatTemperature(row.actual_high_temperature_f))} · ${row.correct_capture_count}/${row.capture_count} correct</div>
+                    </td>
+                    <td>
+                      <div class="example-main">${escapeHtml(hourLabel)}</div>
+                      <div class="example-sub">${row.first_correct_hour === null ? "Forecast never matched final high." : "First captured hour that matched the final high."}</div>
+                    </td>
+                    <td>
+                      <div><span class="signal-pill ${pillClass}">${pillLabel}</span></div>
+                      <div class="example-sub">${marketLabel}</div>
+                    </td>
+                  </tr>
+                `;
+              }}).join("")}
+            </tbody>
+          </table>
+        `;
+      }}
+
+      function renderExampleDays(city) {{
+        const rows = buildExampleRows(city);
+        const earlyRows = [...rows]
+          .sort((left, right) => {{
+            const leftHour = left.first_correct_hour === null ? 99 : left.first_correct_hour;
+            const rightHour = right.first_correct_hour === null ? 99 : right.first_correct_hour;
+            if (leftHour !== rightHour) {{
+              return leftHour - rightHour;
+            }}
+            return right.local_date.localeCompare(left.local_date);
+          }})
+          .slice(0, 3);
+        const lateRows = [...rows]
+          .sort((left, right) => {{
+            const leftHour = left.first_correct_hour === null ? 99 : left.first_correct_hour;
+            const rightHour = right.first_correct_hour === null ? 99 : right.first_correct_hour;
+            if (leftHour !== rightHour) {{
+              return rightHour - leftHour;
+            }}
+            return right.local_date.localeCompare(left.local_date);
+          }})
+          .slice(0, 3);
+
+        renderExampleTable(
+          earlyExampleTable,
+          earlyRows,
+          "No resolved city-days are available yet for early-confidence examples."
+        );
+        renderExampleTable(
+          lateExampleTable,
+          lateRows,
+          "No resolved city-days are available yet for late-confidence examples."
+        );
       }}
 
       select.addEventListener("change", () => renderCity(Number(select.value)));
