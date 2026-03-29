@@ -651,6 +651,79 @@ HTML_TEMPLATE = """<!doctype html>
         color: var(--muted);
       }}
 
+      .overview-panel {{
+        padding: 1.2rem;
+        border-top: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.62)),
+          linear-gradient(135deg, rgba(18, 61, 77, 0.05), rgba(231, 179, 94, 0.06));
+      }}
+
+      .overview-wrap {{
+        overflow-x: auto;
+        border-radius: 1.2rem;
+        border: 1px solid rgba(18, 61, 77, 0.08);
+        background: rgba(255,255,255,0.78);
+      }}
+
+      .overview-table {{
+        width: 100%;
+        min-width: 760px;
+        border-collapse: collapse;
+      }}
+
+      .overview-table th,
+      .overview-table td {{
+        padding: 0.9rem 0.85rem;
+        border-bottom: 1px solid rgba(18, 61, 77, 0.08);
+        vertical-align: top;
+        text-align: left;
+      }}
+
+      .overview-table th {{
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        background: rgba(246, 240, 228, 0.82);
+      }}
+
+      .overview-row.is-active {{
+        background: linear-gradient(90deg, rgba(53, 106, 122, 0.08), rgba(231, 179, 94, 0.06));
+      }}
+
+      .overview-city-button {{
+        appearance: none;
+        border: 0;
+        padding: 0;
+        background: none;
+        color: var(--storm-deep);
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+        font-size: 1.02rem;
+        cursor: pointer;
+      }}
+
+      .overview-city-button:hover {{
+        color: var(--sun);
+      }}
+
+      .overview-main {{
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+        font-size: 1rem;
+        color: var(--storm-deep);
+      }}
+
+      .overview-main.status {{
+        color: var(--ink);
+      }}
+
+      .overview-sub {{
+        margin-top: 0.18rem;
+        font-size: 0.76rem;
+        line-height: 1.4;
+        color: var(--muted);
+      }}
+
       .gaps-panel {{
         padding: 1.2rem;
         border-top: 1px solid var(--line);
@@ -777,6 +850,28 @@ HTML_TEMPLATE = """<!doctype html>
         </div>
 
         <div class="warning" id="sample-warning" data-visible="false"></div>
+
+        <section class="overview-panel">
+          <div class="section-head">
+            <h2>City Threshold Overview</h2>
+            <div class="section-note">Compare threshold timing across every city in the loaded study set.</div>
+          </div>
+          <div class="overview-wrap">
+            <table class="overview-table">
+              <thead>
+                <tr>
+                  <th>City</th>
+                  <th>60%</th>
+                  <th>70%</th>
+                  <th>80%</th>
+                  <th>90%</th>
+                  <th>Gap Coverage</th>
+                </tr>
+              </thead>
+              <tbody id="overview-table-body"></tbody>
+            </table>
+          </div>
+        </section>
 
         <div class="grid">
           <section class="chart-pane">
@@ -928,6 +1023,7 @@ HTML_TEMPLATE = """<!doctype html>
       const dayCaptureCountNode = document.getElementById("day-capture-count");
       const dayCorrectCountNode = document.getElementById("day-correct-count");
       const dayCaptureList = document.getElementById("day-capture-list");
+      const overviewTableBody = document.getElementById("overview-table-body");
       const thresholdGrid = document.getElementById("threshold-grid");
       const earlyExampleTable = document.getElementById("early-example-table");
       const lateExampleTable = document.getElementById("late-example-table");
@@ -1026,6 +1122,68 @@ HTML_TEMPLATE = """<!doctype html>
         return false;
       }}
 
+      function describeOverviewThreshold(item) {{
+        if (!item) {{
+          return { main: "n/a", sub: "Unavailable" };
+        }}
+        if (item.status === "unresolved") {{
+          return { main: "Pending", sub: "No finalized days" };
+        }}
+        if (item.status === "not_reached") {{
+          if (item.best_accuracy_ratio === null || item.best_accuracy_ratio === undefined) {{
+            return { main: "Not yet", sub: "No resolved points" };
+          }}
+          return {
+            main: "Not yet",
+            sub: `Best ${formatPercent(item.best_accuracy_ratio)} at ${formatHourLabel(item.best_resolved_hour)}`,
+          };
+        }}
+
+        const notes = [];
+        if (item.thin_sample) {{
+          notes.push("Thin");
+        }}
+        if (item.market_summary && item.market_summary.valid_day_count > 0) {{
+          notes.push(`${formatPercent(item.market_summary.leader_match_ratio)} market`);
+        }}
+        return {
+          main: formatHourLabel(item.local_hour),
+          sub: notes.join(" · ") || `Accuracy ${formatPercent(item.accuracy_ratio)}`,
+        };
+      }}
+
+      function renderThresholdOverview(selectedIndex) {{
+        overviewTableBody.innerHTML = report.cities.map((city, index) => {{
+          const thresholdMap = new Map(
+            (Array.isArray(city.threshold_summary) ? city.threshold_summary : []).map((item) => [item.threshold_label, item])
+          );
+          const gapCoverage = city.gap_summary ? formatPercent(city.gap_summary.coverage_ratio) : "n/a";
+          const thresholdCells = ["60%", "70%", "80%", "90%"].map((label) => {{
+            const summary = describeOverviewThreshold(thresholdMap.get(label));
+            const mainClass = summary.main === "Pending" || summary.main === "Not yet" ? "overview-main status" : "overview-main";
+            return `
+              <td>
+                <div class="${mainClass}">${escapeHtml(summary.main)}</div>
+                <div class="overview-sub">${escapeHtml(summary.sub)}</div>
+              </td>
+            `;
+          }}).join("");
+          return `
+            <tr class="overview-row${index === selectedIndex ? " is-active" : ""}">
+              <td>
+                <button class="overview-city-button" data-city-index="${index}">${escapeHtml(city.place)}</button>
+                <div class="overview-sub">${city.study_day_count} study days</div>
+              </td>
+              ${thresholdCells}
+              <td>
+                <div class="overview-main">${escapeHtml(gapCoverage)}</div>
+                <div class="overview-sub">${city.gap_summary ? `${city.gap_summary.missing_hour_count} missing hours` : "No gap data"}</div>
+              </td>
+            </tr>
+          `;
+        }}).join("");
+      }}
+
       function renderCity(index) {{
         const city = report.cities[index];
         const marketPoints = Array.isArray(city.market_points) ? city.market_points : [];
@@ -1067,6 +1225,7 @@ HTML_TEMPLATE = """<!doctype html>
           warningNode.textContent = "";
         }}
 
+        renderThresholdOverview(index);
         renderAccuracyChart(city);
         renderMarketChart(city);
         renderCoverage(city);
@@ -1680,6 +1839,18 @@ HTML_TEMPLATE = """<!doctype html>
       }}
 
       select.addEventListener("change", () => renderCity(Number(select.value)));
+      overviewTableBody.addEventListener("click", (event) => {{
+        const button = event.target.closest("[data-city-index]");
+        if (!button) {{
+          return;
+        }}
+        const index = Number(button.dataset.cityIndex);
+        if (Number.isNaN(index)) {{
+          return;
+        }}
+        select.value = String(index);
+        renderCity(index);
+      }});
       daySelect.addEventListener("change", () => {{
         const city = report.cities[Number(select.value)];
         renderDayDrilldown(city, Number(daySelect.value));

@@ -51,6 +51,7 @@ def test_export_accuracy_html_writes_self_contained_dashboard(tmp_path):
     embedded_report = json.loads(report_blob.group(1))
 
     assert "Forecast Confidence Atlas" in html
+    assert "City Threshold Overview" in html
     assert "Market Convergence" in html
     assert "Trust Thresholds" in html
     assert "Single-Day Drilldown" in html
