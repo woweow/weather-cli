@@ -10,6 +10,7 @@ members = [
     "weather-cli",
     "weather-dashboard-cli",
     "weather-study-cli",
+    "weather-study-collector",
 ]
 
 [[package]]
@@ -65,3 +66,20 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "weather-cli", editable = "packages/weather-cli" }]
+
+[[package]]
+name = "weather-study-collector"
+version = "0.1.0"
+source = { editable = "packages/weather-study-collector" }
+dependencies = [
+    { name = "kalshi-weather-markets-cli" },
+    { name = "weather-cli" },
+    { name = "weather-study-cli" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "kalshi-weather-markets-cli", editable = "packages/kalshi-weather-markets-cli" },
+    { name = "weather-cli", editable = "packages/weather-cli" },
+    { name = "weather-study-cli", editable = "packages/weather-study-cli" },
+]

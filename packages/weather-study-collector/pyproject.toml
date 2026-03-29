@@ -1,0 +1,14 @@
+[project]
+name = "weather-study-collector"
+version = "0.1.0"
+description = "Collector CLI for live raw weather-market study captures"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["weather-cli", "kalshi-weather-markets-cli", "weather-study-cli"]
+
+[project.scripts]
+weather-study-collector = "weather_study_collector.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

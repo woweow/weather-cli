@@ -103,6 +103,17 @@ def load_capture_file(path: str | Path, *, root: str | Path) -> StudyCapture:
         raise StudyValidationError(f"{file_path}: {exc}") from exc
 
 
+def build_capture_relative_path(capture: StudyCapture) -> Path:
+    return Path(
+        f"study_version={capture.schema_version}",
+        f"city={capture.city_name}",
+        f"state={capture.state_code}",
+        f"local_date={capture.local_date}",
+        f"local_hour={capture.local_hour:02d}",
+        f"captured_at_utc={capture.captured_at_utc.replace(':', '-')}.json",
+    )
+
+
 def parse_capture_path(relative_path: Path) -> CapturePathMetadata:
     parts = relative_path.parts
     if len(parts) != 6:

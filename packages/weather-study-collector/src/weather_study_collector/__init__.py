@@ -1,0 +1,1 @@
+"""weather-study-collector package."""
