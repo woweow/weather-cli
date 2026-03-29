@@ -6,6 +6,7 @@ import sys
 
 from weather_study_cli.application import (
     AccuracyMetricSummary,
+    CollectionGapReport,
     DEFAULT_AWS_PROFILE,
     DEFAULT_DB_PATH,
     DEFAULT_MOCK_DATA_DIR,
@@ -18,6 +19,7 @@ from weather_study_cli.application import (
     export_accuracy_html,
     ingest_capture_directory,
     load_capture_directory,
+    load_collection_gap_report,
     sync_capture_directory_from_s3,
 )
 
@@ -259,6 +261,37 @@ def build_parser() -> argparse.ArgumentParser:
         default=5,
         help="Threshold below which the UI shows a thin-sample warning (default: %(default)s)",
     )
+
+    gaps = subparsers.add_parser(
+        "report-gaps",
+        help="Report missing city-hours from ingested raw captures.",
+        description=(
+            "Report missing city-hours from the local study SQLite database.\n\n"
+            "The command derives per-city, per-date expected hourly coverage from `raw_captures`,\n"
+            "treats completed dates as full 24-hour windows, and treats the current local date as\n"
+            "expected only through the current local hour.\n\n"
+            "Examples:\n"
+            "  weather-study report-gaps\n"
+            "  weather-study report-gaps --db-path /tmp/weather-study.db --format json\n"
+            "  weather-study report-gaps --place Seattle,WA"
+        ),
+        formatter_class=HelpFormatter,
+    )
+    gaps.add_argument(
+        "--db-path",
+        default=str(DEFAULT_DB_PATH),
+        help="SQLite database path for the study DB (default: %(default)s)",
+    )
+    gaps.add_argument(
+        "--place",
+        help='Optional strict city,state filter such as "Seattle,WA".',
+    )
+    gaps.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format for the gap report (default: %(default)s)",
+    )
     return parser
 
 
@@ -321,6 +354,13 @@ def main(argv: list[str] | None = None) -> int:
                 place=args.place,
                 min_valid_sample=args.min_valid_sample,
             )
+        if args.command == "report-gaps":
+            summary = load_collection_gap_report(db_path=args.db_path, place=args.place)
+            if args.format == "json":
+                print(json.dumps(summary.to_dict(), indent=2, sort_keys=False))
+            else:
+                print(render_gap_text_summary(summary))
+            return 0
     except WeatherStudyCliError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -399,4 +439,42 @@ def render_accuracy_text_summary(summary: AccuracyMetricSummary) -> str:
         f"places with metrics: {summary.place_count}",
         f"hourly_accuracy_metrics rows: {summary.metric_row_count}",
     ]
+    return "\n".join(lines)
+
+
+def render_gap_text_summary(summary: CollectionGapReport) -> str:
+    lines = [
+        f"SQLite database: {summary.db_path}",
+        f"places in gap report: {summary.place_count}",
+        f"date windows inspected: {summary.date_count}",
+        f"expected city-hours: {summary.expected_hour_count}",
+        f"observed city-hours: {summary.observed_hour_count}",
+        f"missing city-hours: {summary.missing_hour_count}",
+        f"dates with gaps: {summary.gap_date_count}",
+        f"coverage ratio: {summary.coverage_ratio:.1%}",
+    ]
+    for place in summary.places:
+        lines.extend(
+            [
+                "",
+                (
+                    f"{place.place}: {place.observed_hour_count}/{place.expected_hour_count} expected hours present "
+                    f"({place.coverage_ratio:.1%} coverage)"
+                ),
+            ]
+        )
+        gap_dates = [date for date in place.dates if date.missing_hour_count > 0]
+        if not gap_dates:
+            lines.append("  no missing hours")
+            continue
+        for date in gap_dates:
+            current_suffix = " (in progress)" if date.is_current_local_date else ""
+            missing_hours = ", ".join(f"{hour:02d}" for hour in date.missing_hours)
+            observed_hours = ", ".join(f"{hour:02d}" for hour in date.observed_hours) or "none"
+            lines.append(
+                (
+                    f"  {date.local_date}{current_suffix}: window {date.expected_start_hour:02d}-"
+                    f"{date.expected_end_hour:02d}, observed {observed_hours}, missing {missing_hours}"
+                )
+            )
     return "\n".join(lines)

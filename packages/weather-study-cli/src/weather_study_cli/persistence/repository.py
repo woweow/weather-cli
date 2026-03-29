@@ -315,6 +315,37 @@ def list_accuracy_actual_rows(
     ]
 
 
+def list_capture_hour_rows(
+    connection: sqlite3.Connection,
+    *,
+    place: str | None = None,
+) -> list[dict[str, Any]]:
+    clauses: list[str] = []
+    params: list[Any] = []
+    if place is not None:
+        clauses.append("place = ?")
+        params.append(place)
+    where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    rows = connection.execute(
+        f"""
+        SELECT DISTINCT place, timezone, local_date, local_hour
+        FROM raw_captures
+        {where_sql}
+        ORDER BY place ASC, local_date ASC, local_hour ASC
+        """,
+        params,
+    ).fetchall()
+    return [
+        {
+            "place": row["place"],
+            "timezone": row["timezone"],
+            "local_date": row["local_date"],
+            "local_hour": row["local_hour"],
+        }
+        for row in rows
+    ]
+
+
 def replace_hourly_accuracy_metrics(
     connection: sqlite3.Connection,
     *,

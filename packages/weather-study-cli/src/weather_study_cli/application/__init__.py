@@ -21,6 +21,7 @@ if TYPE_CHECKING:
         StudyValidationError,
         WeatherStudyCliError,
     )
+    from weather_study_cli.application.gaps import CollectionGapReport, load_collection_gap_report
     from weather_study_cli.application.ingest import IngestSummary, ingest_capture_directory
     from weather_study_cli.application.metrics import AccuracyMetricSummary, compute_accuracy_metrics
     from weather_study_cli.application.raw_loader import (
@@ -51,6 +52,7 @@ __all__ = [
     "DEFAULT_S3_PREFIX",
     "AccuracyMetricSummary",
     "AccuracyDashboardReport",
+    "CollectionGapReport",
     "DailyActualDerivationError",
     "DailyActualDerivationSummary",
     "IncompatibleStudyDatabaseError",
@@ -69,6 +71,7 @@ __all__ = [
     "ingest_capture_directory",
     "export_accuracy_html",
     "list_supported_study_places",
+    "load_collection_gap_report",
     "load_capture_directory",
     "load_capture_file",
     "resolve_study_cities",
@@ -85,6 +88,7 @@ _EXPORTS = {
     "DEFAULT_S3_PREFIX": ("weather_study_cli.application.s3", "DEFAULT_S3_PREFIX"),
     "AccuracyMetricSummary": ("weather_study_cli.application.metrics", "AccuracyMetricSummary"),
     "AccuracyDashboardReport": ("weather_study_cli.application.report", "AccuracyDashboardReport"),
+    "CollectionGapReport": ("weather_study_cli.application.gaps", "CollectionGapReport"),
     "DailyActualDerivationError": ("weather_study_cli.application.errors", "DailyActualDerivationError"),
     "DailyActualDerivationSummary": ("weather_study_cli.application.actuals", "DailyActualDerivationSummary"),
     "IncompatibleStudyDatabaseError": (
@@ -109,6 +113,7 @@ _EXPORTS = {
     "ingest_capture_directory": ("weather_study_cli.application.ingest", "ingest_capture_directory"),
     "export_accuracy_html": ("weather_study_cli.application.report", "export_accuracy_html"),
     "list_supported_study_places": ("weather_study_cli.application.cities", "list_supported_study_places"),
+    "load_collection_gap_report": ("weather_study_cli.application.gaps", "load_collection_gap_report"),
     "load_capture_directory": ("weather_study_cli.application.raw_loader", "load_capture_directory"),
     "load_capture_file": ("weather_study_cli.application.raw_loader", "load_capture_file"),
     "resolve_study_cities": ("weather_study_cli.application.cities", "resolve_study_cities"),
