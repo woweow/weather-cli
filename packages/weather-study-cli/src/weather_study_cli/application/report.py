@@ -17,6 +17,8 @@ from weather_study_cli.persistence.repository import (
 )
 from weather_study_cli.ui import render_accuracy_dashboard_html
 
+ACCURACY_THRESHOLDS = (0.6, 0.7, 0.8, 0.9)
+
 
 @dataclass(frozen=True)
 class AccuracyDashboardReport:
@@ -30,6 +32,94 @@ class AccuracyDashboardReport:
             "min_valid_sample": self.min_valid_sample,
             "cities": list(self.cities),
         }
+
+
+def _build_threshold_summary(
+    *,
+    accuracy_rows: list[dict[str, object]],
+    market_rows: list[dict[str, object]],
+    min_valid_sample: int,
+) -> list[dict[str, object]]:
+    resolved_rows = [
+        row for row in accuracy_rows if int(row["valid_day_count"]) > 0
+    ]
+    market_by_hour = {
+        int(row["local_hour"]): row
+        for row in market_rows
+    }
+    best_resolved_row = max(
+        resolved_rows,
+        key=lambda row: (
+            float(row["accuracy_ratio"]),
+            -int(row["local_hour"]),
+        ),
+        default=None,
+    )
+    summary: list[dict[str, object]] = []
+
+    for threshold_ratio in ACCURACY_THRESHOLDS:
+        threshold_label = f"{int(threshold_ratio * 100)}%"
+        reached_row = next(
+            (
+                row
+                for row in accuracy_rows
+                if int(row["valid_day_count"]) > 0
+                and float(row["accuracy_ratio"]) >= threshold_ratio
+            ),
+            None,
+        )
+        if reached_row is None:
+            summary.append(
+                {
+                    "threshold_ratio": threshold_ratio,
+                    "threshold_label": threshold_label,
+                    "status": "unresolved" if not resolved_rows else "not_reached",
+                    "best_resolved_hour": (
+                        None if best_resolved_row is None else int(best_resolved_row["local_hour"])
+                    ),
+                    "best_accuracy_ratio": (
+                        None if best_resolved_row is None else float(best_resolved_row["accuracy_ratio"])
+                    ),
+                    "best_valid_day_count": (
+                        None if best_resolved_row is None else int(best_resolved_row["valid_day_count"])
+                    ),
+                    "best_correct_day_count": (
+                        None if best_resolved_row is None else int(best_resolved_row["correct_day_count"])
+                    ),
+                }
+            )
+            continue
+
+        hour = int(reached_row["local_hour"])
+        market_row = market_by_hour.get(hour)
+        summary.append(
+            {
+                "threshold_ratio": threshold_ratio,
+                "threshold_label": threshold_label,
+                "status": "reached",
+                "local_hour": hour,
+                "accuracy_ratio": float(reached_row["accuracy_ratio"]),
+                "valid_day_count": int(reached_row["valid_day_count"]),
+                "correct_day_count": int(reached_row["correct_day_count"]),
+                "thin_sample": int(reached_row["valid_day_count"]) < min_valid_sample,
+                "market_summary": (
+                    None
+                    if market_row is None
+                    else {
+                        "valid_day_count": int(market_row["valid_day_count"]),
+                        "leader_match_day_count": int(market_row["leader_match_day_count"]),
+                        "leader_match_ratio": float(market_row["leader_match_ratio"]),
+                        "avg_winning_bucket_last_price_cents": (
+                            None
+                            if market_row["avg_winning_bucket_last_price_cents"] is None
+                            else float(market_row["avg_winning_bucket_last_price_cents"])
+                        ),
+                    }
+                ),
+            }
+        )
+
+    return summary
 
 
 def load_accuracy_dashboard_report(
@@ -108,6 +198,11 @@ def load_accuracy_dashboard_report(
                 "market_thin_sample_hours": market_thin_sample_hours,
                 "gap_summary": gap_by_place.get(current_place),
                 "day_drilldowns": day_drilldowns,
+                "threshold_summary": _build_threshold_summary(
+                    accuracy_rows=ordered_rows,
+                    market_rows=ordered_market_rows,
+                    min_valid_sample=min_valid_sample,
+                ),
                 "points": [
                     {
                         "local_hour": int(row["local_hour"]),

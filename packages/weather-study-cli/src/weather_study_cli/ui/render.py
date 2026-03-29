@@ -574,6 +574,83 @@ HTML_TEMPLATE = """<!doctype html>
         color: var(--danger);
       }}
 
+      .thresholds-panel {{
+        padding: 1.2rem;
+        border-top: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0.6)),
+          linear-gradient(120deg, rgba(53, 106, 122, 0.08), rgba(231, 179, 94, 0.08));
+      }}
+
+      .threshold-grid {{
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 0.8rem;
+      }}
+
+      .threshold-card {{
+        padding: 1rem;
+        border-radius: 1.1rem;
+        background: rgba(255,255,255,0.82);
+        border: 1px solid rgba(18, 61, 77, 0.08);
+        display: grid;
+        gap: 0.55rem;
+      }}
+
+      .threshold-top {{
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.8rem;
+      }}
+
+      .threshold-target {{
+        font-size: 0.76rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }}
+
+      .threshold-hour {{
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+        font-size: 1.35rem;
+      }}
+
+      .threshold-pills {{
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }}
+
+      .threshold-pill {{
+        padding: 0.24rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: rgba(231, 179, 94, 0.22);
+        color: var(--storm-deep);
+      }}
+
+      .threshold-pill.stable {{
+        background: rgba(53, 106, 122, 0.14);
+      }}
+
+      .threshold-pill.market {{
+        background: rgba(198, 107, 45, 0.16);
+      }}
+
+      .threshold-metric {{
+        font-size: 0.9rem;
+        color: var(--storm-deep);
+      }}
+
+      .threshold-note {{
+        font-size: 0.82rem;
+        line-height: 1.5;
+        color: var(--muted);
+      }}
+
       .gaps-panel {{
         padding: 1.2rem;
         border-top: 1px solid var(--line);
@@ -747,6 +824,17 @@ HTML_TEMPLATE = """<!doctype html>
           </aside>
         </div>
 
+        <section class="thresholds-panel">
+          <div class="section-head">
+            <h2>Trust Thresholds</h2>
+            <div class="section-note">Earliest captured hour where finalized forecast accuracy cleared each bar.</div>
+          </div>
+          <div class="threshold-grid" id="threshold-grid"></div>
+          <p class="footer-note">
+            Thresholds use finalized forecast accuracy only. Thin-sample cards are still shown, but flagged so you can separate a real pattern from a tiny denominator.
+          </p>
+        </section>
+
         <section class="drilldown-panel">
           <div class="drilldown-bar">
             <div class="selector-wrap">
@@ -840,6 +928,7 @@ HTML_TEMPLATE = """<!doctype html>
       const dayCaptureCountNode = document.getElementById("day-capture-count");
       const dayCorrectCountNode = document.getElementById("day-correct-count");
       const dayCaptureList = document.getElementById("day-capture-list");
+      const thresholdGrid = document.getElementById("threshold-grid");
       const earlyExampleTable = document.getElementById("early-example-table");
       const lateExampleTable = document.getElementById("late-example-table");
       const gapCoverageRatioNode = document.getElementById("gap-coverage-ratio");
@@ -881,6 +970,13 @@ HTML_TEMPLATE = """<!doctype html>
           return timestamp || "n/a";
         }}
         return timestamp.slice(11, 16);
+      }}
+
+      function formatHourLabel(hour) {{
+        if (hour === null || hour === undefined) {{
+          return "n/a";
+        }}
+        return `${String(hour).padStart(2, "0")}:00`;
       }}
 
       function formatPercent(ratio) {{
@@ -968,6 +1064,7 @@ HTML_TEMPLATE = """<!doctype html>
         renderAccuracyChart(city);
         renderMarketChart(city);
         renderCoverage(city);
+        renderThresholdSummary(city);
         daySelect.innerHTML = "";
         dayDrilldowns.forEach((day, dayIndex) => {{
           const option = document.createElement("option");
@@ -1260,6 +1357,74 @@ HTML_TEMPLATE = """<!doctype html>
         }});
       }}
 
+      function renderThresholdSummary(city) {{
+        const thresholdSummary = Array.isArray(city.threshold_summary) ? city.threshold_summary : [];
+        if (thresholdSummary.length === 0) {{
+          thresholdGrid.innerHTML = `<div class="empty-state">Threshold summary is unavailable for this city.</div>`;
+          return;
+        }}
+
+        thresholdGrid.innerHTML = thresholdSummary.map((item) => {{
+          if (item.status === "unresolved") {{
+            return `
+              <article class="threshold-card">
+                <div class="threshold-top">
+                  <div class="threshold-target">${escapeHtml(item.threshold_label)}</div>
+                  <div class="threshold-hour">No finalized days</div>
+                </div>
+                <div class="threshold-note">
+                  Captures exist, but no city-day has a resolved observed high yet, so this trust threshold cannot be timed.
+                </div>
+              </article>
+            `;
+          }}
+
+          if (item.status === "not_reached") {{
+            const bestNote = item.best_accuracy_ratio === null || item.best_accuracy_ratio === undefined
+              ? "No resolved forecast points are available for this city."
+              : `Best resolved point was ${formatPercent(item.best_accuracy_ratio)} at ${formatHourLabel(item.best_resolved_hour)} (${item.best_correct_day_count}/${item.best_valid_day_count} days).`;
+            return `
+              <article class="threshold-card">
+                <div class="threshold-top">
+                  <div class="threshold-target">${escapeHtml(item.threshold_label)}</div>
+                  <div class="threshold-hour">Not reached</div>
+                </div>
+                <div class="threshold-note">${bestNote}</div>
+              </article>
+            `;
+          }}
+
+          const marketSummary = item.market_summary;
+          let marketLine = "Market summary unavailable at this hour.";
+          if (marketSummary) {{
+            marketLine = marketSummary.valid_day_count > 0
+              ? `${formatPercent(marketSummary.leader_match_ratio)} winner-leading rate · Avg winner ${formatPriceCents(marketSummary.avg_winning_bucket_last_price_cents)}`
+              : "Market metrics remain unresolved at this hour.";
+          }}
+          const pillNodes = [];
+          pillNodes.push(
+            item.thin_sample
+              ? '<span class="threshold-pill">Thin sample</span>'
+              : '<span class="threshold-pill stable">Sample ok</span>'
+          );
+          if (marketSummary && marketSummary.valid_day_count > 0) {{
+            pillNodes.push(`<span class="threshold-pill market">${formatPercent(marketSummary.leader_match_ratio)} market</span>`);
+          }}
+
+          return `
+            <article class="threshold-card">
+              <div class="threshold-top">
+                <div class="threshold-target">${escapeHtml(item.threshold_label)}</div>
+                <div class="threshold-hour">${formatHourLabel(item.local_hour)}</div>
+              </div>
+              <div class="threshold-pills">${pillNodes.join("")}</div>
+              <div class="threshold-metric">Accuracy ${formatPercent(item.accuracy_ratio)} · ${item.correct_day_count}/${item.valid_day_count} days</div>
+              <div class="threshold-note">${marketLine}</div>
+            </article>
+          `;
+        }}).join("");
+      }}
+
       function renderDayDrilldown(city, dayIndex) {{
         const dayDrilldowns = Array.isArray(city.day_drilldowns) ? city.day_drilldowns : [];
         const day = dayDrilldowns[dayIndex] || dayDrilldowns[0];
@@ -1522,5 +1687,5 @@ HTML_TEMPLATE = """<!doctype html>
 
 def render_accuracy_dashboard_html(report: dict[str, Any]) -> str:
     report_json = json.dumps(report).replace("</", "<\\/")
-    html = HTML_TEMPLATE.replace("__REPORT_JSON__", report_json)
-    return html.replace("{{", "{").replace("}}", "}")
+    html = HTML_TEMPLATE.replace("{{", "{").replace("}}", "}")
+    return html.replace("__REPORT_JSON__", report_json)

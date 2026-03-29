@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import re
+
 from weather_study_cli.application import (
     DEFAULT_MOCK_DATA_DIR,
     compute_accuracy_metrics,
@@ -39,8 +42,17 @@ def test_export_accuracy_html_writes_self_contained_dashboard(tmp_path):
     export_accuracy_html(db_path=db_path, output_path=output_path, min_valid_sample=5)
 
     html = output_path.read_text(encoding="utf-8")
+    report_blob = re.search(
+        r'<script id="report-data" type="application/json">(.*?)</script>',
+        html,
+        re.S,
+    )
+    assert report_blob is not None
+    embedded_report = json.loads(report_blob.group(1))
+
     assert "Forecast Confidence Atlas" in html
     assert "Market Convergence" in html
+    assert "Trust Thresholds" in html
     assert "Single-Day Drilldown" in html
     assert "Example Days" in html
     assert "Collection Gaps" in html
@@ -48,6 +60,7 @@ def test_export_accuracy_html_writes_self_contained_dashboard(tmp_path):
     assert "Seattle,WA" in html
     assert "Denver,CO" in html
     assert "Thin sample" in html
+    assert embedded_report["cities"][0]["threshold_summary"]
 
 
 def test_export_accuracy_html_marks_zero_valid_hours_as_unresolved(tmp_path):
