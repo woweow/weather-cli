@@ -9,6 +9,7 @@ members = [
     "weather-bets-sync",
     "weather-cli",
     "weather-dashboard-cli",
+    "weather-study-cli",
 ]
 
 [[package]]
@@ -53,3 +54,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "weather-bets", editable = "packages/weather-bets" }]
+
+[[package]]
+name = "weather-study-cli"
+version = "0.1.0"
+source = { editable = "packages/weather-study-cli" }

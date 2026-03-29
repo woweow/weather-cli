@@ -1,0 +1,141 @@
+{
+  "schema_version": "1",
+  "captured_at_utc": "2026-03-26T22:00:00Z",
+  "collector": {
+    "name": "weather-market-study-mock",
+    "version": "1"
+  },
+  "city": {
+    "name": "Seattle",
+    "state": "WA",
+    "place": "Seattle,WA",
+    "timezone": "America/Los_Angeles"
+  },
+  "capture_context": {
+    "local_timestamp": "2026-03-26T15:00:00-07:00",
+    "local_date": "2026-03-26",
+    "local_hour": 15
+  },
+  "weather": {
+    "source": "weather-cli rest-of-today",
+    "payload": {
+      "location": {
+        "input": "Seattle,WA",
+        "city": "Seattle",
+        "state": "WA",
+        "timezone": "America/Los_Angeles"
+      },
+      "resolved_coordinates": {
+        "latitude": 47.60621,
+        "longitude": -122.33207
+      },
+      "range": {
+        "name": "rest-of-today",
+        "mode": "forecast",
+        "start": "2026-03-26T15:00:00-07:00",
+        "end": "2026-03-27T00:00:00-07:00"
+      },
+      "source": {
+        "geocoder": "Open-Meteo geocoding",
+        "provider": "NOAA weather.gov API",
+        "point_url": "https://api.weather.gov/points/47.6062,-122.3321",
+        "station_selection": "preset",
+        "forecast_url": "https://api.weather.gov/gridpoints/SEW/124,60/forecast/hourly"
+      },
+      "station": {
+        "identifier": "KSEA",
+        "name": "Seattle-Tacoma International Airport",
+        "timezone": "America/Los_Angeles",
+        "distance_meters": null,
+        "latitude": 47.45,
+        "longitude": -122.3
+      },
+      "periods": [
+        {
+          "kind": "forecast",
+          "start": "2026-03-26T15:00:00-07:00",
+          "end": "2026-03-26T16:00:00-07:00",
+          "temperature_f": 58,
+          "relative_humidity_pct": 54,
+          "precipitation_probability_pct": 0,
+          "wind_speed": "7 mph",
+          "wind_direction": "NW",
+          "summary": "Mostly Sunny",
+          "is_daytime": true
+        },
+        {
+          "kind": "forecast",
+          "start": "2026-03-26T16:00:00-07:00",
+          "end": "2026-03-26T17:00:00-07:00",
+          "temperature_f": 58,
+          "relative_humidity_pct": 49,
+          "precipitation_probability_pct": 0,
+          "wind_speed": "8 mph",
+          "wind_direction": "NW",
+          "summary": "Sunny",
+          "is_daytime": true
+        },
+        {
+          "kind": "forecast",
+          "start": "2026-03-26T18:00:00-07:00",
+          "end": "2026-03-26T19:00:00-07:00",
+          "temperature_f": 55,
+          "relative_humidity_pct": 61,
+          "precipitation_probability_pct": 0,
+          "wind_speed": "5 mph",
+          "wind_direction": "N",
+          "summary": "Clear",
+          "is_daytime": false
+        }
+      ]
+    }
+  },
+  "market": {
+    "source": "kalshi-weather-markets --format json",
+    "payload": {
+      "provider": "kalshi",
+      "city": "Seattle",
+      "series_ticker": "KXHIGHTSEA",
+      "series_title": "Seattle Maximum Temperature Daily",
+      "event_ticker": "KXHIGHTSEA-26MAR26",
+      "event_date": "2026-03-26",
+      "event_date_label": "Mar 26, 2026",
+      "markets": [
+        {
+          "ticker": "KXHIGHTSEA-26MAR26-B55.5",
+          "title": "55 to 56",
+          "label": "55°F to 56°F",
+          "yes_bid_cents": 15,
+          "yes_ask_cents": 17,
+          "no_bid_cents": 83,
+          "no_ask_cents": 85,
+          "last_price_cents": 16,
+          "sort_key": 55.5
+        },
+        {
+          "ticker": "KXHIGHTSEA-26MAR26-B57.5",
+          "title": "57 to 58",
+          "label": "57°F to 58°F",
+          "yes_bid_cents": 66,
+          "yes_ask_cents": 68,
+          "no_bid_cents": 32,
+          "no_ask_cents": 34,
+          "last_price_cents": 67,
+          "sort_key": 57.5
+        },
+        {
+          "ticker": "KXHIGHTSEA-26MAR26-B59.5",
+          "title": "59 to 60",
+          "label": "59°F to 60°F",
+          "yes_bid_cents": 11,
+          "yes_ask_cents": 13,
+          "no_bid_cents": 87,
+          "no_ask_cents": 89,
+          "last_price_cents": 12,
+          "sort_key": 59.5
+        }
+      ]
+    }
+  },
+  "errors": []
+}

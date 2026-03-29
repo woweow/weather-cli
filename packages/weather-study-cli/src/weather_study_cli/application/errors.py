@@ -1,0 +1,9 @@
+from __future__ import annotations
+
+
+class WeatherStudyCliError(Exception):
+    """Base exception for study CLI failures."""
+
+
+class StudyValidationError(WeatherStudyCliError):
+    """Raised when raw study captures do not match the expected contract."""
