@@ -6,8 +6,10 @@ import sys
 
 from weather_study_cli.application import StudyValidationError, list_supported_study_places
 from weather_study_collector.application import (
+    DEFAULT_AWS_PROFILE,
     DEFAULT_CONTACT_EMAIL,
     DEFAULT_OUTPUT_ROOT,
+    DEFAULT_S3_PREFIX,
     build_default_collector,
     parse_capture_time,
 )
@@ -69,6 +71,54 @@ def build_parser() -> argparse.ArgumentParser:
         default="text",
         help="Output format for the capture summary (default: %(default)s)",
     )
+
+    capture_s3 = subparsers.add_parser(
+        "capture-s3",
+        help="Capture live weather-market study files and upload them to S3.",
+        description=(
+            "Capture live weather-market study files and upload them to S3.\n\n"
+            "Examples:\n"
+            "  weather-study-collector capture-s3 --bucket my-study-bucket\n"
+            "  weather-study-collector capture-s3 --bucket my-study-bucket --place Seattle,WA\n"
+            "  weather-study-collector capture-s3 --bucket my-study-bucket --prefix raw-live --format json"
+        ),
+        formatter_class=HelpFormatter,
+    )
+    capture_s3.add_argument(
+        "--bucket",
+        required=True,
+        help="Target S3 bucket for raw study captures.",
+    )
+    capture_s3.add_argument(
+        "--prefix",
+        default=DEFAULT_S3_PREFIX,
+        help="S3 prefix for uploaded raw files (default: %(default)s)",
+    )
+    capture_s3.add_argument(
+        "--profile",
+        default=DEFAULT_AWS_PROFILE,
+        help="AWS CLI profile to use for S3 upload (default: %(default)s)",
+    )
+    capture_s3.add_argument(
+        "--place",
+        action="append",
+        help='Optional strict city,state filter. Repeat to capture a subset, for example "Seattle,WA".',
+    )
+    capture_s3.add_argument(
+        "--captured-at-utc",
+        help="Optional top-of-hour UTC timestamp to use for the capture, for example 2026-03-29T21:00:00Z",
+    )
+    capture_s3.add_argument(
+        "--contact-email",
+        default=DEFAULT_CONTACT_EMAIL,
+        help="Contact email embedded in the NOAA User-Agent header (default: %(default)s)",
+    )
+    capture_s3.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format for the capture summary (default: %(default)s)",
+    )
     return parser
 
 
@@ -87,6 +137,20 @@ def main(argv: list[str] | None = None) -> int:
                 print(json.dumps(summary.to_dict(), indent=2))
             else:
                 print(render_capture_summary(summary))
+            return 0
+        if args.command == "capture-s3":
+            collector = build_default_collector(contact_email=args.contact_email)
+            summary = collector.capture_to_s3(
+                bucket=args.bucket,
+                prefix=args.prefix,
+                profile=args.profile,
+                places=args.place,
+                captured_at_utc=parse_capture_time(args.captured_at_utc),
+            )
+            if args.format == "json":
+                print(json.dumps(summary.to_dict(), indent=2))
+            else:
+                print(render_s3_capture_summary(summary))
             return 0
     except StudyValidationError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -112,6 +176,27 @@ def render_capture_summary(summary) -> str:
         lines.append(f"  {result.place}: {result.status}")
         if result.path:
             lines.append(f"    file: {result.path}")
+        for source, message in zip(result.error_sources, result.error_messages, strict=False):
+            lines.append(f"    {source}: {message}")
+    return "\n".join(lines)
+
+
+def render_s3_capture_summary(summary) -> str:
+    lines = [
+        f"Uploaded study captures for {summary.target_count} city target(s) at {summary.captured_at_utc}",
+        f"S3 prefix: s3://{summary.bucket}/{summary.prefix}/" if summary.prefix else f"S3 bucket: s3://{summary.bucket}/",
+        f"AWS profile: {summary.profile}",
+        f"uploaded: {summary.uploaded_count}",
+        f"success: {summary.success_count}",
+        f"partial: {summary.partial_count}",
+        f"failed: {summary.failed_count}",
+        "",
+        "Results:",
+    ]
+    for result in summary.results:
+        lines.append(f"  {result.place}: {result.status}")
+        if result.s3_uri:
+            lines.append(f"    s3: {result.s3_uri}")
         for source, message in zip(result.error_sources, result.error_messages, strict=False):
             lines.append(f"    {source}: {message}")
     return "\n".join(lines)

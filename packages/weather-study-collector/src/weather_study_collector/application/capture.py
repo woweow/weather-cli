@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
+from tempfile import TemporaryDirectory
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -26,6 +28,8 @@ DEFAULT_OUTPUT_ROOT = Path(".study") / "raw"
 DEFAULT_CONTACT_EMAIL = os.getenv("WEATHER_CLI_CONTACT_EMAIL", "weather-cli@example.com")
 DEFAULT_COLLECTOR_NAME = "weather-market-study-local"
 DEFAULT_COLLECTOR_VERSION = "1"
+DEFAULT_AWS_PROFILE = "dev"
+DEFAULT_S3_PREFIX = "raw"
 SCHEMA_VERSION = "1"
 
 
@@ -86,6 +90,67 @@ class CollectorRunSummary:
         }
 
 
+@dataclass(frozen=True)
+class CaptureUploadResult:
+    place: str
+    status: str
+    s3_uri: str | None
+    error_sources: tuple[str, ...]
+    error_messages: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "place": self.place,
+            "status": self.status,
+            "s3_uri": self.s3_uri,
+            "error_sources": list(self.error_sources),
+            "error_messages": list(self.error_messages),
+        }
+
+
+@dataclass(frozen=True)
+class S3CollectorRunSummary:
+    captured_at_utc: str
+    bucket: str
+    prefix: str
+    profile: str
+    results: tuple[CaptureUploadResult, ...]
+
+    @property
+    def target_count(self) -> int:
+        return len(self.results)
+
+    @property
+    def uploaded_count(self) -> int:
+        return sum(1 for result in self.results if result.s3_uri is not None)
+
+    @property
+    def success_count(self) -> int:
+        return sum(1 for result in self.results if result.status == "success")
+
+    @property
+    def partial_count(self) -> int:
+        return sum(1 for result in self.results if result.status == "partial")
+
+    @property
+    def failed_count(self) -> int:
+        return sum(1 for result in self.results if result.status == "failed")
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "captured_at_utc": self.captured_at_utc,
+            "bucket": self.bucket,
+            "prefix": self.prefix,
+            "profile": self.profile,
+            "target_count": self.target_count,
+            "uploaded_count": self.uploaded_count,
+            "success_count": self.success_count,
+            "partial_count": self.partial_count,
+            "failed_count": self.failed_count,
+            "results": [result.to_dict() for result in self.results],
+        }
+
+
 class LiveStudyCollector:
     def __init__(
         self,
@@ -121,6 +186,69 @@ class LiveStudyCollector:
             captured_at_utc=capture_time.isoformat().replace("+00:00", "Z"),
             output_root=target_output_root,
             results=results,
+        )
+
+    def capture_to_s3(
+        self,
+        *,
+        bucket: str,
+        prefix: str = DEFAULT_S3_PREFIX,
+        profile: str = DEFAULT_AWS_PROFILE,
+        places: tuple[str, ...] | list[str] | None = None,
+        captured_at_utc: datetime | None = None,
+    ) -> S3CollectorRunSummary:
+        normalized_bucket = bucket.strip()
+        if not normalized_bucket:
+            raise StudyValidationError("--bucket must be a non-empty S3 bucket name.")
+        normalized_prefix = prefix.strip().strip("/")
+        capture_time = captured_at_utc or parse_capture_time(None)
+        with TemporaryDirectory(prefix="weather-study-capture-") as temp_dir:
+            temp_root = Path(temp_dir).resolve()
+            local_summary = self.capture_to_directory(
+                output_root=temp_root,
+                places=places,
+                captured_at_utc=capture_time,
+            )
+            uploadable_results = [result for result in local_summary.results if result.path is not None]
+            if uploadable_results:
+                target_uri = build_s3_prefix_uri(normalized_bucket, normalized_prefix)
+                command = [
+                    "aws",
+                    "s3",
+                    "sync",
+                    str(temp_root),
+                    target_uri,
+                    "--profile",
+                    profile,
+                ]
+                completed = subprocess.run(command, capture_output=True, text=True, check=False)
+                if completed.returncode != 0:
+                    detail = completed.stderr.strip() or completed.stdout.strip() or "unknown AWS CLI error"
+                    raise RuntimeError(f"`aws s3 sync` failed for {target_uri}: {detail}")
+            upload_results = tuple(
+                CaptureUploadResult(
+                    place=result.place,
+                    status=result.status,
+                    s3_uri=(
+                        build_s3_object_uri(
+                            normalized_bucket,
+                            normalized_prefix,
+                            Path(result.path).relative_to(temp_root),
+                        )
+                        if result.path is not None
+                        else None
+                    ),
+                    error_sources=result.error_sources,
+                    error_messages=result.error_messages,
+                )
+                for result in local_summary.results
+            )
+        return S3CollectorRunSummary(
+            captured_at_utc=local_summary.captured_at_utc,
+            bucket=normalized_bucket,
+            prefix=normalized_prefix,
+            profile=profile,
+            results=upload_results,
         )
 
     def _capture_city(
@@ -244,3 +372,16 @@ def parse_capture_time(value: str | None) -> datetime:
 def format_error_message(exc: Exception) -> str:
     detail = str(exc).strip() or exc.__class__.__name__
     return f"{exc.__class__.__name__}: {detail}"
+
+
+def build_s3_prefix_uri(bucket: str, prefix: str) -> str:
+    if prefix:
+        return f"s3://{bucket}/{prefix}/"
+    return f"s3://{bucket}/"
+
+
+def build_s3_object_uri(bucket: str, prefix: str, relative_path: Path) -> str:
+    relative = "/".join(relative_path.parts)
+    if prefix:
+        return f"s3://{bucket}/{prefix}/{relative}"
+    return f"s3://{bucket}/{relative}"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from datetime import UTC, datetime
 
 from kalshi_weather_markets_cli.application.models import LadderSnapshot, MarketRange
@@ -127,3 +128,28 @@ def test_capture_to_directory_persists_partial_failure_when_market_or_weather_is
             "message": "RuntimeError: weather unavailable for Seattle,WA",
         }
     ]
+
+
+def test_capture_to_s3_returns_uploaded_uri_summary(monkeypatch):
+    collector = LiveStudyCollector(FakeWeatherService(), FakeMarketService())
+
+    def fake_run(command, capture_output, text, check):
+        assert command[:3] == ["aws", "s3", "sync"]
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr("weather_study_collector.application.capture.subprocess.run", fake_run)
+
+    summary = collector.capture_to_s3(
+        bucket="weather-study-raw-084375548651-us-west-2",
+        prefix="raw-live-smoke",
+        profile="dev",
+        places=["Seattle,WA"],
+        captured_at_utc=FIXED_CAPTURE_TIME,
+    )
+
+    assert summary.uploaded_count == 1
+    assert summary.results[0].s3_uri == (
+        "s3://weather-study-raw-084375548651-us-west-2/"
+        "raw-live-smoke/study_version=1/city=Seattle/state=WA/"
+        "local_date=2026-03-29/local_hour=14/captured_at_utc=2026-03-29T21-00-00Z.json"
+    )
