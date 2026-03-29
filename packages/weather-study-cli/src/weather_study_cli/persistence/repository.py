@@ -346,6 +346,75 @@ def list_capture_hour_rows(
     ]
 
 
+def list_day_capture_rows(
+    connection: sqlite3.Connection,
+    *,
+    place: str,
+    local_date: str,
+) -> list[dict[str, Any]]:
+    rows = connection.execute(
+        """
+        SELECT
+            id,
+            place,
+            timezone,
+            local_date,
+            local_timestamp,
+            local_hour,
+            captured_at_utc,
+            weather_payload_present,
+            market_payload_present,
+            error_count,
+            capture_json
+        FROM raw_captures
+        WHERE place = ? AND local_date = ?
+        ORDER BY local_hour ASC, captured_at_utc ASC
+        """,
+        (place, local_date),
+    ).fetchall()
+    return [
+        {
+            "id": row["id"],
+            "place": row["place"],
+            "timezone": row["timezone"],
+            "local_date": row["local_date"],
+            "local_timestamp": row["local_timestamp"],
+            "local_hour": row["local_hour"],
+            "captured_at_utc": row["captured_at_utc"],
+            "weather_payload_present": row["weather_payload_present"],
+            "market_payload_present": row["market_payload_present"],
+            "error_count": row["error_count"],
+            "capture_json": row["capture_json"],
+        }
+        for row in rows
+    ]
+
+
+def get_daily_actual_row(
+    connection: sqlite3.Connection,
+    *,
+    place: str,
+    local_date: str,
+) -> dict[str, Any] | None:
+    row = connection.execute(
+        """
+        SELECT place, local_date, timezone, observed_high_temperature_f, resolved_at_utc
+        FROM daily_actuals
+        WHERE place = ? AND local_date = ?
+        """,
+        (place, local_date),
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "place": row["place"],
+        "local_date": row["local_date"],
+        "timezone": row["timezone"],
+        "observed_high_temperature_f": row["observed_high_temperature_f"],
+        "resolved_at_utc": row["resolved_at_utc"],
+    }
+
+
 def replace_hourly_accuracy_metrics(
     connection: sqlite3.Connection,
     *,

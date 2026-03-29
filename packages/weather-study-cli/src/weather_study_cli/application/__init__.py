@@ -8,6 +8,11 @@ if TYPE_CHECKING:
         DailyActualDerivationSummary,
         derive_daily_actuals,
     )
+    from weather_study_cli.application.day_report import (
+        DayCaptureDrilldown,
+        StudyDayDrilldownReport,
+        load_day_drilldown_report,
+    )
     from weather_study_cli.application.cities import (
         SUPPORTED_STUDY_CITIES,
         StudyCity,
@@ -55,6 +60,7 @@ __all__ = [
     "CollectionGapReport",
     "DailyActualDerivationError",
     "DailyActualDerivationSummary",
+    "DayCaptureDrilldown",
     "IncompatibleStudyDatabaseError",
     "IngestSummary",
     "SUPPORTED_STUDY_CITIES",
@@ -63,6 +69,7 @@ __all__ = [
     "StudyCapture",
     "StudyCity",
     "StudyDatasetSummary",
+    "StudyDayDrilldownReport",
     "StudyValidationError",
     "WeatherStudyCliError",
     "build_capture_relative_path",
@@ -74,6 +81,7 @@ __all__ = [
     "load_collection_gap_report",
     "load_capture_directory",
     "load_capture_file",
+    "load_day_drilldown_report",
     "resolve_study_cities",
     "sync_capture_directory_from_s3",
 ]
@@ -91,6 +99,7 @@ _EXPORTS = {
     "CollectionGapReport": ("weather_study_cli.application.gaps", "CollectionGapReport"),
     "DailyActualDerivationError": ("weather_study_cli.application.errors", "DailyActualDerivationError"),
     "DailyActualDerivationSummary": ("weather_study_cli.application.actuals", "DailyActualDerivationSummary"),
+    "DayCaptureDrilldown": ("weather_study_cli.application.day_report", "DayCaptureDrilldown"),
     "IncompatibleStudyDatabaseError": (
         "weather_study_cli.application.errors",
         "IncompatibleStudyDatabaseError",
@@ -102,6 +111,7 @@ _EXPORTS = {
     "StudyCapture": ("weather_study_cli.application.raw_schema", "StudyCapture"),
     "StudyCity": ("weather_study_cli.application.cities", "StudyCity"),
     "StudyDatasetSummary": ("weather_study_cli.application.raw_loader", "StudyDatasetSummary"),
+    "StudyDayDrilldownReport": ("weather_study_cli.application.day_report", "StudyDayDrilldownReport"),
     "StudyValidationError": ("weather_study_cli.application.errors", "StudyValidationError"),
     "WeatherStudyCliError": ("weather_study_cli.application.errors", "WeatherStudyCliError"),
     "build_capture_relative_path": (
@@ -116,6 +126,7 @@ _EXPORTS = {
     "load_collection_gap_report": ("weather_study_cli.application.gaps", "load_collection_gap_report"),
     "load_capture_directory": ("weather_study_cli.application.raw_loader", "load_capture_directory"),
     "load_capture_file": ("weather_study_cli.application.raw_loader", "load_capture_file"),
+    "load_day_drilldown_report": ("weather_study_cli.application.day_report", "load_day_drilldown_report"),
     "resolve_study_cities": ("weather_study_cli.application.cities", "resolve_study_cities"),
     "sync_capture_directory_from_s3": ("weather_study_cli.application.s3", "sync_capture_directory_from_s3"),
 }

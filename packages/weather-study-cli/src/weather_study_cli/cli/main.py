@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from weather_study_cli.application import (
     AccuracyMetricSummary,
@@ -13,6 +14,7 @@ from weather_study_cli.application import (
     DEFAULT_CONTACT_EMAIL,
     DEFAULT_S3_DOWNLOAD_DIR,
     DEFAULT_S3_PREFIX,
+    StudyDayDrilldownReport,
     WeatherStudyCliError,
     compute_accuracy_metrics,
     derive_daily_actuals,
@@ -20,6 +22,7 @@ from weather_study_cli.application import (
     ingest_capture_directory,
     load_capture_directory,
     load_collection_gap_report,
+    load_day_drilldown_report,
     sync_capture_directory_from_s3,
 )
 
@@ -292,6 +295,47 @@ def build_parser() -> argparse.ArgumentParser:
         default="text",
         help="Output format for the gap report (default: %(default)s)",
     )
+
+    drilldown = subparsers.add_parser(
+        "export-day-drilldown",
+        help="Export a single city-day drill-down from the study DB.",
+        description=(
+            "Export a single city-day drill-down from the local study SQLite database.\n\n"
+            "The report shows each captured hour for one city-day, including remaining-day forecast\n"
+            "periods, captured market ladders, raw error sources, and whether each forecast high\n"
+            "matched the resolved observed high when one exists.\n\n"
+            "Examples:\n"
+            "  weather-study export-day-drilldown --place Seattle,WA --local-date 2026-03-26\n"
+            "  weather-study export-day-drilldown --place Denver,CO --local-date 2026-03-27 --format json\n"
+            "  weather-study export-day-drilldown --place Seattle,WA --local-date 2026-03-26 --output /tmp/day.json --format json"
+        ),
+        formatter_class=HelpFormatter,
+    )
+    drilldown.add_argument(
+        "--db-path",
+        default=str(DEFAULT_DB_PATH),
+        help="SQLite database path for the study DB (default: %(default)s)",
+    )
+    drilldown.add_argument(
+        "--place",
+        required=True,
+        help='Strict city,state selector such as "Seattle,WA".',
+    )
+    drilldown.add_argument(
+        "--local-date",
+        required=True,
+        help="Target local date in YYYY-MM-DD format.",
+    )
+    drilldown.add_argument(
+        "--output",
+        help="Optional path to write the exported drill-down instead of printing to stdout.",
+    )
+    drilldown.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format for the drill-down export (default: %(default)s)",
+    )
     return parser
 
 
@@ -360,6 +404,24 @@ def main(argv: list[str] | None = None) -> int:
                 print(json.dumps(summary.to_dict(), indent=2, sort_keys=False))
             else:
                 print(render_gap_text_summary(summary))
+            return 0
+        if args.command == "export-day-drilldown":
+            summary = load_day_drilldown_report(
+                db_path=args.db_path,
+                place=args.place,
+                local_date=args.local_date,
+            )
+            output = (
+                json.dumps(summary.to_dict(), indent=2, sort_keys=False)
+                if args.format == "json"
+                else render_day_drilldown_text_summary(summary)
+            )
+            if args.output:
+                target = Path(args.output).expanduser().resolve()
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(output + ("\n" if not output.endswith("\n") else ""), encoding="utf-8")
+            else:
+                print(output)
             return 0
     except WeatherStudyCliError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -475,6 +537,60 @@ def render_gap_text_summary(summary: CollectionGapReport) -> str:
                 (
                     f"  {date.local_date}{current_suffix}: window {date.expected_start_hour:02d}-"
                     f"{date.expected_end_hour:02d}, observed {observed_hours}, missing {missing_hours}"
+                )
+            )
+    return "\n".join(lines)
+
+
+def render_day_drilldown_text_summary(summary: StudyDayDrilldownReport) -> str:
+    actual = (
+        f"{summary.actual_high_temperature_f:.1f} F at {summary.actual_resolved_at_utc}"
+        if summary.actual_high_temperature_f is not None and summary.actual_resolved_at_utc is not None
+        else "unresolved"
+    )
+    lines = [
+        f"SQLite database: {summary.db_path}",
+        f"Day drill-down: {summary.place} on {summary.local_date}",
+        f"Timezone: {summary.timezone}",
+        f"Actual high: {actual}",
+        f"captures: {summary.capture_count}",
+        f"forecast matches actual: {summary.correct_capture_count}",
+    ]
+    for capture in summary.captures:
+        forecast_high = (
+            f"{capture.forecast_high_temperature_f:.1f} F"
+            if capture.forecast_high_temperature_f is not None
+            else "n/a"
+        )
+        if capture.forecast_matches_actual is None:
+            forecast_match = "unresolved"
+        else:
+            forecast_match = "yes" if capture.forecast_matches_actual else "no"
+        market_leader = (
+            f"{capture.market_leader_label} @ {capture.market_leader_last_price_cents}c"
+            if capture.market_leader_label is not None and capture.market_leader_last_price_cents is not None
+            else "n/a"
+        )
+        lines.extend(
+            [
+                "",
+                (
+                    f"{capture.local_hour:02d}:00 local | forecast high {forecast_high} | "
+                    f"matches actual {forecast_match} | market leader {market_leader}"
+                ),
+                (
+                    f"  weather payload: {'yes' if capture.weather_payload_present else 'no'} "
+                    f"({capture.forecast_period_count} periods), market payload: "
+                    f"{'yes' if capture.market_payload_present else 'no'} ({capture.market_row_count} rows)"
+                ),
+            ]
+        )
+        if capture.error_sources:
+            lines.append(
+                "  errors: "
+                + "; ".join(
+                    f"{source}: {message}"
+                    for source, message in zip(capture.error_sources, capture.error_messages, strict=True)
                 )
             )
     return "\n".join(lines)
