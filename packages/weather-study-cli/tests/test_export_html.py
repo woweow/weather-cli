@@ -62,6 +62,7 @@ def test_export_accuracy_html_writes_self_contained_dashboard(tmp_path):
     assert "Denver,CO" in html
     assert "Thin sample" in html
     assert "No captures yet for configured cities" in html
+    assert "Awaiting first capture" in html
     assert embedded_report["missing_supported_places"] == [
         "San Francisco,CA",
         "Los Angeles,CA",

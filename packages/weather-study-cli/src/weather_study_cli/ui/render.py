@@ -692,6 +692,10 @@ HTML_TEMPLATE = """<!doctype html>
         background: linear-gradient(90deg, rgba(53, 106, 122, 0.08), rgba(231, 179, 94, 0.06));
       }}
 
+      .overview-row.is-missing {{
+        background: rgba(246, 240, 228, 0.45);
+      }}
+
       .overview-city-button {{
         appearance: none;
         border: 0;
@@ -705,6 +709,12 @@ HTML_TEMPLATE = """<!doctype html>
 
       .overview-city-button:hover {{
         color: var(--sun);
+      }}
+
+      .overview-city-label {{
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+        font-size: 1.02rem;
+        color: rgba(31, 42, 46, 0.78);
       }}
 
       .overview-main {{
@@ -854,7 +864,7 @@ HTML_TEMPLATE = """<!doctype html>
         <section class="overview-panel">
           <div class="section-head">
             <h2>City Threshold Overview</h2>
-            <div class="section-note">Compare threshold timing across every city in the loaded study set.</div>
+            <div class="section-note">Compare threshold timing across loaded cities and see configured cities that still have no captures.</div>
           </div>
           <div class="overview-wrap">
             <table class="overview-table">
@@ -1153,7 +1163,7 @@ HTML_TEMPLATE = """<!doctype html>
       }}
 
       function renderThresholdOverview(selectedIndex) {{
-        overviewTableBody.innerHTML = report.cities.map((city, index) => {{
+        const cityRows = report.cities.map((city, index) => {{
           const thresholdMap = new Map(
             (Array.isArray(city.threshold_summary) ? city.threshold_summary : []).map((item) => [item.threshold_label, item])
           );
@@ -1182,6 +1192,35 @@ HTML_TEMPLATE = """<!doctype html>
             </tr>
           `;
         }}).join("");
+        const missingRows = (Array.isArray(report.missing_supported_places) ? report.missing_supported_places : []).map((place) => `
+          <tr class="overview-row is-missing">
+            <td>
+              <div class="overview-city-label">${escapeHtml(place)}</div>
+              <div class="overview-sub">No captures yet</div>
+            </td>
+            <td>
+              <div class="overview-main status">No data</div>
+              <div class="overview-sub">Awaiting first capture</div>
+            </td>
+            <td>
+              <div class="overview-main status">No data</div>
+              <div class="overview-sub">Awaiting first capture</div>
+            </td>
+            <td>
+              <div class="overview-main status">No data</div>
+              <div class="overview-sub">Awaiting first capture</div>
+            </td>
+            <td>
+              <div class="overview-main status">No data</div>
+              <div class="overview-sub">Awaiting first capture</div>
+            </td>
+            <td>
+              <div class="overview-main status">n/a</div>
+              <div class="overview-sub">Not started</div>
+            </td>
+          </tr>
+        `).join("");
+        overviewTableBody.innerHTML = cityRows + missingRows;
       }}
 
       function renderCity(index) {{
