@@ -6,7 +6,7 @@ from pathlib import Path
 from weather_study_cli.application.errors import IncompatibleStudyDatabaseError
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 CREATE_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS raw_captures (
@@ -105,7 +105,10 @@ CREATE TABLE IF NOT EXISTS hourly_market_opportunity_metrics (
     local_hour INTEGER NOT NULL,
     valid_day_count INTEGER NOT NULL,
     missing_day_count INTEGER NOT NULL,
-    matching_market_count INTEGER NOT NULL,
+    excluded_day_count INTEGER NOT NULL,
+    leader_match_day_count INTEGER NOT NULL,
+    leader_match_ratio REAL NOT NULL,
+    avg_winning_bucket_last_price_cents REAL,
     computed_at_utc TEXT NOT NULL,
     UNIQUE(place, local_hour)
 );

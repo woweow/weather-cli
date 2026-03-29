@@ -14,9 +14,11 @@ from weather_study_cli.application import (
     DEFAULT_CONTACT_EMAIL,
     DEFAULT_S3_DOWNLOAD_DIR,
     DEFAULT_S3_PREFIX,
+    MarketOpportunityMetricSummary,
     StudyDayDrilldownReport,
     WeatherStudyCliError,
     compute_accuracy_metrics,
+    compute_market_opportunity_metrics,
     derive_daily_actuals,
     export_accuracy_html,
     ingest_capture_directory,
@@ -231,6 +233,37 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output format for the metric summary (default: %(default)s)",
     )
 
+    market_metrics = subparsers.add_parser(
+        "compute-market-opportunity-metrics",
+        help="Compute hourly market-opportunity metrics from the study DB.",
+        description=(
+            "Compute hourly market-opportunity metrics from ingested captures and daily actuals.\n\n"
+            "The command resolves the actual winning Kalshi bucket for each city-day when possible,\n"
+            "tracks whether the market leader already matched that winning bucket at each hour, and\n"
+            "stores the aggregated results in `hourly_market_opportunity_metrics`.\n\n"
+            "Examples:\n"
+            "  weather-study compute-market-opportunity-metrics\n"
+            "  weather-study compute-market-opportunity-metrics --db-path /tmp/weather-study.db --format json\n"
+            "  weather-study compute-market-opportunity-metrics --place Seattle,WA"
+        ),
+        formatter_class=HelpFormatter,
+    )
+    market_metrics.add_argument(
+        "--db-path",
+        default=str(DEFAULT_DB_PATH),
+        help="SQLite database path for the study DB (default: %(default)s)",
+    )
+    market_metrics.add_argument(
+        "--place",
+        help='Optional strict city,state filter such as "Seattle,WA".',
+    )
+    market_metrics.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format for the metric summary (default: %(default)s)",
+    )
+
     export = subparsers.add_parser(
         "export-accuracy-html",
         help="Export a self-contained local HTML view of hourly forecast accuracy.",
@@ -391,6 +424,13 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(render_accuracy_text_summary(summary))
             return 0
+        if args.command == "compute-market-opportunity-metrics":
+            summary = compute_market_opportunity_metrics(db_path=args.db_path, place=args.place)
+            if args.format == "json":
+                print(json.dumps(summary.to_dict(), indent=2, sort_keys=False))
+            else:
+                print(render_market_opportunity_text_summary(summary))
+            return 0
         if args.command == "export-accuracy-html":
             return export_accuracy_html(
                 db_path=args.db_path,
@@ -500,6 +540,15 @@ def render_accuracy_text_summary(summary: AccuracyMetricSummary) -> str:
         f"SQLite database: {summary.db_path}",
         f"places with metrics: {summary.place_count}",
         f"hourly_accuracy_metrics rows: {summary.metric_row_count}",
+    ]
+    return "\n".join(lines)
+
+
+def render_market_opportunity_text_summary(summary: MarketOpportunityMetricSummary) -> str:
+    lines = [
+        f"SQLite database: {summary.db_path}",
+        f"places with market metrics: {summary.place_count}",
+        f"hourly_market_opportunity_metrics rows: {summary.metric_row_count}",
     ]
     return "\n".join(lines)
 

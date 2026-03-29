@@ -28,6 +28,10 @@ if TYPE_CHECKING:
     )
     from weather_study_cli.application.gaps import CollectionGapReport, load_collection_gap_report
     from weather_study_cli.application.ingest import IngestSummary, ingest_capture_directory
+    from weather_study_cli.application.market_metrics import (
+        MarketOpportunityMetricSummary,
+        compute_market_opportunity_metrics,
+    )
     from weather_study_cli.application.metrics import AccuracyMetricSummary, compute_accuracy_metrics
     from weather_study_cli.application.raw_loader import (
         DEFAULT_MOCK_DATA_DIR,
@@ -63,6 +67,7 @@ __all__ = [
     "DayCaptureDrilldown",
     "IncompatibleStudyDatabaseError",
     "IngestSummary",
+    "MarketOpportunityMetricSummary",
     "SUPPORTED_STUDY_CITIES",
     "S3SyncError",
     "S3SyncSummary",
@@ -75,6 +80,7 @@ __all__ = [
     "build_capture_relative_path",
     "derive_daily_actuals",
     "compute_accuracy_metrics",
+    "compute_market_opportunity_metrics",
     "ingest_capture_directory",
     "export_accuracy_html",
     "list_supported_study_places",
@@ -105,6 +111,10 @@ _EXPORTS = {
         "IncompatibleStudyDatabaseError",
     ),
     "IngestSummary": ("weather_study_cli.application.ingest", "IngestSummary"),
+    "MarketOpportunityMetricSummary": (
+        "weather_study_cli.application.market_metrics",
+        "MarketOpportunityMetricSummary",
+    ),
     "SUPPORTED_STUDY_CITIES": ("weather_study_cli.application.cities", "SUPPORTED_STUDY_CITIES"),
     "S3SyncError": ("weather_study_cli.application.errors", "S3SyncError"),
     "S3SyncSummary": ("weather_study_cli.application.s3", "S3SyncSummary"),
@@ -120,6 +130,10 @@ _EXPORTS = {
     ),
     "derive_daily_actuals": ("weather_study_cli.application.actuals", "derive_daily_actuals"),
     "compute_accuracy_metrics": ("weather_study_cli.application.metrics", "compute_accuracy_metrics"),
+    "compute_market_opportunity_metrics": (
+        "weather_study_cli.application.market_metrics",
+        "compute_market_opportunity_metrics",
+    ),
     "ingest_capture_directory": ("weather_study_cli.application.ingest", "ingest_capture_directory"),
     "export_accuracy_html": ("weather_study_cli.application.report", "export_accuracy_html"),
     "list_supported_study_places": ("weather_study_cli.application.cities", "list_supported_study_places"),

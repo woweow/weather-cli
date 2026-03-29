@@ -390,6 +390,39 @@ def list_day_capture_rows(
     ]
 
 
+def list_market_capture_rows(
+    connection: sqlite3.Connection,
+    *,
+    place: str | None = None,
+) -> list[dict[str, Any]]:
+    clauses: list[str] = []
+    params: list[Any] = []
+    if place is not None:
+        clauses.append("place = ?")
+        params.append(place)
+    where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    rows = connection.execute(
+        f"""
+        SELECT place, timezone, local_date, local_hour, captured_at_utc, capture_json
+        FROM raw_captures
+        {where_sql}
+        ORDER BY place ASC, local_date ASC, local_hour ASC, captured_at_utc ASC
+        """,
+        params,
+    ).fetchall()
+    return [
+        {
+            "place": row["place"],
+            "timezone": row["timezone"],
+            "local_date": row["local_date"],
+            "local_hour": row["local_hour"],
+            "captured_at_utc": row["captured_at_utc"],
+            "capture_json": row["capture_json"],
+        }
+        for row in rows
+    ]
+
+
 def get_daily_actual_row(
     connection: sqlite3.Connection,
     *,
@@ -447,6 +480,45 @@ def replace_hourly_accuracy_metrics(
                 metric["excluded_day_count"],
                 metric["correct_day_count"],
                 metric["accuracy_ratio"],
+                metric["computed_at_utc"],
+            ),
+        )
+
+
+def replace_hourly_market_opportunity_metrics(
+    connection: sqlite3.Connection,
+    *,
+    place: str,
+    metrics: list[dict[str, Any]],
+) -> None:
+    connection.execute("DELETE FROM hourly_market_opportunity_metrics WHERE place = ?", (place,))
+    for metric in metrics:
+        connection.execute(
+            """
+            INSERT INTO hourly_market_opportunity_metrics (
+                place,
+                timezone,
+                local_hour,
+                valid_day_count,
+                missing_day_count,
+                excluded_day_count,
+                leader_match_day_count,
+                leader_match_ratio,
+                avg_winning_bucket_last_price_cents,
+                computed_at_utc
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                metric["place"],
+                metric["timezone"],
+                metric["local_hour"],
+                metric["valid_day_count"],
+                metric["missing_day_count"],
+                metric["excluded_day_count"],
+                metric["leader_match_day_count"],
+                metric["leader_match_ratio"],
+                metric["avg_winning_bucket_last_price_cents"],
                 metric["computed_at_utc"],
             ),
         )
