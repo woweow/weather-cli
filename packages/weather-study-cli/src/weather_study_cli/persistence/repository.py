@@ -171,6 +171,79 @@ def get_table_counts(connection: sqlite3.Connection) -> dict[str, int]:
     return counts
 
 
+def list_daily_actual_targets(
+    connection: sqlite3.Connection,
+    *,
+    place: str | None = None,
+    local_date: str | None = None,
+) -> list[dict[str, str]]:
+    clauses: list[str] = []
+    params: list[Any] = []
+    if place is not None:
+        clauses.append("place = ?")
+        params.append(place)
+    if local_date is not None:
+        clauses.append("local_date = ?")
+        params.append(local_date)
+    where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    rows = connection.execute(
+        f"""
+        SELECT place, local_date, timezone
+        FROM raw_captures
+        {where_sql}
+        GROUP BY place, local_date, timezone
+        ORDER BY local_date ASC, place ASC
+        """,
+        params,
+    ).fetchall()
+    return [
+        {
+            "place": row["place"],
+            "local_date": row["local_date"],
+            "timezone": row["timezone"],
+        }
+        for row in rows
+    ]
+
+
+def upsert_daily_actual(
+    connection: sqlite3.Connection,
+    *,
+    place: str,
+    local_date: str,
+    timezone: str,
+    observed_high_temperature_f: float,
+    observed_payload: dict[str, Any],
+    resolved_at_utc: str,
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO daily_actuals (
+            place,
+            local_date,
+            timezone,
+            observed_high_temperature_f,
+            observed_payload_json,
+            resolved_at_utc
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(place, local_date) DO UPDATE SET
+            timezone = excluded.timezone,
+            observed_high_temperature_f = excluded.observed_high_temperature_f,
+            observed_payload_json = excluded.observed_payload_json,
+            resolved_at_utc = excluded.resolved_at_utc
+        """,
+        (
+            place,
+            local_date,
+            timezone,
+            observed_high_temperature_f,
+            json.dumps(observed_payload, indent=2),
+            resolved_at_utc,
+        ),
+    )
+
+
 def build_capture_key(capture: StudyCapture) -> str:
     return "|".join(
         (

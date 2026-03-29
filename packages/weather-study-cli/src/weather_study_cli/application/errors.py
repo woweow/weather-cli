@@ -11,3 +11,7 @@ class StudyValidationError(WeatherStudyCliError):
 
 class IncompatibleStudyDatabaseError(WeatherStudyCliError):
     """Raised when the local study SQLite schema version is incompatible."""
+
+
+class DailyActualDerivationError(WeatherStudyCliError):
+    """Raised when NOAA-backed daily actual derivation fails."""

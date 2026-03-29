@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "CLI for validating local raw weather-market study captures"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["weather-cli"]
 
 [project.scripts]
 weather-study = "weather_study_cli.cli:main"

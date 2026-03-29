@@ -7,7 +7,9 @@ import sys
 from weather_study_cli.application import (
     DEFAULT_DB_PATH,
     DEFAULT_MOCK_DATA_DIR,
+    DEFAULT_CONTACT_EMAIL,
     WeatherStudyCliError,
+    derive_daily_actuals,
     ingest_capture_directory,
     load_capture_directory,
 )
@@ -92,6 +94,45 @@ def build_parser() -> argparse.ArgumentParser:
         default="text",
         help="Output format for the ingest summary (default: %(default)s)",
     )
+
+    derive = subparsers.add_parser(
+        "derive-daily-actuals",
+        help="Fetch NOAA observed highs for completed local dates in the study DB.",
+        description=(
+            "Fetch NOAA observed highs for completed local dates already present in the study DB.\n\n"
+            "The command reads distinct place/date targets from `raw_captures`, skips any date that\n"
+            "has not completed yet in that city's timezone, and upserts results into `daily_actuals`.\n\n"
+            "Examples:\n"
+            "  weather-study derive-daily-actuals\n"
+            "  weather-study derive-daily-actuals --db-path /tmp/weather-study.db --format json\n"
+            "  weather-study derive-daily-actuals --place Seattle,WA --local-date 2026-03-26"
+        ),
+        formatter_class=HelpFormatter,
+    )
+    derive.add_argument(
+        "--db-path",
+        default=str(DEFAULT_DB_PATH),
+        help="SQLite database path for the study DB (default: %(default)s)",
+    )
+    derive.add_argument(
+        "--place",
+        help='Optional strict city,state filter such as "Seattle,WA".',
+    )
+    derive.add_argument(
+        "--local-date",
+        help="Optional YYYY-MM-DD filter for a single local date.",
+    )
+    derive.add_argument(
+        "--contact-email",
+        default=DEFAULT_CONTACT_EMAIL,
+        help="Contact email embedded in the NOAA User-Agent header (default: %(default)s)",
+    )
+    derive.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format for the derivation summary (default: %(default)s)",
+    )
     return parser
 
 
@@ -112,6 +153,18 @@ def main(argv: list[str] | None = None) -> int:
                 print(json.dumps(summary.to_dict(), indent=2, sort_keys=False))
             else:
                 print(render_ingest_text_summary(summary))
+            return 0
+        if args.command == "derive-daily-actuals":
+            summary = derive_daily_actuals(
+                db_path=args.db_path,
+                place=args.place,
+                local_date=args.local_date,
+                contact_email=args.contact_email,
+            )
+            if args.format == "json":
+                print(json.dumps(summary.to_dict(), indent=2, sort_keys=False))
+            else:
+                print(render_actuals_text_summary(summary))
             return 0
     except WeatherStudyCliError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -155,5 +208,16 @@ def render_ingest_text_summary(summary) -> str:
         f"daily_actuals: {summary.daily_actual_count}",
         f"hourly_accuracy_metrics: {summary.hourly_accuracy_metric_count}",
         f"hourly_market_opportunity_metrics: {summary.hourly_market_opportunity_metric_count}",
+    ]
+    return "\n".join(lines)
+
+
+def render_actuals_text_summary(summary) -> str:
+    lines = [
+        f"SQLite database: {summary.db_path}",
+        f"target city-days: {summary.target_count}",
+        f"resolved daily actuals: {summary.resolved_count}",
+        f"skipped incomplete local dates: {summary.skipped_incomplete_count}",
+        f"daily_actuals rows: {summary.daily_actual_count}",
     ]
     return "\n".join(lines)

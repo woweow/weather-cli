@@ -59,3 +59,9 @@ requires-dist = [{ name = "weather-bets", editable = "packages/weather-bets" }]
 name = "weather-study-cli"
 version = "0.1.0"
 source = { editable = "packages/weather-study-cli" }
+dependencies = [
+    { name = "weather-cli" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "weather-cli", editable = "packages/weather-cli" }]
