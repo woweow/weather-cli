@@ -5,10 +5,12 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from weather_study_cli.application.day_report import load_day_drilldown_report
 from weather_study_cli.application.errors import StudyValidationError
 from weather_study_cli.persistence.connection import DEFAULT_DB_PATH, open_connection
 from weather_study_cli.persistence.migrations import initialize_schema
 from weather_study_cli.persistence.repository import (
+    list_daily_actual_targets,
     list_hourly_accuracy_metric_rows,
     list_hourly_market_opportunity_metric_rows,
 )
@@ -40,6 +42,7 @@ def load_accuracy_dashboard_report(
         initialize_schema(connection)
         rows = list_hourly_accuracy_metric_rows(connection, place=place)
         market_rows = list_hourly_market_opportunity_metric_rows(connection, place=place)
+        day_targets = list_daily_actual_targets(connection, place=place)
 
     if not rows:
         raise StudyValidationError(
@@ -48,6 +51,7 @@ def load_accuracy_dashboard_report(
 
     grouped: dict[str, list[dict[str, object]]] = {}
     market_by_place: dict[str, list[dict[str, object]]] = {}
+    day_targets_by_place: dict[str, list[dict[str, str]]] = {}
     timezone_by_place: dict[str, str] = {}
     for row in rows:
         grouped.setdefault(row["place"], []).append(row)
@@ -55,6 +59,9 @@ def load_accuracy_dashboard_report(
     for row in market_rows:
         market_by_place.setdefault(row["place"], []).append(row)
         timezone_by_place[row["place"]] = str(row["timezone"])
+    for target in day_targets:
+        day_targets_by_place.setdefault(target["place"], []).append(target)
+        timezone_by_place[target["place"]] = str(target["timezone"])
 
     cities = []
     for current_place, current_rows in sorted(grouped.items()):
@@ -77,6 +84,18 @@ def load_accuracy_dashboard_report(
             for row in ordered_market_rows
             if int(row["valid_day_count"]) < min_valid_sample
         ]
+        day_drilldowns = [
+            load_day_drilldown_report(
+                db_path=target_db_path,
+                place=current_place,
+                local_date=str(target["local_date"]),
+            ).to_dict()
+            for target in sorted(
+                day_targets_by_place.get(current_place, ()),
+                key=lambda item: str(item["local_date"]),
+                reverse=True,
+            )
+        ]
         cities.append(
             {
                 "place": current_place,
@@ -84,6 +103,7 @@ def load_accuracy_dashboard_report(
                 "study_day_count": study_day_count,
                 "thin_sample_hours": thin_sample_hours,
                 "market_thin_sample_hours": market_thin_sample_hours,
+                "day_drilldowns": day_drilldowns,
                 "points": [
                     {
                         "local_hour": int(row["local_hour"]),

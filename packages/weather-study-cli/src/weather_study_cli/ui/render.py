@@ -325,6 +325,169 @@ HTML_TEMPLATE = """<!doctype html>
         color: rgba(109, 118, 112, 0.84);
       }}
 
+      .drilldown-panel {{
+        padding: 1.2rem;
+        border-top: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0.6)),
+          linear-gradient(135deg, rgba(53, 106, 122, 0.05), rgba(198, 107, 45, 0.08));
+      }}
+
+      .drilldown-bar {{
+        display: grid;
+        grid-template-columns: minmax(16rem, 22rem) 1fr;
+        gap: 1rem;
+        align-items: end;
+      }}
+
+      .drilldown-strip {{
+        justify-content: flex-end;
+      }}
+
+      .capture-list {{
+        display: grid;
+        gap: 0.8rem;
+        margin-top: 1rem;
+      }}
+
+      .capture-card {{
+        padding: 1rem;
+        border-radius: 1.2rem;
+        background: rgba(255,255,255,0.82);
+        border: 1px solid rgba(18, 61, 77, 0.08);
+      }}
+
+      .capture-top {{
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: flex-start;
+      }}
+
+      .capture-hour {{
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+        font-size: 1.2rem;
+      }}
+
+      .capture-stamp {{
+        margin-top: 0.25rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }}
+
+      .capture-badges {{
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }}
+
+      .badge {{
+        padding: 0.3rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }}
+
+      .badge.match {{
+        background: rgba(53, 106, 122, 0.14);
+        color: var(--storm-deep);
+      }}
+
+      .badge.miss {{
+        background: rgba(166, 64, 52, 0.12);
+        color: var(--danger);
+      }}
+
+      .badge.pending {{
+        background: rgba(231, 179, 94, 0.2);
+        color: var(--sun);
+      }}
+
+      .badge.error {{
+        background: rgba(166, 64, 52, 0.1);
+        color: var(--danger);
+      }}
+
+      .capture-meta {{
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.65rem;
+        margin-top: 0.85rem;
+      }}
+
+      .meta-cell {{
+        padding: 0.75rem;
+        border-radius: 0.95rem;
+        background: rgba(246, 240, 228, 0.7);
+        border: 1px solid rgba(18, 61, 77, 0.06);
+      }}
+
+      .meta-label {{
+        font-size: 0.7rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }}
+
+      .meta-value {{
+        margin-top: 0.3rem;
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+        font-size: 1rem;
+        line-height: 1.3;
+      }}
+
+      .capture-details {{
+        margin-top: 0.9rem;
+        padding-top: 0.85rem;
+        border-top: 1px dashed rgba(18, 61, 77, 0.12);
+      }}
+
+      .capture-details summary {{
+        cursor: pointer;
+        color: var(--storm-deep);
+        font-weight: 600;
+      }}
+
+      .detail-columns {{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin-top: 0.85rem;
+      }}
+
+      .detail-block {{
+        padding: 0.8rem;
+        border-radius: 1rem;
+        background: rgba(255,255,255,0.7);
+        border: 1px solid rgba(18, 61, 77, 0.06);
+      }}
+
+      .detail-title {{
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }}
+
+      .detail-list {{
+        margin: 0.55rem 0 0;
+        padding-left: 1rem;
+        display: grid;
+        gap: 0.35rem;
+        color: var(--muted);
+      }}
+
+      .empty-state {{
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 1rem;
+        background: rgba(255,255,255,0.7);
+        color: var(--muted);
+        border: 1px solid rgba(18, 61, 77, 0.06);
+      }}
+
       .legend {{
         display: flex;
         gap: 0.85rem;
@@ -354,6 +517,16 @@ HTML_TEMPLATE = """<!doctype html>
         .summary-strip {{ justify-content: flex-start; }}
         .grid {{ grid-template-columns: 1fr; }}
         .coverage-pane {{ border-left: 0; border-top: 1px solid var(--line); }}
+        .drilldown-bar {{ grid-template-columns: 1fr; }}
+        .drilldown-strip {{ justify-content: flex-start; }}
+        .capture-meta {{ grid-template-columns: 1fr 1fr; }}
+        .detail-columns {{ grid-template-columns: 1fr; }}
+      }}
+
+      @media (max-width: 620px) {{
+        .capture-top {{ flex-direction: column; }}
+        .capture-badges {{ justify-content: flex-start; }}
+        .capture-meta {{ grid-template-columns: 1fr; }}
       }}
     </style>
   </head>
@@ -441,6 +614,37 @@ HTML_TEMPLATE = """<!doctype html>
             </p>
           </aside>
         </div>
+
+        <section class="drilldown-panel">
+          <div class="drilldown-bar">
+            <div class="selector-wrap">
+              <label for="day-select">Day Selector</label>
+              <select id="day-select"></select>
+            </div>
+            <div class="summary-strip drilldown-strip">
+              <div class="chip">
+                <div class="chip-label">Actual High</div>
+                <div class="chip-value" id="day-actual-high">-</div>
+              </div>
+              <div class="chip">
+                <div class="chip-label">Captured Hours</div>
+                <div class="chip-value" id="day-capture-count">-</div>
+              </div>
+              <div class="chip">
+                <div class="chip-label">Correct Captures</div>
+                <div class="chip-value" id="day-correct-count">-</div>
+              </div>
+            </div>
+          </div>
+          <div class="section-head" style="margin-top: 1rem;">
+            <h2>Single-Day Drilldown</h2>
+            <div class="section-note">Inspect the captured forecast and market shape hour by hour when a curve point looks strange.</div>
+          </div>
+          <div class="capture-list" id="day-capture-list"></div>
+          <p class="footer-note">
+            Each capture card keeps the hourly forecast snapshot, market leader, and any partial-failure errors in the same export so you can inspect a day without leaving this file.
+          </p>
+        </section>
       </section>
     </main>
 
@@ -454,6 +658,11 @@ HTML_TEMPLATE = """<!doctype html>
       const marketHourNode = document.getElementById("market-hour-count");
       const warningNode = document.getElementById("sample-warning");
       const coverageList = document.getElementById("coverage-list");
+      const daySelect = document.getElementById("day-select");
+      const dayActualNode = document.getElementById("day-actual-high");
+      const dayCaptureCountNode = document.getElementById("day-capture-count");
+      const dayCorrectCountNode = document.getElementById("day-correct-count");
+      const dayCaptureList = document.getElementById("day-capture-list");
       const accuracyChart = document.getElementById("accuracy-chart");
       const marketChart = document.getElementById("market-chart");
 
@@ -476,9 +685,34 @@ HTML_TEMPLATE = """<!doctype html>
         return Number.isInteger(rounded) ? `${rounded.toFixed(0)}c` : `${rounded.toFixed(1)}c`;
       }}
 
+      function formatTemperature(value) {{
+        if (value === null || value === undefined) {{
+          return "n/a";
+        }}
+        const rounded = Math.round(value * 10) / 10;
+        return Number.isInteger(rounded) ? `${rounded.toFixed(0)}F` : `${rounded.toFixed(1)}F`;
+      }}
+
+      function formatClock(timestamp) {{
+        if (!timestamp || timestamp.length < 16) {{
+          return timestamp || "n/a";
+        }}
+        return timestamp.slice(11, 16);
+      }}
+
+      function escapeHtml(value) {{
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }}
+
       function renderCity(index) {{
         const city = report.cities[index];
         const marketPoints = Array.isArray(city.market_points) ? city.market_points : [];
+        const dayDrilldowns = Array.isArray(city.day_drilldowns) ? city.day_drilldowns : [];
         timezoneNode.textContent = city.timezone;
         studyDayNode.textContent = String(city.study_day_count);
         hourCountNode.textContent = String(city.points.length);
@@ -507,6 +741,15 @@ HTML_TEMPLATE = """<!doctype html>
         renderAccuracyChart(city);
         renderMarketChart(city);
         renderCoverage(city);
+        daySelect.innerHTML = "";
+        dayDrilldowns.forEach((day, dayIndex) => {{
+          const option = document.createElement("option");
+          option.value = String(dayIndex);
+          option.textContent = day.local_date;
+          daySelect.appendChild(option);
+        }});
+        daySelect.disabled = dayDrilldowns.length === 0;
+        renderDayDrilldown(city, dayDrilldowns.length === 0 ? -1 : 0);
       }}
 
       function renderAccuracyChart(city) {{
@@ -730,7 +973,116 @@ HTML_TEMPLATE = """<!doctype html>
         }});
       }}
 
+      function renderDayDrilldown(city, dayIndex) {{
+        const dayDrilldowns = Array.isArray(city.day_drilldowns) ? city.day_drilldowns : [];
+        const day = dayDrilldowns[dayIndex] || dayDrilldowns[0];
+
+        if (!day) {{
+          dayActualNode.textContent = "-";
+          dayCaptureCountNode.textContent = "0";
+          dayCorrectCountNode.textContent = "0";
+          dayCaptureList.innerHTML = `
+            <div class="empty-state">
+              No captured city-days are available for drilldown yet.
+            </div>
+          `;
+          return;
+        }}
+
+        daySelect.value = String(dayDrilldowns.indexOf(day));
+        dayActualNode.textContent = formatTemperature(day.actual_high_temperature_f);
+        dayCaptureCountNode.textContent = String(day.capture_count);
+        dayCorrectCountNode.textContent = String(day.correct_capture_count);
+
+        const captureCards = day.captures.map((capture) => {{
+          const matchBadge = capture.forecast_matches_actual === true
+            ? '<span class="badge match">Forecast Matched</span>'
+            : capture.forecast_matches_actual === false
+              ? '<span class="badge miss">Forecast Diverged</span>'
+              : '<span class="badge pending">Actual Pending</span>';
+          const errorBadges = (capture.error_sources || []).map((source) =>
+            `<span class="badge error">${escapeHtml(source)} issue</span>`
+          ).join("");
+          const forecastItems = capture.forecast_periods.length > 0
+            ? capture.forecast_periods.map((period) => `
+                <li>
+                  <strong>${escapeHtml(formatClock(period.start))}-${escapeHtml(formatClock(period.end))}</strong>
+                  ${period.temperature_f === null || period.temperature_f === undefined ? "" : ` · ${escapeHtml(formatTemperature(period.temperature_f))}`}
+                  ${period.summary ? ` · ${escapeHtml(period.summary)}` : ""}
+                </li>
+              `).join("")
+            : "<li>No forecast periods captured.</li>";
+          const marketItems = capture.market_rows.length > 0
+            ? capture.market_rows.map((row) => `
+                <li>
+                  <strong>${escapeHtml(row.label)}</strong>
+                  ${row.last_price_cents === null || row.last_price_cents === undefined ? "" : ` · ${escapeHtml(formatPriceCents(row.last_price_cents))}`}
+                </li>
+              `).join("")
+            : "<li>No market ladder rows captured.</li>";
+          const errorItems = (capture.error_messages || []).length > 0
+            ? `<div class="meta-value">${(capture.error_messages || []).map((message) => escapeHtml(message)).join("<br>")}</div>`
+            : '<div class="meta-value">None</div>';
+
+          return `
+            <article class="capture-card">
+              <div class="capture-top">
+                <div>
+                  <div class="capture-hour">${String(capture.local_hour).padStart(2, "0")}:00</div>
+                  <div class="capture-stamp">
+                    Local ${escapeHtml(formatClock(capture.local_timestamp))} · Captured ${escapeHtml(capture.captured_at_utc)}
+                  </div>
+                </div>
+                <div class="capture-badges">
+                  ${matchBadge}
+                  ${errorBadges}
+                </div>
+              </div>
+              <div class="capture-meta">
+                <div class="meta-cell">
+                  <div class="meta-label">Forecast High</div>
+                  <div class="meta-value">${escapeHtml(formatTemperature(capture.forecast_high_temperature_f))}</div>
+                </div>
+                <div class="meta-cell">
+                  <div class="meta-label">Market Leader</div>
+                  <div class="meta-value">${capture.market_leader_label ? escapeHtml(capture.market_leader_label) : "n/a"}</div>
+                </div>
+                <div class="meta-cell">
+                  <div class="meta-label">Leader Price</div>
+                  <div class="meta-value">${escapeHtml(formatPriceCents(capture.market_leader_last_price_cents))}</div>
+                </div>
+                <div class="meta-cell">
+                  <div class="meta-label">Errors</div>
+                  ${errorItems}
+                </div>
+              </div>
+              <details class="capture-details">
+                <summary>
+                  Forecast periods ${capture.forecast_period_count} · Market rows ${capture.market_row_count}
+                </summary>
+                <div class="detail-columns">
+                  <div class="detail-block">
+                    <div class="detail-title">Forecast Snapshot</div>
+                    <ul class="detail-list">${forecastItems}</ul>
+                  </div>
+                  <div class="detail-block">
+                    <div class="detail-title">Market Ladder</div>
+                    <ul class="detail-list">${marketItems}</ul>
+                  </div>
+                </div>
+              </details>
+            </article>
+          `;
+        }}).join("");
+
+        dayCaptureList.innerHTML = captureCards;
+      }}
+
       select.addEventListener("change", () => renderCity(Number(select.value)));
+      daySelect.addEventListener("change", () => {{
+        const city = report.cities[Number(select.value)];
+        renderDayDrilldown(city, Number(daySelect.value));
+      }});
       renderCity(0);
     </script>
   </body>
