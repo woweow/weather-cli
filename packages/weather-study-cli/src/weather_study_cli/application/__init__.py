@@ -1,6 +1,7 @@
 from weather_study_cli.application.errors import (
     DailyActualDerivationError,
     IncompatibleStudyDatabaseError,
+    S3SyncError,
     StudyValidationError,
     WeatherStudyCliError,
 )
@@ -25,13 +26,23 @@ from weather_study_cli.application.raw_loader import (
     load_capture_directory,
     load_capture_file,
 )
+from weather_study_cli.application.s3 import (
+    DEFAULT_AWS_PROFILE,
+    DEFAULT_S3_DOWNLOAD_DIR,
+    DEFAULT_S3_PREFIX,
+    S3SyncSummary,
+    sync_capture_directory_from_s3,
+)
 from weather_study_cli.application.raw_schema import StudyCapture
 from weather_study_cli.persistence.connection import DEFAULT_DB_PATH
 
 __all__ = [
+    "DEFAULT_AWS_PROFILE",
     "DEFAULT_DB_PATH",
     "DEFAULT_CONTACT_EMAIL",
     "DEFAULT_MOCK_DATA_DIR",
+    "DEFAULT_S3_DOWNLOAD_DIR",
+    "DEFAULT_S3_PREFIX",
     "AccuracyMetricSummary",
     "AccuracyDashboardReport",
     "DailyActualDerivationError",
@@ -39,6 +50,8 @@ __all__ = [
     "IncompatibleStudyDatabaseError",
     "IngestSummary",
     "SUPPORTED_STUDY_CITIES",
+    "S3SyncError",
+    "S3SyncSummary",
     "StudyCapture",
     "StudyCity",
     "StudyDatasetSummary",
@@ -53,4 +66,5 @@ __all__ = [
     "load_capture_directory",
     "load_capture_file",
     "resolve_study_cities",
+    "sync_capture_directory_from_s3",
 ]

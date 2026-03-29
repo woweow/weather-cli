@@ -17,6 +17,7 @@ uv run --package weather-cli weather "Seattle,WA" --range today
 uv run --package kalshi-weather-markets-cli kalshi-weather-markets Seattle
 uv run --package kalshi-weather-markets-cli kalshi-weather-markets --list-cities
 uv run --package weather-study-cli weather-study validate-raw
+uv run --package weather-study-cli weather-study sync-s3 --help
 uv run --package weather-study-cli weather-study ingest-raw --help
 uv run --package weather-study-cli weather-study derive-daily-actuals --help
 uv run --package weather-study-cli weather-study compute-accuracy-metrics --help

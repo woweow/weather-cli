@@ -15,3 +15,7 @@ class IncompatibleStudyDatabaseError(WeatherStudyCliError):
 
 class DailyActualDerivationError(WeatherStudyCliError):
     """Raised when NOAA-backed daily actual derivation fails."""
+
+
+class S3SyncError(WeatherStudyCliError):
+    """Raised when syncing raw study captures from S3 fails."""

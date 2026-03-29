@@ -6,15 +6,19 @@ import sys
 
 from weather_study_cli.application import (
     AccuracyMetricSummary,
+    DEFAULT_AWS_PROFILE,
     DEFAULT_DB_PATH,
     DEFAULT_MOCK_DATA_DIR,
     DEFAULT_CONTACT_EMAIL,
+    DEFAULT_S3_DOWNLOAD_DIR,
+    DEFAULT_S3_PREFIX,
     WeatherStudyCliError,
     compute_accuracy_metrics,
     derive_daily_actuals,
     export_accuracy_html,
     ingest_capture_directory,
     load_capture_directory,
+    sync_capture_directory_from_s3,
 )
 
 
@@ -59,6 +63,60 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("text", "json"),
         default="text",
         help="Output format for the validation summary (default: %(default)s)",
+    )
+
+    sync_s3 = subparsers.add_parser(
+        "sync-s3",
+        help="Sync raw study captures from S3 to local disk.",
+        description=(
+            "Sync raw study captures from S3 to local disk using the AWS CLI.\n\n"
+            "Examples:\n"
+            "  weather-study sync-s3 --bucket my-study-bucket\n"
+            "  weather-study sync-s3 --bucket my-study-bucket --output-root /tmp/weather-study-s3\n"
+            "  weather-study sync-s3 --bucket my-study-bucket --prefix raw --profile dev --delete"
+        ),
+        formatter_class=HelpFormatter,
+    )
+    sync_s3.add_argument(
+        "--bucket",
+        required=True,
+        help="S3 bucket containing raw study captures.",
+    )
+    sync_s3.add_argument(
+        "--prefix",
+        default=DEFAULT_S3_PREFIX,
+        help="S3 prefix under the bucket to sync from (default: %(default)s)",
+    )
+    sync_s3.add_argument(
+        "--output-root",
+        default=str(DEFAULT_S3_DOWNLOAD_DIR),
+        help="Local root directory where synced raw files will be written (default: %(default)s)",
+    )
+    sync_s3.add_argument(
+        "--profile",
+        default=DEFAULT_AWS_PROFILE,
+        help="AWS CLI profile to use for sync (default: %(default)s)",
+    )
+    sync_s3.add_argument(
+        "--delete",
+        action="store_true",
+        help="Delete local files that no longer exist under the S3 prefix.",
+    )
+    sync_s3.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview sync actions without downloading files.",
+    )
+    sync_s3.add_argument(
+        "--skip-validate",
+        action="store_true",
+        help="Skip raw-contract validation after sync.",
+    )
+    sync_s3.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format for the sync summary (default: %(default)s)",
     )
 
     ingest = subparsers.add_parser(
@@ -215,6 +273,21 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(render_text_summary(summary))
             return 0
+        if args.command == "sync-s3":
+            summary = sync_capture_directory_from_s3(
+                args.bucket,
+                prefix=args.prefix,
+                output_root=args.output_root,
+                profile=args.profile,
+                delete=args.delete,
+                dry_run=args.dry_run,
+                validate=not args.skip_validate,
+            )
+            if args.format == "json":
+                print(json.dumps(summary.to_dict(), indent=2, sort_keys=False))
+            else:
+                print(render_s3_sync_text_summary(summary))
+            return 0
         if args.command == "ingest-raw":
             summary = ingest_capture_directory(args.input, db_path=args.db_path, reset=args.reset)
             if args.format == "json":
@@ -277,6 +350,21 @@ def render_text_summary(summary) -> str:
                 "    market missing at "
                 + ", ".join(f"{hour:02d}" for hour in window["missing_market_hours"])
             )
+    return "\n".join(lines)
+
+
+def render_s3_sync_text_summary(summary) -> str:
+    lines = [
+        f"Synced raw study files from {summary.source_uri} to {summary.output_root}",
+        f"AWS profile: {summary.profile}",
+        f"dry run: {'yes' if summary.dry_run else 'no'}",
+        f"delete: {'yes' if summary.delete else 'no'}",
+    ]
+    if summary.validation is not None:
+        lines.extend(["", render_text_summary(summary.validation)])
+    elif summary.aws_output_lines:
+        lines.extend(["", "AWS CLI output:"])
+        lines.extend(f"  {line}" for line in summary.aws_output_lines)
     return "\n".join(lines)
 
 
