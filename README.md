@@ -24,6 +24,7 @@ uv run --package weather-study-cli weather-study compute-accuracy-metrics --help
 uv run --package weather-study-cli weather-study export-accuracy-html --help
 uv run --package weather-study-collector -- weather-study-collector capture --help
 uv run --package weather-study-collector -- weather-study-collector capture-s3 --help
+python3 aws/weather-study-collector/deploy.py --bucket weather-study-raw-084375548651-us-west-2 --prefix raw-lambda-smoke
 uv run --package weather-dashboard-cli weather-dashboard serve --help
 uv run --package weather-dashboard-cli weather-dashboard export-html --help
 uv run --package weather-bets weather-bets sessions --help

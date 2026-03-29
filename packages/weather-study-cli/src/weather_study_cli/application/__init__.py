@@ -1,40 +1,46 @@
-from weather_study_cli.application.errors import (
-    DailyActualDerivationError,
-    IncompatibleStudyDatabaseError,
-    S3SyncError,
-    StudyValidationError,
-    WeatherStudyCliError,
-)
-from weather_study_cli.application.actuals import (
-    DEFAULT_CONTACT_EMAIL,
-    DailyActualDerivationSummary,
-    derive_daily_actuals,
-)
-from weather_study_cli.application.cities import (
-    SUPPORTED_STUDY_CITIES,
-    StudyCity,
-    list_supported_study_places,
-    resolve_study_cities,
-)
-from weather_study_cli.application.ingest import IngestSummary, ingest_capture_directory
-from weather_study_cli.application.metrics import AccuracyMetricSummary, compute_accuracy_metrics
-from weather_study_cli.application.report import AccuracyDashboardReport, export_accuracy_html
-from weather_study_cli.application.raw_loader import (
-    DEFAULT_MOCK_DATA_DIR,
-    StudyDatasetSummary,
-    build_capture_relative_path,
-    load_capture_directory,
-    load_capture_file,
-)
-from weather_study_cli.application.s3 import (
-    DEFAULT_AWS_PROFILE,
-    DEFAULT_S3_DOWNLOAD_DIR,
-    DEFAULT_S3_PREFIX,
-    S3SyncSummary,
-    sync_capture_directory_from_s3,
-)
-from weather_study_cli.application.raw_schema import StudyCapture
-from weather_study_cli.persistence.connection import DEFAULT_DB_PATH
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from weather_study_cli.application.actuals import (
+        DEFAULT_CONTACT_EMAIL,
+        DailyActualDerivationSummary,
+        derive_daily_actuals,
+    )
+    from weather_study_cli.application.cities import (
+        SUPPORTED_STUDY_CITIES,
+        StudyCity,
+        list_supported_study_places,
+        resolve_study_cities,
+    )
+    from weather_study_cli.application.errors import (
+        DailyActualDerivationError,
+        IncompatibleStudyDatabaseError,
+        S3SyncError,
+        StudyValidationError,
+        WeatherStudyCliError,
+    )
+    from weather_study_cli.application.ingest import IngestSummary, ingest_capture_directory
+    from weather_study_cli.application.metrics import AccuracyMetricSummary, compute_accuracy_metrics
+    from weather_study_cli.application.raw_loader import (
+        DEFAULT_MOCK_DATA_DIR,
+        StudyDatasetSummary,
+        build_capture_relative_path,
+        load_capture_directory,
+        load_capture_file,
+    )
+    from weather_study_cli.application.raw_schema import StudyCapture
+    from weather_study_cli.application.report import AccuracyDashboardReport, export_accuracy_html
+    from weather_study_cli.application.s3 import (
+        DEFAULT_AWS_PROFILE,
+        DEFAULT_S3_DOWNLOAD_DIR,
+        DEFAULT_S3_PREFIX,
+        S3SyncSummary,
+        sync_capture_directory_from_s3,
+    )
+    from weather_study_cli.persistence.connection import DEFAULT_DB_PATH
+
 
 __all__ = [
     "DEFAULT_AWS_PROFILE",
@@ -68,3 +74,52 @@ __all__ = [
     "resolve_study_cities",
     "sync_capture_directory_from_s3",
 ]
+
+
+_EXPORTS = {
+    "DEFAULT_AWS_PROFILE": ("weather_study_cli.application.s3", "DEFAULT_AWS_PROFILE"),
+    "DEFAULT_DB_PATH": ("weather_study_cli.persistence.connection", "DEFAULT_DB_PATH"),
+    "DEFAULT_CONTACT_EMAIL": ("weather_study_cli.application.actuals", "DEFAULT_CONTACT_EMAIL"),
+    "DEFAULT_MOCK_DATA_DIR": ("weather_study_cli.application.raw_loader", "DEFAULT_MOCK_DATA_DIR"),
+    "DEFAULT_S3_DOWNLOAD_DIR": ("weather_study_cli.application.s3", "DEFAULT_S3_DOWNLOAD_DIR"),
+    "DEFAULT_S3_PREFIX": ("weather_study_cli.application.s3", "DEFAULT_S3_PREFIX"),
+    "AccuracyMetricSummary": ("weather_study_cli.application.metrics", "AccuracyMetricSummary"),
+    "AccuracyDashboardReport": ("weather_study_cli.application.report", "AccuracyDashboardReport"),
+    "DailyActualDerivationError": ("weather_study_cli.application.errors", "DailyActualDerivationError"),
+    "DailyActualDerivationSummary": ("weather_study_cli.application.actuals", "DailyActualDerivationSummary"),
+    "IncompatibleStudyDatabaseError": (
+        "weather_study_cli.application.errors",
+        "IncompatibleStudyDatabaseError",
+    ),
+    "IngestSummary": ("weather_study_cli.application.ingest", "IngestSummary"),
+    "SUPPORTED_STUDY_CITIES": ("weather_study_cli.application.cities", "SUPPORTED_STUDY_CITIES"),
+    "S3SyncError": ("weather_study_cli.application.errors", "S3SyncError"),
+    "S3SyncSummary": ("weather_study_cli.application.s3", "S3SyncSummary"),
+    "StudyCapture": ("weather_study_cli.application.raw_schema", "StudyCapture"),
+    "StudyCity": ("weather_study_cli.application.cities", "StudyCity"),
+    "StudyDatasetSummary": ("weather_study_cli.application.raw_loader", "StudyDatasetSummary"),
+    "StudyValidationError": ("weather_study_cli.application.errors", "StudyValidationError"),
+    "WeatherStudyCliError": ("weather_study_cli.application.errors", "WeatherStudyCliError"),
+    "build_capture_relative_path": (
+        "weather_study_cli.application.raw_loader",
+        "build_capture_relative_path",
+    ),
+    "derive_daily_actuals": ("weather_study_cli.application.actuals", "derive_daily_actuals"),
+    "compute_accuracy_metrics": ("weather_study_cli.application.metrics", "compute_accuracy_metrics"),
+    "ingest_capture_directory": ("weather_study_cli.application.ingest", "ingest_capture_directory"),
+    "export_accuracy_html": ("weather_study_cli.application.report", "export_accuracy_html"),
+    "list_supported_study_places": ("weather_study_cli.application.cities", "list_supported_study_places"),
+    "load_capture_directory": ("weather_study_cli.application.raw_loader", "load_capture_directory"),
+    "load_capture_file": ("weather_study_cli.application.raw_loader", "load_capture_file"),
+    "resolve_study_cities": ("weather_study_cli.application.cities", "resolve_study_cities"),
+    "sync_capture_directory_from_s3": ("weather_study_cli.application.s3", "sync_capture_directory_from_s3"),
+}
+
+
+def __getattr__(name: str):
+    try:
+        module_name, attr_name = _EXPORTS[name]
+    except KeyError as exc:
+        raise AttributeError(name) from exc
+    module = __import__(module_name, fromlist=[attr_name])
+    return getattr(module, attr_name)
