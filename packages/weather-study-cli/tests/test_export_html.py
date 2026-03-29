@@ -58,11 +58,18 @@ def test_export_accuracy_html_writes_self_contained_dashboard(tmp_path):
     assert "Example Days" in html
     assert "Collection Gaps" in html
     assert "Avg winner" in html
+    assert "Resolved Days" in html
+    assert "Capture Window" in html
     assert "Seattle,WA" in html
     assert "Denver,CO" in html
     assert "Thin sample" in html
     assert "No captures yet for configured cities" in html
     assert "Awaiting first capture" in html
+    cities = {city["place"]: city for city in embedded_report["cities"]}
+    assert cities["Denver,CO"]["capture_day_count"] == 2
+    assert cities["Denver,CO"]["resolved_actual_day_count"] == 2
+    assert cities["Denver,CO"]["capture_window_start_date"] == "2026-03-26"
+    assert cities["Denver,CO"]["capture_window_end_date"] == "2026-03-27"
     assert embedded_report["missing_supported_places"] == [
         "San Francisco,CA",
         "Los Angeles,CA",

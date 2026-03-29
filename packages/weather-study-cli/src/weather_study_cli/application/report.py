@@ -191,11 +191,20 @@ def load_accuracy_dashboard_report(
                 reverse=True,
             )
         ]
+        local_dates = [str(target["local_date"]) for target in day_targets_by_place.get(current_place, ())]
         cities.append(
             {
                 "place": current_place,
                 "timezone": timezone_by_place[current_place],
                 "study_day_count": study_day_count,
+                "capture_day_count": len(local_dates),
+                "resolved_actual_day_count": sum(
+                    1
+                    for day in day_drilldowns
+                    if day["actual_high_temperature_f"] is not None
+                ),
+                "capture_window_start_date": (None if not local_dates else min(local_dates)),
+                "capture_window_end_date": (None if not local_dates else max(local_dates)),
                 "thin_sample_hours": thin_sample_hours,
                 "market_thin_sample_hours": market_thin_sample_hours,
                 "gap_summary": gap_by_place.get(current_place),

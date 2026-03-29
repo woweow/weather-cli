@@ -39,6 +39,11 @@ def test_load_accuracy_dashboard_report_includes_threshold_summary(tmp_path):
     report = load_accuracy_dashboard_report(db_path=db_path, min_valid_sample=5).to_dict()
     cities = {city["place"]: city for city in report["cities"]}
 
+    assert cities["Denver,CO"]["capture_day_count"] == 2
+    assert cities["Denver,CO"]["resolved_actual_day_count"] == 2
+    assert cities["Denver,CO"]["capture_window_start_date"] == "2026-03-26"
+    assert cities["Denver,CO"]["capture_window_end_date"] == "2026-03-27"
+
     denver_sixty = cities["Denver,CO"]["threshold_summary"][0]
     assert denver_sixty == {
         "threshold_ratio": 0.6,

@@ -856,6 +856,14 @@ HTML_TEMPLATE = """<!doctype html>
               <div class="chip-label">Market Hours</div>
               <div class="chip-value" id="market-hour-count">-</div>
             </div>
+            <div class="chip">
+              <div class="chip-label">Resolved Days</div>
+              <div class="chip-value" id="resolved-day-count">-</div>
+            </div>
+            <div class="chip">
+              <div class="chip-label">Capture Window</div>
+              <div class="chip-value" id="capture-window">-</div>
+            </div>
           </div>
         </div>
 
@@ -1026,6 +1034,8 @@ HTML_TEMPLATE = """<!doctype html>
       const studyDayNode = document.getElementById("study-day-count");
       const hourCountNode = document.getElementById("hour-count");
       const marketHourNode = document.getElementById("market-hour-count");
+      const resolvedDayNode = document.getElementById("resolved-day-count");
+      const captureWindowNode = document.getElementById("capture-window");
       const warningNode = document.getElementById("sample-warning");
       const coverageList = document.getElementById("coverage-list");
       const daySelect = document.getElementById("day-select");
@@ -1083,6 +1093,16 @@ HTML_TEMPLATE = """<!doctype html>
           return "n/a";
         }}
         return `${String(hour).padStart(2, "0")}:00`;
+      }}
+
+      function formatDateWindow(startDate, endDate) {{
+        if (!startDate && !endDate) {{
+          return "n/a";
+        }}
+        if (!startDate || startDate === endDate) {{
+          return endDate || startDate;
+        }}
+        return `${startDate} -> ${endDate}`;
       }}
 
       function formatPercent(ratio) {{
@@ -1182,7 +1202,7 @@ HTML_TEMPLATE = """<!doctype html>
             <tr class="overview-row${index === selectedIndex ? " is-active" : ""}">
               <td>
                 <button class="overview-city-button" data-city-index="${index}">${escapeHtml(city.place)}</button>
-                <div class="overview-sub">${city.study_day_count} study days</div>
+                <div class="overview-sub">${city.capture_day_count} captured days · ${city.resolved_actual_day_count} resolved</div>
               </td>
               ${thresholdCells}
               <td>
@@ -1234,6 +1254,11 @@ HTML_TEMPLATE = """<!doctype html>
         studyDayNode.textContent = String(city.study_day_count);
         hourCountNode.textContent = String(city.points.length);
         marketHourNode.textContent = String(marketPoints.length);
+        resolvedDayNode.textContent = `${city.resolved_actual_day_count}/${city.capture_day_count}`;
+        captureWindowNode.textContent = formatDateWindow(
+          city.capture_window_start_date,
+          city.capture_window_end_date
+        );
 
         const warnings = [];
         if (missingSupportedPlaces.length > 0) {{
