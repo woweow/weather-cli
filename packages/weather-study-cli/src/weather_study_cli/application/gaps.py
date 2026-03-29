@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from weather_study_cli.application.cities import list_supported_study_places
 from weather_study_cli.application.errors import StudyValidationError
 from weather_study_cli.persistence.connection import DEFAULT_DB_PATH, open_connection
 from weather_study_cli.persistence.migrations import initialize_schema
@@ -82,10 +83,12 @@ class GapPlaceSummary:
 class CollectionGapReport:
     db_path: Path
     generated_at_utc: str
+    configured_place_count: int
     expected_hour_count: int
     observed_hour_count: int
     missing_hour_count: int
     gap_date_count: int
+    missing_supported_places: tuple[str, ...]
     places: tuple[GapPlaceSummary, ...]
 
     @property
@@ -106,6 +109,7 @@ class CollectionGapReport:
         return {
             "db_path": str(self.db_path),
             "generated_at_utc": self.generated_at_utc,
+            "configured_place_count": self.configured_place_count,
             "place_count": self.place_count,
             "date_count": self.date_count,
             "expected_hour_count": self.expected_hour_count,
@@ -113,6 +117,7 @@ class CollectionGapReport:
             "missing_hour_count": self.missing_hour_count,
             "coverage_ratio": self.coverage_ratio,
             "gap_date_count": self.gap_date_count,
+            "missing_supported_places": list(self.missing_supported_places),
             "places": [place.to_dict() for place in self.places],
         }
 
@@ -144,6 +149,10 @@ def load_collection_gap_report(
         all_dates.add(local_date)
 
     ordered_all_dates = sorted(all_dates)
+    configured_places = tuple(list_supported_study_places()) if place is None else ((place,) if place else ())
+    missing_supported_places = tuple(
+        candidate for candidate in configured_places if candidate not in dates_by_place
+    )
     place_summaries: list[GapPlaceSummary] = []
     total_expected_hour_count = 0
     total_observed_hour_count = 0
@@ -209,9 +218,11 @@ def load_collection_gap_report(
     return CollectionGapReport(
         db_path=target_db_path,
         generated_at_utc=current_time.isoformat().replace("+00:00", "Z"),
+        configured_place_count=len(configured_places) if configured_places else len(place_summaries),
         expected_hour_count=total_expected_hour_count,
         observed_hour_count=total_observed_hour_count,
         missing_hour_count=total_missing_hour_count,
         gap_date_count=total_gap_date_count,
+        missing_supported_places=missing_supported_places,
         places=tuple(place_summaries),
     )

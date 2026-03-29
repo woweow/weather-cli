@@ -660,6 +660,7 @@ def render_market_opportunity_text_summary(summary: MarketOpportunityMetricSumma
 def render_gap_text_summary(summary: CollectionGapReport) -> str:
     lines = [
         f"SQLite database: {summary.db_path}",
+        f"configured study cities: {summary.configured_place_count}",
         f"places in gap report: {summary.place_count}",
         f"date windows inspected: {summary.date_count}",
         f"expected city-hours: {summary.expected_hour_count}",
@@ -668,6 +669,10 @@ def render_gap_text_summary(summary: CollectionGapReport) -> str:
         f"dates with gaps: {summary.gap_date_count}",
         f"coverage ratio: {summary.coverage_ratio:.1%}",
     ]
+    if summary.missing_supported_places:
+        lines.append(
+            "supported cities without captures: " + ", ".join(summary.missing_supported_places)
+        )
     for place in summary.places:
         lines.extend(
             [

@@ -1030,12 +1030,18 @@ HTML_TEMPLATE = """<!doctype html>
         const city = report.cities[index];
         const marketPoints = Array.isArray(city.market_points) ? city.market_points : [];
         const dayDrilldowns = Array.isArray(city.day_drilldowns) ? city.day_drilldowns : [];
+        const missingSupportedPlaces = Array.isArray(report.missing_supported_places)
+          ? report.missing_supported_places
+          : [];
         timezoneNode.textContent = city.timezone;
         studyDayNode.textContent = String(city.study_day_count);
         hourCountNode.textContent = String(city.points.length);
         marketHourNode.textContent = String(marketPoints.length);
 
         const warnings = [];
+        if (missingSupportedPlaces.length > 0) {{
+          warnings.push(`No captures yet for configured cities ${missingSupportedPlaces.join(", ")}.`);
+        }}
         if (city.points.length > 0 && city.points.every((point) => point.valid_day_count === 0)) {{
           warnings.push("No finalized forecast days exist yet for these captured hours.");
         }}

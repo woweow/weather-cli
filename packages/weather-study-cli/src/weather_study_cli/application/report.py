@@ -24,12 +24,14 @@ ACCURACY_THRESHOLDS = (0.6, 0.7, 0.8, 0.9)
 class AccuracyDashboardReport:
     generated_at_utc: str
     min_valid_sample: int
+    missing_supported_places: tuple[str, ...]
     cities: tuple[dict[str, object], ...]
 
     def to_dict(self) -> dict[str, object]:
         return {
             "generated_at_utc": self.generated_at_utc,
             "min_valid_sample": self.min_valid_sample,
+            "missing_supported_places": list(self.missing_supported_places),
             "cities": list(self.cities),
         }
 
@@ -236,6 +238,7 @@ def load_accuracy_dashboard_report(
     return AccuracyDashboardReport(
         generated_at_utc=datetime.now(tz=UTC).isoformat().replace("+00:00", "Z"),
         min_valid_sample=min_valid_sample,
+        missing_supported_places=gap_report.missing_supported_places,
         cities=tuple(cities),
     )
 

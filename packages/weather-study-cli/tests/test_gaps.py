@@ -19,11 +19,18 @@ def test_load_collection_gap_report_counts_missing_mock_hours(tmp_path):
     )
 
     assert summary.place_count == 2
+    assert summary.configured_place_count == 6
     assert summary.date_count == 4
     assert summary.expected_hour_count == 79
     assert summary.observed_hour_count == 8
     assert summary.missing_hour_count == 71
     assert summary.gap_date_count == 4
+    assert summary.missing_supported_places == (
+        "San Francisco,CA",
+        "Los Angeles,CA",
+        "Las Vegas,NV",
+        "Phoenix,AZ",
+    )
 
     places = {place.place: place for place in summary.places}
 
