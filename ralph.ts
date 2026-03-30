@@ -121,7 +121,7 @@ async function run(options: RunOptions) {
 	const prompt = makePrompt();
 	let output = "";
 	let iteration = 1;
-	while (!output.includes(STOP_TOKEN) && iteration <= options.maxIterations) {
+	while (!output.includes(STOP_TOKEN) && !output.includes(BLOCKED_TOKEN) && iteration <= options.maxIterations) {
 		const isContinuation = iteration !== 1;
 		const shouldResume = iteration === 1 ? options.resumeFirst : true;
 		console.log(
