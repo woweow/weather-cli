@@ -15,7 +15,7 @@ Key commands:
 - `uv run --package weather-study-cli weather-study ingest-raw --reset --db-path <path>` — rebuild study DB from raw files
 - `uv run --package weather-study-cli weather-study build-report --db-path <path> --output <path>.html --format text` — one-shot pipeline from raw captures to HTML export
 
-See `RUNBOOK.md` at the repo root for the full live-data and mock-data report workflows.
+See `docs/live-data-and-report-workflow.md` for the full live-data and mock-data report workflows.
 
 Default validation after changes:
 
