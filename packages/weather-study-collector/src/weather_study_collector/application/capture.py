@@ -272,7 +272,10 @@ class LiveStudyCollector:
             errors.append({"source": "weather", "message": format_error_message(exc)})
 
         try:
-            market_snapshot = self._market_service.fetch_city_ladder(place_config.kalshi_city)
+            market_snapshot = self._market_service.fetch_city_ladder(
+                place_config.kalshi_city,
+                target_date=local_date,
+            )
             if market_snapshot.event_date != local_date:
                 raise StudyValidationError(
                     "Kalshi active ladder date "

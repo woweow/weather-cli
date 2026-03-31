@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
+from typing import Iterable
 
 from kalshi_weather_markets_cli.application.catalog import build_city_catalog
 from kalshi_weather_markets_cli.application.errors import MarketDataError, UnsupportedCityError
@@ -20,7 +21,7 @@ class KalshiWeatherService:
         catalog = build_city_catalog(self.client.list_series())
         return sorted(catalog)
 
-    def fetch_city_ladder(self, city: str) -> LadderSnapshot:
+    def fetch_city_ladder(self, city: str, *, target_date: str | None = None) -> LadderSnapshot:
         catalog = build_city_catalog(self.client.list_series())
         requested_city = city.strip()
         candidate_cities = [
@@ -32,28 +33,32 @@ class KalshiWeatherService:
                 f"Unsupported city '{city}'. Use one of: {supported}"
             )
         resolved_city = candidate_cities[0]
+        available_event_dates: set[str] = set()
         for candidate in catalog[resolved_city]:
             markets = self.client.get_markets(candidate.series_ticker, status="open")
             active_markets = [market for market in markets if market.get("event_ticker")]
-            if active_markets:
-                return self._build_snapshot(candidate, active_markets)
+            if not active_markets:
+                continue
+            available_event_dates.update(_event_dates_for_markets(active_markets))
+            selected = select_active_event(active_markets, target_date=target_date)
+            if selected is None:
+                continue
+            event_ticker, event_markets = selected
+            return self._build_snapshot(candidate, event_ticker, event_markets)
+        if target_date is not None and available_event_dates:
+            available = ", ".join(sorted(available_event_dates))
+            raise MarketDataError(
+                f"No active weather markets found for {resolved_city} on {target_date}. "
+                f"Available event dates: {available}"
+            )
         raise MarketDataError(f"No active weather markets found for {resolved_city}")
 
     def _build_snapshot(
         self,
         candidate: CitySeriesCandidate,
-        markets: list[dict],
+        event_ticker: str,
+        event_markets: list[dict],
     ) -> LadderSnapshot:
-        grouped: dict[str, list[dict]] = defaultdict(list)
-        for market in markets:
-            grouped[market["event_ticker"]].append(market)
-        if not grouped:
-            raise MarketDataError(f"No active weather markets found for {candidate.city}")
-
-        event_ticker, event_markets = min(
-            grouped.items(),
-            key=lambda item: min(parse_timestamp(market["close_time"]) for market in item[1]),
-        )
         ladder = sorted(
             (build_market_range(market) for market in event_markets),
             key=lambda market: market.sort_key,
@@ -105,6 +110,37 @@ def parse_timestamp(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+def select_active_event(
+    markets: list[dict],
+    *,
+    target_date: str | None = None,
+) -> tuple[str, list[dict]] | None:
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    for market in markets:
+        event_ticker = market.get("event_ticker")
+        if not event_ticker:
+            continue
+        grouped[event_ticker].append(market)
+    if not grouped:
+        return None
+    if target_date is not None:
+        matching_groups = [
+            (event_ticker, event_markets)
+            for event_ticker, event_markets in grouped.items()
+            if format_event_date_iso(event_ticker) == target_date
+        ]
+        if matching_groups:
+            return min(
+                matching_groups,
+                key=lambda item: min(parse_timestamp(market["close_time"]) for market in item[1]),
+            )
+        return None
+    return min(
+        grouped.items(),
+        key=lambda item: min(parse_timestamp(market["close_time"]) for market in item[1]),
+    )
+
+
 def format_event_date(event_ticker: str) -> str:
     date_token = event_ticker.rsplit("-", 1)[-1]
     parsed = datetime.strptime(date_token, "%y%b%d")
@@ -115,3 +151,12 @@ def format_event_date_iso(event_ticker: str) -> str:
     date_token = event_ticker.rsplit("-", 1)[-1]
     parsed = datetime.strptime(date_token, "%y%b%d")
     return parsed.strftime("%Y-%m-%d")
+
+
+def _event_dates_for_markets(markets: Iterable[dict]) -> set[str]:
+    dates: set[str] = set()
+    for market in markets:
+        event_ticker = market.get("event_ticker")
+        if event_ticker:
+            dates.add(format_event_date_iso(event_ticker))
+    return dates

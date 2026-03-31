@@ -2,15 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+import time
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from weather_cli.adapters.http import JsonHttpClient
-from weather_cli.application.errors import DataNotFoundError
+from weather_cli.application.errors import DataNotFoundError, HttpRequestError
 from weather_cli.application.ranges import TimeWindow, isoformat_utc
 
 
 NOAA_API_ROOT = "https://api.weather.gov"
+RETRYABLE_HTTP_PREFIXES = ("HTTP 429 ", "HTTP 500 ", "HTTP 502 ", "HTTP 503 ", "HTTP 504 ")
 
 
 @dataclass(frozen=True)
@@ -24,14 +26,22 @@ class StationSelection:
 
 
 class NoaaApi:
-    def __init__(self, http_client: JsonHttpClient):
+    def __init__(
+        self,
+        http_client: JsonHttpClient,
+        *,
+        retry_attempts: int = 2,
+        retry_backoff_seconds: float = 0.5,
+    ):
         self._http_client = http_client
+        self._retry_attempts = retry_attempts
+        self._retry_backoff_seconds = retry_backoff_seconds
 
     def get_point(self, latitude: float, longitude: float) -> dict[str, Any]:
-        return self._http_client.get_json(f"{NOAA_API_ROOT}/points/{latitude},{longitude}")
+        return self._get_json(f"{NOAA_API_ROOT}/points/{latitude},{longitude}")
 
     def get_hourly_forecast(self, forecast_url: str) -> list[dict[str, Any]]:
-        data = self._http_client.get_json(forecast_url, params={"units": "us"})
+        data = self._get_json(forecast_url, params={"units": "us"})
         return data.get("properties", {}).get("periods", [])
 
     def get_station_selection(self, station_id: str) -> StationSelection:
@@ -39,15 +49,15 @@ class NoaaApi:
         return self._station_selection_from_station(station)
 
     def get_station(self, station_id: str) -> dict[str, Any]:
-        return self._http_client.get_json(f"{NOAA_API_ROOT}/stations/{station_id}")
+        return self._get_json(f"{NOAA_API_ROOT}/stations/{station_id}")
 
     def get_stations_for_point(self, point: dict[str, Any]) -> list[dict[str, Any]]:
         stations_url = point["properties"]["observationStations"]
-        data = self._http_client.get_json(stations_url)
+        data = self._get_json(stations_url)
         return data.get("features", [])
 
     def station_has_observations(self, station_id: str, window: TimeWindow) -> bool:
-        data = self._http_client.get_json(
+        data = self._get_json(
             f"{NOAA_API_ROOT}/stations/{station_id}/observations",
             params={
                 "start": isoformat_utc(window.start),
@@ -71,7 +81,7 @@ class NoaaApi:
             if cursor:
                 params["cursor"] = cursor
 
-            data = self._http_client.get_json(url, params=params)
+            data = self._get_json(url, params=params)
             page_features = data.get("features", [])
             features.extend(page_features)
 
@@ -85,6 +95,23 @@ class NoaaApi:
             cursor = cursor_values[0]
 
         return features
+
+    def _get_json(
+        self,
+        url: str,
+        *,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> Any:
+        attempt = 0
+        while True:
+            try:
+                return self._http_client.get_json(url, params=params, headers=headers)
+            except HttpRequestError as exc:
+                if attempt >= self._retry_attempts or not _is_retryable_http_error(exc):
+                    raise
+                time.sleep(self._retry_backoff_seconds * (2**attempt))
+                attempt += 1
 
     def select_station(self, point: dict[str, Any], window: TimeWindow, station_override: str | None) -> StationSelection:
         if station_override:
@@ -140,3 +167,8 @@ def _value_or_none(value: Any) -> float | None:
     if value is None:
         return None
     return float(value)
+
+
+def _is_retryable_http_error(exc: HttpRequestError) -> bool:
+    message = str(exc)
+    return any(message.startswith(prefix) for prefix in RETRYABLE_HTTP_PREFIXES)

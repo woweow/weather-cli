@@ -2,6 +2,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from weather_cli.adapters.noaa import NoaaApi
+from weather_cli.application.errors import HttpRequestError
 from weather_cli.application.ranges import resolve_time_window
 
 
@@ -14,6 +15,20 @@ class FakeHttpClient:
         key = (url, tuple(sorted((params or {}).items())))
         self.calls.append(key)
         return self.responses[key]
+
+
+class FlakyHttpClient:
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.calls = []
+
+    def get_json(self, url, *, params=None, headers=None):
+        key = (url, tuple(sorted((params or {}).items())))
+        self.calls.append(key)
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
 
 
 def test_select_station_uses_nearest_station_with_data():
@@ -134,3 +149,39 @@ def test_get_station_selection_extracts_station_coordinates():
     assert station.station_id == "KSEA"
     assert station.latitude == 47.45
     assert station.longitude == -122.3
+
+
+def test_get_hourly_forecast_retries_transient_http_errors():
+    http_client = FlakyHttpClient(
+        [
+            HttpRequestError("HTTP 503 for https://api.weather.gov/gridpoints/SEW/124,60/forecast/hourly: busy"),
+            {"properties": {"periods": [{"startTime": "2026-03-26T13:00:00-07:00"}]}},
+        ]
+    )
+
+    api = NoaaApi(http_client, retry_attempts=1, retry_backoff_seconds=0)
+    periods = api.get_hourly_forecast("https://api.weather.gov/gridpoints/SEW/124,60/forecast/hourly")
+
+    assert len(periods) == 1
+    assert len(http_client.calls) == 2
+
+
+def test_get_hourly_forecast_does_not_retry_non_transient_http_errors():
+    http_client = FlakyHttpClient(
+        [
+            HttpRequestError(
+                "HTTP 404 for https://api.weather.gov/gridpoints/SEW/124,60/forecast/hourly: not found"
+            )
+        ]
+    )
+
+    api = NoaaApi(http_client, retry_attempts=2, retry_backoff_seconds=0)
+
+    try:
+        api.get_hourly_forecast("https://api.weather.gov/gridpoints/SEW/124,60/forecast/hourly")
+    except HttpRequestError as exc:
+        assert "HTTP 404" in str(exc)
+    else:
+        raise AssertionError("Expected HttpRequestError")
+
+    assert len(http_client.calls) == 1

@@ -123,6 +123,16 @@ def test_fetch_city_ladder_selects_current_event_and_sorts_ranges():
     assert snapshot.markets[2].yes_bid_cents == 99
 
 
+def test_fetch_city_ladder_prefers_requested_target_date_when_multiple_events_are_open():
+    service = KalshiWeatherService(client=FakeKalshiClient())
+
+    snapshot = service.fetch_city_ladder("Seattle", target_date="2026-03-27")
+
+    assert snapshot.event_ticker == "KXHIGHTSEA-26MAR27"
+    assert snapshot.event_date == "2026-03-27"
+    assert [market.label for market in snapshot.markets] == ["61° or above"]
+
+
 def test_fetch_city_ladder_rejects_unknown_city():
     service = KalshiWeatherService(client=FakeKalshiClient())
 
