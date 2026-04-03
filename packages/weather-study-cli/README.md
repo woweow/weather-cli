@@ -22,6 +22,7 @@ uv run --package weather-study-cli weather-study sync-s3 --bucket <bucket> --out
 uv run --package weather-study-cli weather-study ingest-raw --reset
 uv run --package weather-study-cli weather-study derive-daily-actuals --db-path /tmp/weather-study.db
 uv run --package weather-study-cli weather-study compute-accuracy-metrics --db-path /tmp/weather-study.db
+uv run --package weather-study-cli weather-study count-valid-study-days
 uv run --package weather-study-cli weather-study export-accuracy-html --db-path /tmp/weather-study.db --output /tmp/weather-study.html
 ```
 
@@ -35,5 +36,6 @@ Notes:
 - `derive-daily-actuals` reads distinct place/date pairs from `raw_captures`, skips any local date that has not finished yet in that city's timezone, and upserts NOAA observed highs into `daily_actuals`. The stored `observed_payload_json` includes normalized station observation `periods` from weather-cli (needed for spec-aligned hourly metrics). Re-run after upgrading weather-cli so existing DB rows gain `periods`.
 - `compute-accuracy-metrics` fills `hourly_accuracy_metrics` using the forecast-accuracy chart spec: per (place, local hour) censoring until the daily high is observed, predicted high = max(observed-so-far, max forecast for remainder of local day), exact integer °F match vs final daily high; a day-hour counts only when forecast, observation periods, and a resolvable winning market with `last_price_cents` exist.
 - `compute-market-opportunity-metrics` uses the same eligible (day, hour) rows for `valid_day_count` and average `last_price_cents` on the winning bucket.
+- `count-valid-study-days` prints, for each configured study city, how many local dates have no missing expected city-hours (same completeness rules as `report-gaps`; not the chart-spec `valid_day_count`).
 - `export-accuracy-html` writes a self-contained page with dual Y-axis charts (accuracy % left, average winner last price in cents right), hour labels with sample size `(n)`, and thin-sample warnings.
 - This package is the home for future SQLite ingest, derivations, and study visualization. It does not write to `.bets/bets.db`.

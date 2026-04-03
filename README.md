@@ -21,6 +21,7 @@ uv run --package weather-study-cli weather-study sync-s3 --help
 uv run --package weather-study-cli weather-study ingest-raw --help
 uv run --package weather-study-cli weather-study derive-daily-actuals --help
 uv run --package weather-study-cli weather-study compute-accuracy-metrics --help
+uv run --package weather-study-cli weather-study count-valid-study-days --help
 uv run --package weather-study-cli weather-study export-accuracy-html --help
 uv run --package weather-study-collector -- weather-study-collector capture --help
 uv run --package weather-study-collector -- weather-study-collector capture-s3 --help
