@@ -44,6 +44,8 @@ def test_export_accuracy_html_writes_self_contained_dashboard(tmp_path):
     assert "City Selector" not in html
     assert "Trust Thresholds" not in html
     assert "Collection Gaps" not in html
+    assert 'data-dual-axis="true"' in html
+    assert re.search(r"\([0-9]+\)", html)
     cities = {city["place"]: city for city in embedded_report["cities"]}
     assert cities["Denver,CO"]["capture_day_count"] == 7
     assert cities["Denver,CO"]["resolved_actual_day_count"] == 7
@@ -54,7 +56,9 @@ def test_export_accuracy_html_writes_self_contained_dashboard(tmp_path):
     assert seattle_ten_am["correct_day_count"] == 1
     assert seattle_ten_am["valid_day_count"] == 7
     assert round(seattle_ten_am["accuracy_ratio"], 3) == 0.143
-    assert seattle_ten_am["winning_market_label"] == "49F to 50F"
+    assert seattle_ten_am["winning_market_label"] is None
+    assert seattle_ten_am["avg_winning_bucket_last_price_cents"] is not None
+    assert seattle_ten_am["winning_market_sample_count"] == 7
     assert metadata["local_dates"][0] == "2026-03-22"
 
 
@@ -77,5 +81,5 @@ def test_export_accuracy_html_renders_na_market_annotations_without_actuals(tmp_
     embedded_report = json.loads(report_blob.group(1))
     first_city = embedded_report["cities"][0]
     assert all(point["correct_day_count"] == 0 for point in first_city["points"])
-    assert all(point["winning_market_label"] is None for point in first_city["points"])
+    assert all(point.get("winning_market_label") is None for point in first_city["points"])
     assert "n/a" in html

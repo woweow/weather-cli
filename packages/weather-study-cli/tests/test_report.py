@@ -31,9 +31,9 @@ def test_load_accuracy_dashboard_report_includes_hourly_market_annotations(tmp_p
 
     denver_first = cities["Denver,CO"]["points"][0]
     assert denver_first["local_hour"] == 8
-    assert denver_first["accuracy_ratio"] == 1.0
+    assert denver_first["accuracy_ratio"] == 0.5
     assert denver_first["thin_sample"] is True
-    assert denver_first["winning_market_label"] == "69°F to 70°F"
+    assert denver_first["winning_market_label"] is None
     assert denver_first["avg_winning_bucket_last_price_cents"] == 38.5
     assert denver_first["winning_market_sample_count"] == 2
 
@@ -41,4 +41,4 @@ def test_load_accuracy_dashboard_report_includes_hourly_market_annotations(tmp_p
     assert seattle_last["local_hour"] == 15
     assert seattle_last["accuracy_ratio"] == 1.0
     assert seattle_last["thin_sample"] is True
-    assert seattle_last["winning_market_label"] == "57°F to 58°F"
+    assert seattle_last["winning_market_label"] is None

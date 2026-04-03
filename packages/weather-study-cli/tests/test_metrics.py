@@ -37,8 +37,8 @@ def test_compute_accuracy_metrics_uses_mock_aligned_actuals(tmp_path):
         ).fetchall()
 
     assert rows == [
-        ("Denver,CO", 8, 1, 0, 1, 1, 1.0),
-        ("Denver,CO", 14, 2, 0, 0, 2, 1.0),
-        ("Seattle,WA", 9, 2, 0, 0, 1, 0.5),
+        ("Denver,CO", 8, 2, 0, 0, 1, 0.5),
+        ("Denver,CO", 14, 1, 0, 1, 1, 1.0),
+        ("Seattle,WA", 9, 1, 0, 1, 1, 1.0),
         ("Seattle,WA", 15, 2, 0, 0, 2, 1.0),
     ]

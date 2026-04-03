@@ -20,6 +20,7 @@ HTML_TEMPLATE = """<!doctype html>
         --muted: #5b6a6b;
         --grid: rgba(19, 36, 43, 0.12);
         --line: #1c6e7d;
+        --line-price: #6b4c9a;
         --line-glow: rgba(28, 110, 125, 0.18);
         --accent: #c76632;
         --accent-soft: rgba(199, 102, 50, 0.14);
@@ -238,9 +239,9 @@ HTML_TEMPLATE = """<!doctype html>
         <div class="eyebrow">Local Study Export</div>
         <h1>When Each City Finally Gets It Right</h1>
         <p>
-          Each chart shows the share of resolved days where that hour's remaining-day forecast correctly
-          predicted the final daily high. The label under every hour is the winning temperature market and its
-          average price at that hour.
+          Each chart follows the forecast-accuracy chart spec: hours before the daily high is observed in
+          station data, predicted high is max(observed-so-far, forecast remainder); left axis is exact-match
+          accuracy, right axis is average last price of the eventual winning Kalshi contract (same days).
         </p>
       </section>
       <div id="app" class="report"></div>
@@ -279,31 +280,31 @@ HTML_TEMPLATE = """<!doctype html>
         return `${{city.capture_window_start_date}} -> ${{city.capture_window_end_date}}`;
       }}
 
-      function compactMarketLabel(label) {{
-        if (!label) {{
-          return "n/a";
-        }}
-        return String(label)
-          .replace(/°/g, "")
-          .replace(/F/g, "")
-          .replace(/\\s+to\\s+/g, "-")
-          .replace(/\\s+or below/g, "<=")
-          .replace(/\\s+or above/g, ">=")
-          .replace(/\\s+/g, " ")
-          .trim();
-      }}
-
-      function formatPrice(value) {{
-        if (value === null || value === undefined) {{
-          return "n/a";
-        }}
-        return `${{Math.round(Number(value))}}c`;
-      }}
-
       function buildPath(points, xForIndex, yForRatio) {{
         return points
           .map((point, index) => `${{index === 0 ? "M" : "L"}}${{xForIndex(index)}},${{yForRatio(point.accuracy_ratio)}}`)
           .join(" ");
+      }}
+
+      function buildPricePath(points, xForIndex, yForCents) {{
+        let d = "";
+        let started = false;
+        for (let i = 0; i < points.length; i++) {{
+          const v = points[i].avg_winning_bucket_last_price_cents;
+          if (v === null || v === undefined) {{
+            started = false;
+            continue;
+          }}
+          const x = xForIndex(i);
+          const y = yForCents(Number(v));
+          if (!started) {{
+            d += `M${{x}},${{y}}`;
+            started = true;
+          }} else {{
+            d += `L${{x}},${{y}}`;
+          }}
+        }}
+        return d;
       }}
 
       function renderCityChart(city) {{
@@ -313,7 +314,7 @@ HTML_TEMPLATE = """<!doctype html>
         }}
 
         const columnWidth = 52;
-        const margin = {{ top: 26, right: 26, bottom: 118, left: 68 }};
+        const margin = {{ top: 26, right: 56, bottom: 92, left: 68 }};
         const plotWidth = Math.max(780, (points.length - 1) * columnWidth);
         const plotHeight = 190;
         const width = margin.left + plotWidth + margin.right;
@@ -323,14 +324,17 @@ HTML_TEMPLATE = """<!doctype html>
             ? margin.left + (plotWidth / 2)
             : margin.left + ((plotWidth / (points.length - 1)) * index);
         const yForRatio = (ratio) => margin.top + ((1 - Number(ratio || 0)) * plotHeight);
+        const yForCents = (cents) => margin.top + ((1 - Math.min(100, Math.max(0, cents)) / 100) * plotHeight);
         const gridRatios = [0, 0.25, 0.5, 0.75, 1];
+        const centTicks = [0, 25, 50, 75, 100];
         const linePath = buildPath(points, xForIndex, yForRatio);
+        const pricePath = buildPricePath(points, xForIndex, yForCents);
         const areaPath = `${{linePath}} L${{xForIndex(points.length - 1)}},${{margin.top + plotHeight}} L${{xForIndex(0)}},${{margin.top + plotHeight}} Z`;
 
         return `
           <div class="chart-scroll">
             <div class="chart-shell" style="width:${{width}}px">
-              <svg viewBox="0 0 ${{width}} ${{height}}" role="img" aria-label="${{escapeHtml(city.place)}} hourly accuracy chart">
+              <svg viewBox="0 0 ${{width}} ${{height}}" role="img" aria-label="${{escapeHtml(city.place)}} hourly accuracy chart" data-dual-axis="true">
                 <defs>
                   <linearGradient id="area-${{escapeHtml(city.place).replace(/[^a-zA-Z0-9]/g, "")}}" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stop-color="rgba(28, 110, 125, 0.28)"></stop>
@@ -357,6 +361,25 @@ HTML_TEMPLATE = """<!doctype html>
                     >${{Math.round(ratio * 100)}}%</text>
                   </g>
                 `).join("")}}
+                ${{centTicks.map((c) => `
+                  <g>
+                    <line
+                      x1="${{margin.left + plotWidth}}"
+                      y1="${{yForCents(c)}}"
+                      x2="${{margin.left + plotWidth + 6}}"
+                      y2="${{yForCents(c)}}"
+                      stroke="rgba(107, 76, 154, 0.35)"
+                    />
+                    <text
+                      x="${{margin.left + plotWidth + 12}}"
+                      y="${{yForCents(c) + 4}}"
+                      text-anchor="start"
+                      fill="rgba(107, 76, 154, 0.85)"
+                      font-size="11"
+                      font-family="Avenir Next, sans-serif"
+                    >${{c}}c</text>
+                  </g>
+                `).join("")}}
                 <path d="${{areaPath}}" fill="url(#area-${{escapeHtml(city.place).replace(/[^a-zA-Z0-9]/g, "")}})"></path>
                 <path
                   d="${{linePath}}"
@@ -366,6 +389,7 @@ HTML_TEMPLATE = """<!doctype html>
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 ></path>
+                ${{pricePath ? `<path d="${{pricePath}}" fill="none" stroke="var(--line-price)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>` : ""}}
                 ${{points.map((point, index) => `
                   <g>
                     <line
@@ -383,6 +407,15 @@ HTML_TEMPLATE = """<!doctype html>
                       stroke="rgba(255,255,255,0.95)"
                       stroke-width="2.5"
                     ></circle>
+                    ${{point.avg_winning_bucket_last_price_cents != null ? `
+                    <circle
+                      cx="${{xForIndex(index)}}"
+                      cy="${{yForCents(Number(point.avg_winning_bucket_last_price_cents))}}"
+                      r="4"
+                      fill="var(--line-price)"
+                      stroke="rgba(255,255,255,0.9)"
+                      stroke-width="1.5"
+                    ></circle>` : ""}}
                     <text
                       x="${{xForIndex(index)}}"
                       y="${{margin.top + plotHeight + 22}}"
@@ -391,27 +424,10 @@ HTML_TEMPLATE = """<!doctype html>
                       font-size="12"
                       font-weight="700"
                       font-family="Avenir Next, sans-serif"
-                    >${{escapeHtml(formatHour(point.local_hour))}}</text>
+                    >${{escapeHtml(formatHour(point.local_hour))}} (${{point.valid_day_count}})</text>
                     <text
                       x="${{xForIndex(index)}}"
-                      y="${{margin.top + plotHeight + 41}}"
-                      text-anchor="middle"
-                      fill="rgba(19, 36, 43, 0.7)"
-                      font-size="11"
-                      font-family="Avenir Next, sans-serif"
-                    >${{escapeHtml(compactMarketLabel(point.winning_market_label))}}</text>
-                    <text
-                      x="${{xForIndex(index)}}"
-                      y="${{margin.top + plotHeight + 59}}"
-                      text-anchor="middle"
-                      fill="var(--accent)"
-                      font-size="11"
-                      font-weight="700"
-                      font-family="Avenir Next, sans-serif"
-                    >${{escapeHtml(formatPrice(point.avg_winning_bucket_last_price_cents))}}</text>
-                    <text
-                      x="${{xForIndex(index)}}"
-                      y="${{margin.top + plotHeight + 76}}"
+                      y="${{margin.top + plotHeight + 42}}"
                       text-anchor="middle"
                       fill="rgba(19, 36, 43, 0.55)"
                       font-size="10"
@@ -452,12 +468,13 @@ HTML_TEMPLATE = """<!doctype html>
               </div>
             </div>
             <div class="chart-copy">
-              Accuracy is the percentage of resolved days where that hour's forecasted daily high matched the final
-              observed high. Under each hour: winning market label, average winner price, and correct-days count.
+              Left axis: exact-match accuracy (spec denominator after censoring). Right axis: average last price (cents)
+              of the winning market for the same days. Tick: hour and sample size (n), then correct/total.
             </div>
             <div class="chart-wrap">${{renderCityChart(city)}}</div>
             <div class="chart-note">
-              <span class="legend-pill"><span class="legend-dot" style="background:var(--accent)"></span>Hourly accuracy</span>
+              <span class="legend-pill"><span class="legend-dot" style="background:var(--accent)"></span>Accuracy</span>
+              <span class="legend-pill"><span class="legend-dot" style="background:var(--line-price)"></span>Avg winner price</span>
               <span class="legend-pill"><span class="legend-dot" style="background:var(--thin)"></span>Thin sample hour</span>
             </div>
           </section>
