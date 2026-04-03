@@ -10,6 +10,10 @@ Clean-slate policy:
 - Old SQLite data, old snapshot shapes, and old CLI aliases may be deleted rather than migrated.
 - If the journal schema is incompatible, fail fast and recreate it with `weather-bets init --reset`.
 
+Git workflow:
+
+- Work on, commit to, and push to `main` unless the checkout is already a git worktree. In a worktree, create and use a branch for that worktree instead of committing directly to `main`.
+
 Layer hierarchy:
 
 - `packages/weather-cli`: NOAA and geocoding source adapter. It fetches and normalizes weather data only.
