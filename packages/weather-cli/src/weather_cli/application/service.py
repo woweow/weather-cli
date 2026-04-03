@@ -123,6 +123,7 @@ class WeatherService:
             },
             "event_date": event_date,
             "observed_high_temperature_f": max(temperatures),
+            "periods": periods,
             "station": {
                 "identifier": station.station_id,
                 "name": station.station_name,

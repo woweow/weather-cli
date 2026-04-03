@@ -315,6 +315,130 @@ def list_accuracy_actual_rows(
     ]
 
 
+def list_daily_actuals_with_observed_payload(
+    connection: sqlite3.Connection,
+    *,
+    place: str | None = None,
+) -> list[dict[str, Any]]:
+    clauses: list[str] = []
+    params: list[Any] = []
+    if place is not None:
+        clauses.append("place = ?")
+        params.append(place)
+    where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    rows = connection.execute(
+        f"""
+        SELECT place, local_date, timezone, observed_high_temperature_f, observed_payload_json
+        FROM daily_actuals
+        {where_sql}
+        ORDER BY place ASC, local_date ASC
+        """,
+        params,
+    ).fetchall()
+    result: list[dict[str, Any]] = []
+    for row in rows:
+        payload: dict[str, Any] = {}
+        raw_json = row["observed_payload_json"]
+        if raw_json:
+            try:
+                loaded = json.loads(str(raw_json))
+                if isinstance(loaded, dict):
+                    payload = loaded
+            except json.JSONDecodeError:
+                payload = {}
+        result.append(
+            {
+                "place": row["place"],
+                "local_date": row["local_date"],
+                "timezone": row["timezone"],
+                "observed_high_temperature_f": row["observed_high_temperature_f"],
+                "observed_payload": payload,
+            }
+        )
+    return result
+
+
+def list_latest_raw_capture_stubs(
+    connection: sqlite3.Connection,
+    *,
+    place: str | None = None,
+) -> list[dict[str, Any]]:
+    clauses: list[str] = []
+    params: list[Any] = []
+    if place is not None:
+        clauses.append("rc.place = ?")
+        params.append(place)
+    where_extra = f" AND {' AND '.join(clauses)}" if clauses else ""
+    rows = connection.execute(
+        f"""
+        SELECT
+            rc.id,
+            rc.place,
+            rc.timezone,
+            rc.local_date,
+            rc.local_hour,
+            rc.local_timestamp,
+            rc.captured_at_utc,
+            rc.capture_json
+        FROM raw_captures AS rc
+        INNER JOIN (
+            SELECT place AS p, local_date AS d, local_hour AS h, MAX(captured_at_utc) AS mx
+            FROM raw_captures
+            GROUP BY place, local_date, local_hour
+        ) AS latest
+            ON rc.place = latest.p
+            AND rc.local_date = latest.d
+            AND rc.local_hour = latest.h
+            AND rc.captured_at_utc = latest.mx
+        WHERE 1=1{where_extra}
+        ORDER BY rc.place ASC, rc.local_date ASC, rc.local_hour ASC
+        """,
+        params,
+    ).fetchall()
+    return [
+        {
+            "raw_capture_id": int(row["id"]),
+            "place": row["place"],
+            "timezone": row["timezone"],
+            "local_date": row["local_date"],
+            "local_hour": int(row["local_hour"]),
+            "local_timestamp": row["local_timestamp"],
+            "captured_at_utc": row["captured_at_utc"],
+            "capture_json": row["capture_json"],
+        }
+        for row in rows
+    ]
+
+
+def list_forecast_period_rows_for_captures(
+    connection: sqlite3.Connection,
+    *,
+    raw_capture_ids: tuple[int, ...],
+) -> list[dict[str, Any]]:
+    if not raw_capture_ids:
+        return []
+    placeholders = ",".join("?" * len(raw_capture_ids))
+    rows = connection.execute(
+        f"""
+        SELECT raw_capture_id, period_index, start, end, temperature_f
+        FROM forecast_periods
+        WHERE raw_capture_id IN ({placeholders})
+        ORDER BY raw_capture_id ASC, period_index ASC
+        """,
+        raw_capture_ids,
+    ).fetchall()
+    return [
+        {
+            "raw_capture_id": int(row["raw_capture_id"]),
+            "period_index": int(row["period_index"]),
+            "start": row["start"],
+            "end": row["end"],
+            "temperature_f": row["temperature_f"],
+        }
+        for row in rows
+    ]
+
+
 def list_capture_hour_rows(
     connection: sqlite3.Connection,
     *,
