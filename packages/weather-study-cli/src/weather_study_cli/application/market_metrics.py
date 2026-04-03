@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from weather_study_cli.application.market_utils import find_winning_market_row, select_market_leader
 from weather_study_cli.persistence.connection import DEFAULT_DB_PATH, open_connection
 from weather_study_cli.persistence.migrations import initialize_schema
 from weather_study_cli.persistence.repository import (
@@ -15,9 +15,6 @@ from weather_study_cli.persistence.repository import (
     list_market_capture_rows,
     replace_hourly_market_opportunity_metrics,
 )
-
-
-_INTEGER_PATTERN = re.compile(r"-?\d+")
 
 
 @dataclass(frozen=True)
@@ -96,7 +93,7 @@ def compute_market_opportunity_metrics(
                         excluded_day_count += 1
                         continue
 
-                    winning_market = _find_winning_market_row(market_rows, actual_high)
+                    winning_market = find_winning_market_row(market_rows, actual_high)
                     if winning_market is None:
                         excluded_day_count += 1
                         continue
@@ -104,7 +101,7 @@ def compute_market_opportunity_metrics(
                     valid_day_count += 1
                     if winning_market.get("last_price_cents") is not None:
                         winning_bucket_last_prices.append(int(winning_market["last_price_cents"]))
-                    market_leader = _select_market_leader(market_rows)
+                    market_leader = select_market_leader(market_rows)
                     if market_leader is not None and market_leader.get("ticker") == winning_market.get("ticker"):
                         leader_match_day_count += 1
 
@@ -140,50 +137,3 @@ def compute_market_opportunity_metrics(
         place_count=len(metrics_by_place),
         metric_row_count=counts["hourly_market_opportunity_metrics"],
     )
-
-
-def _find_winning_market_row(markets: tuple[dict[str, Any], ...], actual_high: float) -> dict[str, Any] | None:
-    rounded_actual = _round_half_up(actual_high)
-    for market in markets:
-        label = str(market.get("label") or "")
-        if _label_contains_temperature(label, rounded_actual):
-            return market
-    return None
-
-
-def _label_contains_temperature(label: str, temperature_f: int) -> bool:
-    normalized = label.casefold()
-    values = [int(value) for value in _INTEGER_PATTERN.findall(label)]
-    if not values:
-        return False
-    if "or below" in normalized:
-        return temperature_f <= values[0]
-    if "or above" in normalized:
-        return temperature_f >= values[0]
-    if "to" in normalized and len(values) >= 2:
-        return values[0] <= temperature_f <= values[1]
-    return False
-
-
-def _select_market_leader(markets: tuple[dict[str, Any], ...]) -> dict[str, Any] | None:
-    if not markets:
-        return None
-    return max(
-        markets,
-        key=lambda market: (
-            _market_confidence_value(market),
-            float(market.get("sort_key") or float("-inf")),
-        ),
-    )
-
-
-def _market_confidence_value(market: dict[str, Any]) -> int:
-    for key in ("last_price_cents", "yes_bid_cents", "yes_ask_cents"):
-        value = market.get(key)
-        if value is not None:
-            return int(value)
-    return -1
-
-
-def _round_half_up(value: float) -> int:
-    return int(value + 0.5)

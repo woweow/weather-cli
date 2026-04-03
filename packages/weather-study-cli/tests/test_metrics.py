@@ -2,52 +2,17 @@ from __future__ import annotations
 
 import sqlite3
 
-from weather_study_cli.application import DEFAULT_MOCK_DATA_DIR, compute_accuracy_metrics, ingest_capture_directory
+from weather_study_cli.application import compute_accuracy_metrics, ingest_capture_directory
 from weather_study_cli.persistence import open_connection
-from weather_study_cli.persistence.repository import upsert_daily_actual
+from .support import LEGACY_RAW_DATA_DIR, insert_legacy_actuals
 
 
 def test_compute_accuracy_metrics_uses_mock_aligned_actuals(tmp_path):
     db_path = tmp_path / "study.db"
-    ingest_capture_directory(DEFAULT_MOCK_DATA_DIR, db_path=db_path)
+    ingest_capture_directory(LEGACY_RAW_DATA_DIR, db_path=db_path)
 
     with open_connection(db_path) as connection:
-        upsert_daily_actual(
-            connection,
-            place="Seattle,WA",
-            local_date="2026-03-26",
-            timezone="America/Los_Angeles",
-            observed_high_temperature_f=58.0,
-            observed_payload={"source": "test", "observed_high_temperature_f": 58.0},
-            resolved_at_utc="2026-03-29T21:00:00Z",
-        )
-        upsert_daily_actual(
-            connection,
-            place="Seattle,WA",
-            local_date="2026-03-27",
-            timezone="America/Los_Angeles",
-            observed_high_temperature_f=60.0,
-            observed_payload={"source": "test", "observed_high_temperature_f": 60.0},
-            resolved_at_utc="2026-03-29T21:00:00Z",
-        )
-        upsert_daily_actual(
-            connection,
-            place="Denver,CO",
-            local_date="2026-03-26",
-            timezone="America/Denver",
-            observed_high_temperature_f=72.0,
-            observed_payload={"source": "test", "observed_high_temperature_f": 72.0},
-            resolved_at_utc="2026-03-29T21:00:00Z",
-        )
-        upsert_daily_actual(
-            connection,
-            place="Denver,CO",
-            local_date="2026-03-27",
-            timezone="America/Denver",
-            observed_high_temperature_f=70.0,
-            observed_payload={"source": "test", "observed_high_temperature_f": 70.0},
-            resolved_at_utc="2026-03-29T21:00:00Z",
-        )
+        insert_legacy_actuals(connection, resolved_at_utc="2026-03-29T21:00:00Z")
         connection.commit()
 
     summary = compute_accuracy_metrics(db_path=db_path)

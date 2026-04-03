@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import sqlite3
 
-from weather_study_cli.application import DEFAULT_MOCK_DATA_DIR, ingest_capture_directory
+from weather_study_cli.application import ingest_capture_directory
+from .support import LEGACY_RAW_DATA_DIR
 
 
 def test_ingest_capture_directory_is_idempotent(tmp_path):
     db_path = tmp_path / "study.db"
 
-    first = ingest_capture_directory(DEFAULT_MOCK_DATA_DIR, db_path=db_path)
-    second = ingest_capture_directory(DEFAULT_MOCK_DATA_DIR, db_path=db_path)
+    first = ingest_capture_directory(LEGACY_RAW_DATA_DIR, db_path=db_path)
+    second = ingest_capture_directory(LEGACY_RAW_DATA_DIR, db_path=db_path)
 
     assert first.ingested_capture_count == 8
     assert second.raw_capture_count == 8

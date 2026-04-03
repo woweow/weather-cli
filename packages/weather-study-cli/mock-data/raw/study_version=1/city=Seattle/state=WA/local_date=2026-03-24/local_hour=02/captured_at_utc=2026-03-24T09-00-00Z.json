@@ -1,0 +1,183 @@
+{
+  "schema_version": "1",
+  "captured_at_utc": "2026-03-24T09:00:00Z",
+  "collector": {
+    "name": "weather-market-study-sample",
+    "version": "2"
+  },
+  "city": {
+    "name": "Seattle",
+    "state": "WA",
+    "place": "Seattle,WA",
+    "timezone": "America/Los_Angeles"
+  },
+  "capture_context": {
+    "local_timestamp": "2026-03-24T02:00:00-07:00",
+    "local_date": "2026-03-24",
+    "local_hour": 2
+  },
+  "weather": {
+    "source": "sample-generator rest-of-today",
+    "payload": {
+      "location": {
+        "input": "Seattle,WA",
+        "city": "Seattle",
+        "state": "WA",
+        "timezone": "America/Los_Angeles"
+      },
+      "resolved_coordinates": {
+        "latitude": null,
+        "longitude": null
+      },
+      "range": {
+        "name": "rest-of-today",
+        "mode": "forecast",
+        "start": "2026-03-24T02:00:00-07:00",
+        "end": "2026-03-25T00:00:00-07:00"
+      },
+      "source": {
+        "geocoder": "sample-generator",
+        "provider": "sample-generator",
+        "point_url": "sample://point",
+        "station_selection": "sample",
+        "forecast_url": "sample://forecast"
+      },
+      "station": {
+        "identifier": "SAMPLE",
+        "name": "Seattle Sample Station",
+        "timezone": "America/Los_Angeles",
+        "distance_meters": 0,
+        "latitude": null,
+        "longitude": null
+      },
+      "periods": [
+        {
+          "kind": "forecast",
+          "start": "2026-03-24T02:00:00-07:00",
+          "end": "2026-03-24T03:00:00-07:00",
+          "temperature_f": 62,
+          "relative_humidity_pct": 55,
+          "precipitation_probability_pct": 10,
+          "wind_speed": "6 mph",
+          "wind_direction": "NW",
+          "summary": "Sample Forecast",
+          "is_daytime": false
+        }
+      ]
+    }
+  },
+  "market": {
+    "source": "sample-generator kalshi-ladder",
+    "payload": {
+      "provider": "kalshi",
+      "city": "Seattle",
+      "series_ticker": "KXHIGHTSEA",
+      "series_title": "Seattle Maximum Temperature Daily",
+      "event_ticker": "KXHIGHTSEA-24MAR26",
+      "event_date": "2026-03-24",
+      "event_date_label": "Mar 24, 2026",
+      "markets": [
+        {
+          "ticker": "KXHIGHTSEA-24MAR26-LT46",
+          "title": "46 or below",
+          "label": "46F or below",
+          "sort_key": 46.0,
+          "yes_bid_cents": 1,
+          "yes_ask_cents": 2,
+          "no_bid_cents": 98,
+          "no_ask_cents": 99,
+          "last_price_cents": 1
+        },
+        {
+          "ticker": "KXHIGHTSEA-24MAR26-B47.5",
+          "title": "47 to 48",
+          "label": "47F to 48F",
+          "sort_key": 47.5,
+          "yes_bid_cents": 1,
+          "yes_ask_cents": 2,
+          "no_bid_cents": 98,
+          "no_ask_cents": 99,
+          "last_price_cents": 1
+        },
+        {
+          "ticker": "KXHIGHTSEA-24MAR26-B49.5",
+          "title": "49 to 50",
+          "label": "49F to 50F",
+          "sort_key": 49.5,
+          "yes_bid_cents": 1,
+          "yes_ask_cents": 2,
+          "no_bid_cents": 98,
+          "no_ask_cents": 99,
+          "last_price_cents": 1
+        },
+        {
+          "ticker": "KXHIGHTSEA-24MAR26-B51.5",
+          "title": "51 to 52",
+          "label": "51F to 52F",
+          "sort_key": 51.5,
+          "yes_bid_cents": 3,
+          "yes_ask_cents": 5,
+          "no_bid_cents": 95,
+          "no_ask_cents": 97,
+          "last_price_cents": 4
+        },
+        {
+          "ticker": "KXHIGHTSEA-24MAR26-B53.5",
+          "title": "53 to 54",
+          "label": "53F to 54F",
+          "sort_key": 53.5,
+          "yes_bid_cents": 23,
+          "yes_ask_cents": 25,
+          "no_bid_cents": 75,
+          "no_ask_cents": 77,
+          "last_price_cents": 24
+        },
+        {
+          "ticker": "KXHIGHTSEA-24MAR26-B55.5",
+          "title": "55 to 56",
+          "label": "55F to 56F",
+          "sort_key": 55.5,
+          "yes_bid_cents": 3,
+          "yes_ask_cents": 5,
+          "no_bid_cents": 95,
+          "no_ask_cents": 97,
+          "last_price_cents": 4
+        },
+        {
+          "ticker": "KXHIGHTSEA-24MAR26-B57.5",
+          "title": "57 to 58",
+          "label": "57F to 58F",
+          "sort_key": 57.5,
+          "yes_bid_cents": 1,
+          "yes_ask_cents": 2,
+          "no_bid_cents": 98,
+          "no_ask_cents": 99,
+          "last_price_cents": 1
+        },
+        {
+          "ticker": "KXHIGHTSEA-24MAR26-B59.5",
+          "title": "59 to 60",
+          "label": "59F to 60F",
+          "sort_key": 59.5,
+          "yes_bid_cents": 1,
+          "yes_ask_cents": 2,
+          "no_bid_cents": 98,
+          "no_ask_cents": 99,
+          "last_price_cents": 1
+        },
+        {
+          "ticker": "KXHIGHTSEA-24MAR26-GT61",
+          "title": "61 or above",
+          "label": "61F or above",
+          "sort_key": 61.0,
+          "yes_bid_cents": 1,
+          "yes_ask_cents": 2,
+          "no_bid_cents": 98,
+          "no_ask_cents": 99,
+          "last_price_cents": 1
+        }
+      ]
+    }
+  },
+  "errors": []
+}

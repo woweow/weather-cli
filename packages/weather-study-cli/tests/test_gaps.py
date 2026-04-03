@@ -3,15 +3,15 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from weather_study_cli.application import (
-    DEFAULT_MOCK_DATA_DIR,
     ingest_capture_directory,
     load_collection_gap_report,
 )
+from .support import LEGACY_RAW_DATA_DIR
 
 
 def test_load_collection_gap_report_counts_missing_mock_hours(tmp_path):
     db_path = tmp_path / "study.db"
-    ingest_capture_directory(DEFAULT_MOCK_DATA_DIR, db_path=db_path)
+    ingest_capture_directory(LEGACY_RAW_DATA_DIR, db_path=db_path)
 
     summary = load_collection_gap_report(
         db_path=db_path,

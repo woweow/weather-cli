@@ -2,8 +2,8 @@
   "schema_version": "1",
   "captured_at_utc": "2026-03-26T14:00:00Z",
   "collector": {
-    "name": "weather-market-study-mock",
-    "version": "1"
+    "name": "weather-market-study-sample",
+    "version": "2"
   },
   "city": {
     "name": "Denver",
@@ -17,7 +17,7 @@
     "local_hour": 8
   },
   "weather": {
-    "source": "weather-cli rest-of-today",
+    "source": "sample-generator rest-of-today",
     "payload": {
       "location": {
         "input": "Denver,CO",
@@ -26,8 +26,8 @@
         "timezone": "America/Denver"
       },
       "resolved_coordinates": {
-        "latitude": 39.73924,
-        "longitude": -104.99025
+        "latitude": null,
+        "longitude": null
       },
       "range": {
         "name": "rest-of-today",
@@ -36,62 +36,38 @@
         "end": "2026-03-27T00:00:00-06:00"
       },
       "source": {
-        "geocoder": "Open-Meteo geocoding",
-        "provider": "NOAA weather.gov API",
-        "point_url": "https://api.weather.gov/points/39.7392,-104.9903",
-        "station_selection": "preset",
-        "forecast_url": "https://api.weather.gov/gridpoints/BOU/62,61/forecast/hourly"
+        "geocoder": "sample-generator",
+        "provider": "sample-generator",
+        "point_url": "sample://point",
+        "station_selection": "sample",
+        "forecast_url": "sample://forecast"
       },
       "station": {
-        "identifier": "KDEN",
-        "name": "Denver International Airport",
+        "identifier": "SAMPLE",
+        "name": "Denver Sample Station",
         "timezone": "America/Denver",
-        "distance_meters": null,
-        "latitude": 39.8561,
-        "longitude": -104.6737
+        "distance_meters": 0,
+        "latitude": null,
+        "longitude": null
       },
       "periods": [
         {
           "kind": "forecast",
           "start": "2026-03-26T08:00:00-06:00",
           "end": "2026-03-26T09:00:00-06:00",
-          "temperature_f": 48,
-          "relative_humidity_pct": 44,
-          "precipitation_probability_pct": 0,
+          "temperature_f": 76,
+          "relative_humidity_pct": 55,
+          "precipitation_probability_pct": 10,
           "wind_speed": "6 mph",
-          "wind_direction": "SW",
-          "summary": "Sunny",
-          "is_daytime": true
-        },
-        {
-          "kind": "forecast",
-          "start": "2026-03-26T12:00:00-06:00",
-          "end": "2026-03-26T13:00:00-06:00",
-          "temperature_f": 67,
-          "relative_humidity_pct": 24,
-          "precipitation_probability_pct": 0,
-          "wind_speed": "9 mph",
-          "wind_direction": "S",
-          "summary": "Sunny",
-          "is_daytime": true
-        },
-        {
-          "kind": "forecast",
-          "start": "2026-03-26T15:00:00-06:00",
-          "end": "2026-03-26T16:00:00-06:00",
-          "temperature_f": 72,
-          "relative_humidity_pct": 18,
-          "precipitation_probability_pct": 0,
-          "wind_speed": "12 mph",
-          "wind_direction": "S",
-          "summary": "Sunny",
+          "wind_direction": "NW",
+          "summary": "Sample Forecast",
           "is_daytime": true
         }
       ]
     }
   },
   "market": {
-    "source": "kalshi-weather-markets --format json",
+    "source": "sample-generator kalshi-ladder",
     "payload": {
       "provider": "kalshi",
       "city": "Denver",
@@ -102,37 +78,103 @@
       "event_date_label": "Mar 26, 2026",
       "markets": [
         {
+          "ticker": "KXHIGHTDEN-26MAR26-LT64",
+          "title": "64 or below",
+          "label": "64F or below",
+          "sort_key": 64.0,
+          "yes_bid_cents": 1,
+          "yes_ask_cents": 2,
+          "no_bid_cents": 98,
+          "no_ask_cents": 99,
+          "last_price_cents": 1
+        },
+        {
+          "ticker": "KXHIGHTDEN-26MAR26-B65.5",
+          "title": "65 to 66",
+          "label": "65F to 66F",
+          "sort_key": 65.5,
+          "yes_bid_cents": 1,
+          "yes_ask_cents": 2,
+          "no_bid_cents": 98,
+          "no_ask_cents": 99,
+          "last_price_cents": 1
+        },
+        {
+          "ticker": "KXHIGHTDEN-26MAR26-B67.5",
+          "title": "67 to 68",
+          "label": "67F to 68F",
+          "sort_key": 67.5,
+          "yes_bid_cents": 3,
+          "yes_ask_cents": 5,
+          "no_bid_cents": 95,
+          "no_ask_cents": 97,
+          "last_price_cents": 4
+        },
+        {
           "ticker": "KXHIGHTDEN-26MAR26-B69.5",
           "title": "69 to 70",
-          "label": "69°F to 70°F",
-          "yes_bid_cents": 28,
-          "yes_ask_cents": 30,
-          "no_bid_cents": 70,
-          "no_ask_cents": 72,
-          "last_price_cents": 29,
-          "sort_key": 69.5
+          "label": "69F to 70F",
+          "sort_key": 69.5,
+          "yes_bid_cents": 17,
+          "yes_ask_cents": 19,
+          "no_bid_cents": 81,
+          "no_ask_cents": 83,
+          "last_price_cents": 18
         },
         {
           "ticker": "KXHIGHTDEN-26MAR26-B71.5",
           "title": "71 to 72",
-          "label": "71°F to 72°F",
-          "yes_bid_cents": 39,
-          "yes_ask_cents": 41,
-          "no_bid_cents": 59,
-          "no_ask_cents": 61,
-          "last_price_cents": 40,
-          "sort_key": 71.5
+          "label": "71F to 72F",
+          "sort_key": 71.5,
+          "yes_bid_cents": 37,
+          "yes_ask_cents": 39,
+          "no_bid_cents": 61,
+          "no_ask_cents": 63,
+          "last_price_cents": 38
         },
         {
           "ticker": "KXHIGHTDEN-26MAR26-B73.5",
           "title": "73 to 74",
-          "label": "73°F to 74°F",
-          "yes_bid_cents": 20,
-          "yes_ask_cents": 22,
-          "no_bid_cents": 78,
-          "no_ask_cents": 80,
-          "last_price_cents": 21,
-          "sort_key": 73.5
+          "label": "73F to 74F",
+          "sort_key": 73.5,
+          "yes_bid_cents": 17,
+          "yes_ask_cents": 19,
+          "no_bid_cents": 81,
+          "no_ask_cents": 83,
+          "last_price_cents": 18
+        },
+        {
+          "ticker": "KXHIGHTDEN-26MAR26-B75.5",
+          "title": "75 to 76",
+          "label": "75F to 76F",
+          "sort_key": 75.5,
+          "yes_bid_cents": 3,
+          "yes_ask_cents": 5,
+          "no_bid_cents": 95,
+          "no_ask_cents": 97,
+          "last_price_cents": 4
+        },
+        {
+          "ticker": "KXHIGHTDEN-26MAR26-B77.5",
+          "title": "77 to 78",
+          "label": "77F to 78F",
+          "sort_key": 77.5,
+          "yes_bid_cents": 1,
+          "yes_ask_cents": 2,
+          "no_bid_cents": 98,
+          "no_ask_cents": 99,
+          "last_price_cents": 1
+        },
+        {
+          "ticker": "KXHIGHTDEN-26MAR26-GT79",
+          "title": "79 or above",
+          "label": "79F or above",
+          "sort_key": 79.0,
+          "yes_bid_cents": 1,
+          "yes_ask_cents": 2,
+          "no_bid_cents": 98,
+          "no_ask_cents": 99,
+          "last_price_cents": 1
         }
       ]
     }

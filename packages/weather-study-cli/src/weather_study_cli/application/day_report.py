@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from weather_study_cli.application.errors import StudyValidationError
+from weather_study_cli.application.market_utils import round_half_up, select_market_leader
 from weather_study_cli.persistence.connection import DEFAULT_DB_PATH, open_connection
 from weather_study_cli.persistence.migrations import initialize_schema
 from weather_study_cli.persistence.repository import get_daily_actual_row, list_day_capture_rows
@@ -113,7 +114,7 @@ def load_day_drilldown_report(
         forecast_periods = tuple(weather_payload.get("periods", [])) if weather_payload else ()
         market_rows = tuple(market_payload.get("markets", [])) if market_payload else ()
         forecast_high = _forecast_high_temperature(forecast_periods)
-        market_leader = _select_market_leader(market_rows)
+        market_leader = select_market_leader(market_rows)
         errors = tuple(payload.get("errors", []))
         captures.append(
             DayCaptureDrilldown(
@@ -159,28 +160,4 @@ def _forecast_high_temperature(periods: tuple[dict[str, Any], ...]) -> float | N
 def _forecast_matches_actual(forecast_high: float | None, actual_high: float | None) -> bool | None:
     if forecast_high is None or actual_high is None:
         return None
-    return _round_half_up(forecast_high) == _round_half_up(actual_high)
-
-
-def _round_half_up(value: float) -> int:
-    return int(value + 0.5)
-
-
-def _select_market_leader(markets: tuple[dict[str, Any], ...]) -> dict[str, Any] | None:
-    if not markets:
-        return None
-    return max(
-        markets,
-        key=lambda market: (
-            _market_confidence_value(market),
-            float(market.get("sort_key") or float("-inf")),
-        ),
-    )
-
-
-def _market_confidence_value(market: dict[str, Any]) -> int:
-    for key in ("last_price_cents", "yes_bid_cents", "yes_ask_cents"):
-        value = market.get(key)
-        if value is not None:
-            return int(value)
-    return -1
+    return round_half_up(forecast_high) == round_half_up(actual_high)

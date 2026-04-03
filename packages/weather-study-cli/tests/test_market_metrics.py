@@ -3,34 +3,19 @@ from __future__ import annotations
 import sqlite3
 
 from weather_study_cli.application import (
-    DEFAULT_MOCK_DATA_DIR,
     compute_market_opportunity_metrics,
     ingest_capture_directory,
 )
 from weather_study_cli.persistence import open_connection
-from weather_study_cli.persistence.repository import upsert_daily_actual
+from .support import LEGACY_RAW_DATA_DIR, insert_legacy_actuals
 
 
 def test_compute_market_opportunity_metrics_joins_actuals_to_winning_buckets(tmp_path):
     db_path = tmp_path / "study.db"
-    ingest_capture_directory(DEFAULT_MOCK_DATA_DIR, db_path=db_path)
+    ingest_capture_directory(LEGACY_RAW_DATA_DIR, db_path=db_path)
 
     with open_connection(db_path) as connection:
-        for place, local_date, timezone, high in (
-            ("Seattle,WA", "2026-03-26", "America/Los_Angeles", 58.0),
-            ("Seattle,WA", "2026-03-27", "America/Los_Angeles", 60.0),
-            ("Denver,CO", "2026-03-26", "America/Denver", 72.0),
-            ("Denver,CO", "2026-03-27", "America/Denver", 70.0),
-        ):
-            upsert_daily_actual(
-                connection,
-                place=place,
-                local_date=local_date,
-                timezone=timezone,
-                observed_high_temperature_f=high,
-                observed_payload={"source": "test", "observed_high_temperature_f": high},
-                resolved_at_utc="2026-03-29T22:00:00Z",
-            )
+        insert_legacy_actuals(connection)
         connection.commit()
 
     summary = compute_market_opportunity_metrics(db_path=db_path)

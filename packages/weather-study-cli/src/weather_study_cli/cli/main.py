@@ -16,6 +16,11 @@ from weather_study_cli.application import (
     DEFAULT_CONTACT_EMAIL,
     DEFAULT_S3_DOWNLOAD_DIR,
     DEFAULT_S3_PREFIX,
+    DEFAULT_SAMPLE_DAY_COUNT,
+    DEFAULT_SAMPLE_METADATA_PATH,
+    DEFAULT_SAMPLE_OUTPUT_ROOT,
+    DEFAULT_SAMPLE_PLACES,
+    DEFAULT_SAMPLE_S3_PREFIX,
     MarketOpportunityMetricSummary,
     build_study_report,
     StudyDayDrilldownReport,
@@ -24,6 +29,7 @@ from weather_study_cli.application import (
     compute_market_opportunity_metrics,
     derive_daily_actuals,
     export_accuracy_html,
+    generate_sample_capture_directory,
     ingest_capture_directory,
     load_capture_directory,
     load_collection_gap_report,
@@ -273,7 +279,8 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Export a self-contained local HTML view of hourly forecast accuracy.\n\n"
             "The document reads from already-computed `hourly_accuracy_metrics` rows and renders\n"
-            "a city selector, hourly accuracy chart, coverage cards, and thin-sample warning.\n\n"
+            "one city chart per place. Each chart shows hourly forecast accuracy on the y-axis and\n"
+            "the representative winning market label plus its average price beneath each hour.\n\n"
             "Examples:\n"
             "  weather-study export-accuracy-html --output /tmp/weather-study.html\n"
             "  weather-study export-accuracy-html --db-path /tmp/weather-study.db --place Seattle,WA\n"
@@ -299,6 +306,77 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=5,
         help="Threshold below which the UI shows a thin-sample warning (default: %(default)s)",
+    )
+
+    sample = subparsers.add_parser(
+        "generate-sample-data",
+        help="Generate a week of hourly Seattle/Denver study captures for UI demos.",
+        description=(
+            "Generate a synthetic week of hourly raw study captures for UI/report demos.\n\n"
+            "The command fetches NOAA observed highs for the requested completed local dates, then\n"
+            "builds synthetic remaining-day forecasts and Kalshi-style ladders that intentionally\n"
+            "converge on the observed winner through the day. By default it writes Seattle and Denver\n"
+            "sample captures to the bundled mock-data directory used by `weather-study build-report`.\n\n"
+            "Examples:\n"
+            "  weather-study generate-sample-data\n"
+            "  weather-study generate-sample-data --output-root /tmp/weather-study-sample --day-count 7\n"
+            "  weather-study generate-sample-data --bucket weather-study-raw-084375548651-us-west-2 \\\n"
+            "    --prefix sample/weather-study-weekly-2026-03-29 --format json"
+        ),
+        formatter_class=HelpFormatter,
+    )
+    sample.add_argument(
+        "--place",
+        action="append",
+        help=(
+            "Optional city,state selector. Repeat to override the default sample cities "
+            f"({', '.join(DEFAULT_SAMPLE_PLACES)})."
+        ),
+    )
+    sample.add_argument(
+        "--output-root",
+        default=str(DEFAULT_SAMPLE_OUTPUT_ROOT),
+        help="Root directory where generated raw files will be written (default: %(default)s)",
+    )
+    sample.add_argument(
+        "--metadata-path",
+        default=str(DEFAULT_SAMPLE_METADATA_PATH),
+        help="Path for the generated metadata manifest (default: %(default)s)",
+    )
+    sample.add_argument(
+        "--day-count",
+        type=int,
+        default=DEFAULT_SAMPLE_DAY_COUNT,
+        help="Number of completed local dates to generate per city (default: %(default)s)",
+    )
+    sample.add_argument(
+        "--end-local-date",
+        help="Optional inclusive YYYY-MM-DD end date. Defaults to yesterday in the sampled cities.",
+    )
+    sample.add_argument(
+        "--bucket",
+        help="Optional S3 bucket to upload the generated raw files to after local generation.",
+    )
+    sample.add_argument(
+        "--prefix",
+        default=DEFAULT_SAMPLE_S3_PREFIX,
+        help="S3 prefix to upload to when --bucket is supplied (default: %(default)s)",
+    )
+    sample.add_argument(
+        "--profile",
+        default=DEFAULT_AWS_PROFILE,
+        help="AWS CLI profile to use for optional upload (default: %(default)s)",
+    )
+    sample.add_argument(
+        "--contact-email",
+        default=DEFAULT_CONTACT_EMAIL,
+        help="Contact email embedded in the NOAA User-Agent header (default: %(default)s)",
+    )
+    sample.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format for the generation summary (default: %(default)s)",
     )
 
     build_report = subparsers.add_parser(
@@ -522,6 +600,23 @@ def main(argv: list[str] | None = None) -> int:
                 place=args.place,
                 min_valid_sample=args.min_valid_sample,
             )
+        if args.command == "generate-sample-data":
+            summary = generate_sample_capture_directory(
+                output_root=args.output_root,
+                metadata_path=args.metadata_path,
+                places=args.place,
+                day_count=args.day_count,
+                end_local_date=args.end_local_date,
+                bucket=args.bucket,
+                prefix=args.prefix,
+                profile=args.profile,
+                contact_email=args.contact_email,
+            )
+            if args.format == "json":
+                print(json.dumps(summary.to_dict(), indent=2, sort_keys=False))
+            else:
+                print(render_sample_generation_text_summary(summary))
+            return 0
         if args.command == "build-report":
             summary = build_study_report(
                 input_path=args.input,
@@ -654,6 +749,32 @@ def render_market_opportunity_text_summary(summary: MarketOpportunityMetricSumma
         f"places with market metrics: {summary.place_count}",
         f"hourly_market_opportunity_metrics rows: {summary.metric_row_count}",
     ]
+    return "\n".join(lines)
+
+
+def render_sample_generation_text_summary(summary) -> str:
+    window = (
+        "n/a"
+        if not summary.local_dates
+        else summary.local_dates[0]
+        if len(summary.local_dates) == 1
+        else f"{summary.local_dates[0]} -> {summary.local_dates[-1]}"
+    )
+    lines = [
+        f"Generated {summary.capture_count} sample raw captures",
+        f"Output root: {summary.output_root}",
+        f"Metadata manifest: {summary.metadata_path}",
+        f"Places: {', '.join(summary.places)}",
+        f"Local date window: {window}",
+    ]
+    if summary.bucket is not None:
+        prefix = "" if summary.prefix is None else summary.prefix
+        lines.extend(
+            [
+                f"S3 target: s3://{summary.bucket}/{prefix}/" if prefix else f"S3 target: s3://{summary.bucket}/",
+                f"AWS profile: {summary.profile}",
+            ]
+        )
     return "\n".join(lines)
 
 

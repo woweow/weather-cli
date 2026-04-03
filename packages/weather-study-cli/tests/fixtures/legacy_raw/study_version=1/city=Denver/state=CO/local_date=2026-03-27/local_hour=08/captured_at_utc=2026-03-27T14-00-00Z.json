@@ -1,0 +1,76 @@
+{
+  "schema_version": "1",
+  "captured_at_utc": "2026-03-27T14:00:00Z",
+  "collector": {
+    "name": "weather-market-study-mock",
+    "version": "1"
+  },
+  "city": {
+    "name": "Denver",
+    "state": "CO",
+    "place": "Denver,CO",
+    "timezone": "America/Denver"
+  },
+  "capture_context": {
+    "local_timestamp": "2026-03-27T08:00:00-06:00",
+    "local_date": "2026-03-27",
+    "local_hour": 8
+  },
+  "weather": {
+    "source": "weather-cli rest-of-today",
+    "payload": null
+  },
+  "market": {
+    "source": "kalshi-weather-markets --format json",
+    "payload": {
+      "provider": "kalshi",
+      "city": "Denver",
+      "series_ticker": "KXHIGHTDEN",
+      "series_title": "Denver Maximum Temperature Daily",
+      "event_ticker": "KXHIGHTDEN-26MAR27",
+      "event_date": "2026-03-27",
+      "event_date_label": "Mar 27, 2026",
+      "markets": [
+        {
+          "ticker": "KXHIGHTDEN-26MAR27-B67.5",
+          "title": "67 to 68",
+          "label": "67°F to 68°F",
+          "yes_bid_cents": 32,
+          "yes_ask_cents": 34,
+          "no_bid_cents": 66,
+          "no_ask_cents": 68,
+          "last_price_cents": 33,
+          "sort_key": 67.5
+        },
+        {
+          "ticker": "KXHIGHTDEN-26MAR27-B69.5",
+          "title": "69 to 70",
+          "label": "69°F to 70°F",
+          "yes_bid_cents": 36,
+          "yes_ask_cents": 38,
+          "no_bid_cents": 62,
+          "no_ask_cents": 64,
+          "last_price_cents": 37,
+          "sort_key": 69.5
+        },
+        {
+          "ticker": "KXHIGHTDEN-26MAR27-B71.5",
+          "title": "71 to 72",
+          "label": "71°F to 72°F",
+          "yes_bid_cents": 22,
+          "yes_ask_cents": 24,
+          "no_bid_cents": 76,
+          "no_ask_cents": 78,
+          "last_price_cents": 23,
+          "sort_key": 71.5
+        }
+      ]
+    }
+  },
+  "errors": [
+    {
+      "source": "weather",
+      "message": "NOAA forecast request failed before a remaining-day payload could be normalized."
+    }
+  ]
+}

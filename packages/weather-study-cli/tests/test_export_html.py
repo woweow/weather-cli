@@ -11,7 +11,7 @@ from weather_study_cli.application import (
     ingest_capture_directory,
 )
 from weather_study_cli.persistence import open_connection
-from weather_study_cli.persistence.repository import upsert_daily_actual
+from .support import insert_sample_actuals
 
 
 def test_export_accuracy_html_writes_self_contained_dashboard(tmp_path):
@@ -20,21 +20,7 @@ def test_export_accuracy_html_writes_self_contained_dashboard(tmp_path):
     ingest_capture_directory(DEFAULT_MOCK_DATA_DIR, db_path=db_path)
 
     with open_connection(db_path) as connection:
-        for place, local_date, timezone, high in (
-            ("Seattle,WA", "2026-03-26", "America/Los_Angeles", 58.0),
-            ("Seattle,WA", "2026-03-27", "America/Los_Angeles", 60.0),
-            ("Denver,CO", "2026-03-26", "America/Denver", 72.0),
-            ("Denver,CO", "2026-03-27", "America/Denver", 70.0),
-        ):
-            upsert_daily_actual(
-                connection,
-                place=place,
-                local_date=local_date,
-                timezone=timezone,
-                observed_high_temperature_f=high,
-                observed_payload={"source": "test", "observed_high_temperature_f": high},
-                resolved_at_utc="2026-03-29T21:00:00Z",
-            )
+        metadata = insert_sample_actuals(connection, resolved_at_utc="2026-03-30T00:00:00Z")
         connection.commit()
 
     compute_accuracy_metrics(db_path=db_path)
@@ -50,36 +36,29 @@ def test_export_accuracy_html_writes_self_contained_dashboard(tmp_path):
     assert report_blob is not None
     embedded_report = json.loads(report_blob.group(1))
 
-    assert "Forecast Confidence Atlas" in html
-    assert "City Threshold Overview" in html
-    assert "Market Convergence" in html
-    assert "Trust Thresholds" in html
-    assert "Single-Day Drilldown" in html
-    assert "Example Days" in html
-    assert "Collection Gaps" in html
-    assert "Avg winner" in html
+    assert "Daily High Accuracy Study" in html
+    assert "When Each City Finally Gets It Right" in html
     assert "Resolved Days" in html
-    assert "Capture Window" in html
     assert "Seattle,WA" in html
     assert "Denver,CO" in html
-    assert "Thin sample" in html
-    assert "No captures yet for configured cities" in html
-    assert "Awaiting first capture" in html
+    assert "City Selector" not in html
+    assert "Trust Thresholds" not in html
+    assert "Collection Gaps" not in html
     cities = {city["place"]: city for city in embedded_report["cities"]}
-    assert cities["Denver,CO"]["capture_day_count"] == 2
-    assert cities["Denver,CO"]["resolved_actual_day_count"] == 2
-    assert cities["Denver,CO"]["capture_window_start_date"] == "2026-03-26"
-    assert cities["Denver,CO"]["capture_window_end_date"] == "2026-03-27"
-    assert embedded_report["missing_supported_places"] == [
-        "San Francisco,CA",
-        "Los Angeles,CA",
-        "Las Vegas,NV",
-        "Phoenix,AZ",
-    ]
-    assert embedded_report["cities"][0]["threshold_summary"]
+    assert cities["Denver,CO"]["capture_day_count"] == 7
+    assert cities["Denver,CO"]["resolved_actual_day_count"] == 7
+    assert cities["Denver,CO"]["capture_window_start_date"] == "2026-03-22"
+    assert cities["Denver,CO"]["capture_window_end_date"] == "2026-03-28"
+    assert len(cities["Seattle,WA"]["points"]) == 24
+    seattle_ten_am = cities["Seattle,WA"]["points"][10]
+    assert seattle_ten_am["correct_day_count"] == 1
+    assert seattle_ten_am["valid_day_count"] == 7
+    assert round(seattle_ten_am["accuracy_ratio"], 3) == 0.143
+    assert seattle_ten_am["winning_market_label"] == "49F to 50F"
+    assert metadata["local_dates"][0] == "2026-03-22"
 
 
-def test_export_accuracy_html_marks_zero_valid_hours_as_unresolved(tmp_path):
+def test_export_accuracy_html_renders_na_market_annotations_without_actuals(tmp_path):
     db_path = tmp_path / "study.db"
     output_path = tmp_path / "accuracy-unresolved.html"
     ingest_capture_directory(DEFAULT_MOCK_DATA_DIR, db_path=db_path)
@@ -89,6 +68,14 @@ def test_export_accuracy_html_marks_zero_valid_hours_as_unresolved(tmp_path):
     export_accuracy_html(db_path=db_path, output_path=output_path, min_valid_sample=5)
 
     html = output_path.read_text(encoding="utf-8")
-    assert "No finalized accuracy days yet" in html
-    assert "No finalized market days yet" in html
-    assert "Unresolved" in html
+    report_blob = re.search(
+        r'<script id="report-data" type="application/json">(.*?)</script>',
+        html,
+        re.S,
+    )
+    assert report_blob is not None
+    embedded_report = json.loads(report_blob.group(1))
+    first_city = embedded_report["cities"][0]
+    assert all(point["correct_day_count"] == 0 for point in first_city["points"])
+    assert all(point["winning_market_label"] is None for point in first_city["points"])
+    assert "n/a" in html

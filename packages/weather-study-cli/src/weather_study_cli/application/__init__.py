@@ -47,6 +47,15 @@ if TYPE_CHECKING:
     )
     from weather_study_cli.application.raw_schema import StudyCapture
     from weather_study_cli.application.report import AccuracyDashboardReport, export_accuracy_html
+    from weather_study_cli.application.sample_data import (
+        DEFAULT_SAMPLE_DAY_COUNT,
+        DEFAULT_SAMPLE_METADATA_PATH,
+        DEFAULT_SAMPLE_OUTPUT_ROOT,
+        DEFAULT_SAMPLE_PLACES,
+        DEFAULT_SAMPLE_S3_PREFIX,
+        SampleDataGenerationSummary,
+        generate_sample_capture_directory,
+    )
     from weather_study_cli.application.s3 import (
         DEFAULT_AWS_PROFILE,
         DEFAULT_S3_DOWNLOAD_DIR,
@@ -64,6 +73,11 @@ __all__ = [
     "DEFAULT_MOCK_DATA_DIR",
     "DEFAULT_S3_DOWNLOAD_DIR",
     "DEFAULT_S3_PREFIX",
+    "DEFAULT_SAMPLE_DAY_COUNT",
+    "DEFAULT_SAMPLE_METADATA_PATH",
+    "DEFAULT_SAMPLE_OUTPUT_ROOT",
+    "DEFAULT_SAMPLE_PLACES",
+    "DEFAULT_SAMPLE_S3_PREFIX",
     "AccuracyMetricSummary",
     "AccuracyDashboardReport",
     "CollectionGapReport",
@@ -78,6 +92,7 @@ __all__ = [
     "SUPPORTED_STUDY_CITIES",
     "S3SyncError",
     "S3SyncSummary",
+    "SampleDataGenerationSummary",
     "StudyCapture",
     "StudyCity",
     "StudyDatasetSummary",
@@ -91,6 +106,7 @@ __all__ = [
     "build_study_report",
     "ingest_capture_directory",
     "export_accuracy_html",
+    "generate_sample_capture_directory",
     "list_supported_study_places",
     "load_collection_gap_report",
     "load_capture_directory",
@@ -109,6 +125,17 @@ _EXPORTS = {
     "DEFAULT_MOCK_DATA_DIR": ("weather_study_cli.application.raw_loader", "DEFAULT_MOCK_DATA_DIR"),
     "DEFAULT_S3_DOWNLOAD_DIR": ("weather_study_cli.application.s3", "DEFAULT_S3_DOWNLOAD_DIR"),
     "DEFAULT_S3_PREFIX": ("weather_study_cli.application.s3", "DEFAULT_S3_PREFIX"),
+    "DEFAULT_SAMPLE_DAY_COUNT": ("weather_study_cli.application.sample_data", "DEFAULT_SAMPLE_DAY_COUNT"),
+    "DEFAULT_SAMPLE_METADATA_PATH": (
+        "weather_study_cli.application.sample_data",
+        "DEFAULT_SAMPLE_METADATA_PATH",
+    ),
+    "DEFAULT_SAMPLE_OUTPUT_ROOT": (
+        "weather_study_cli.application.sample_data",
+        "DEFAULT_SAMPLE_OUTPUT_ROOT",
+    ),
+    "DEFAULT_SAMPLE_PLACES": ("weather_study_cli.application.sample_data", "DEFAULT_SAMPLE_PLACES"),
+    "DEFAULT_SAMPLE_S3_PREFIX": ("weather_study_cli.application.sample_data", "DEFAULT_SAMPLE_S3_PREFIX"),
     "AccuracyMetricSummary": ("weather_study_cli.application.metrics", "AccuracyMetricSummary"),
     "AccuracyDashboardReport": ("weather_study_cli.application.report", "AccuracyDashboardReport"),
     "CollectionGapReport": ("weather_study_cli.application.gaps", "CollectionGapReport"),
@@ -128,6 +155,10 @@ _EXPORTS = {
     "SUPPORTED_STUDY_CITIES": ("weather_study_cli.application.cities", "SUPPORTED_STUDY_CITIES"),
     "S3SyncError": ("weather_study_cli.application.errors", "S3SyncError"),
     "S3SyncSummary": ("weather_study_cli.application.s3", "S3SyncSummary"),
+    "SampleDataGenerationSummary": (
+        "weather_study_cli.application.sample_data",
+        "SampleDataGenerationSummary",
+    ),
     "StudyCapture": ("weather_study_cli.application.raw_schema", "StudyCapture"),
     "StudyCity": ("weather_study_cli.application.cities", "StudyCity"),
     "StudyDatasetSummary": ("weather_study_cli.application.raw_loader", "StudyDatasetSummary"),
@@ -147,6 +178,10 @@ _EXPORTS = {
     "build_study_report": ("weather_study_cli.application.pipeline", "build_study_report"),
     "ingest_capture_directory": ("weather_study_cli.application.ingest", "ingest_capture_directory"),
     "export_accuracy_html": ("weather_study_cli.application.report", "export_accuracy_html"),
+    "generate_sample_capture_directory": (
+        "weather_study_cli.application.sample_data",
+        "generate_sample_capture_directory",
+    ),
     "list_supported_study_places": ("weather_study_cli.application.cities", "list_supported_study_places"),
     "load_collection_gap_report": ("weather_study_cli.application.gaps", "load_collection_gap_report"),
     "load_capture_directory": ("weather_study_cli.application.raw_loader", "load_capture_directory"),

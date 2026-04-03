@@ -3,18 +3,14 @@ from __future__ import annotations
 import sqlite3
 from datetime import UTC, datetime
 
-from weather_study_cli.application import DEFAULT_MOCK_DATA_DIR, derive_daily_actuals, ingest_capture_directory
+from weather_study_cli.application import derive_daily_actuals, ingest_capture_directory
+from .support import LEGACY_ACTUALS, LEGACY_RAW_DATA_DIR, timezone_for_place
 
 
 class FakeObservedHighService:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str]] = []
-        self.highs = {
-            ("Denver,CO", "2026-03-26"): 72.0,
-            ("Denver,CO", "2026-03-27"): 70.0,
-            ("Seattle,WA", "2026-03-26"): 58.0,
-            ("Seattle,WA", "2026-03-27"): 60.0,
-        }
+        self.highs = LEGACY_ACTUALS
 
     def fetch_observed_high_for_date(
         self,
@@ -30,14 +26,14 @@ class FakeObservedHighService:
                 "input": place,
                 "city": place.split(",")[0],
                 "state": place.split(",")[1],
-                "timezone": "America/Los_Angeles" if place == "Seattle,WA" else "America/Denver",
+                "timezone": timezone_for_place(place),
             },
             "event_date": event_date,
             "observed_high_temperature_f": self.highs[(place, event_date)],
             "station": {
                 "identifier": "TEST",
                 "name": "Test Station",
-                "timezone": "America/Los_Angeles" if place == "Seattle,WA" else "America/Denver",
+                "timezone": timezone_for_place(place),
             },
             "station_selection": "preset" if use_station_presets else "nearest",
         }
@@ -45,7 +41,7 @@ class FakeObservedHighService:
 
 def test_derive_daily_actuals_skips_incomplete_days_and_upserts_results(tmp_path):
     db_path = tmp_path / "study.db"
-    ingest_capture_directory(DEFAULT_MOCK_DATA_DIR, db_path=db_path)
+    ingest_capture_directory(LEGACY_RAW_DATA_DIR, db_path=db_path)
     service = FakeObservedHighService()
 
     first = derive_daily_actuals(
@@ -76,9 +72,4 @@ def test_derive_daily_actuals_skips_incomplete_days_and_upserts_results(tmp_path
             """
         ).fetchall()
 
-    assert rows == [
-        ("Denver,CO", "2026-03-26", 72.0),
-        ("Denver,CO", "2026-03-27", 70.0),
-        ("Seattle,WA", "2026-03-26", 58.0),
-        ("Seattle,WA", "2026-03-27", 60.0),
-    ]
+    assert rows == sorted((place, local_date, high) for (place, local_date), high in LEGACY_ACTUALS.items())

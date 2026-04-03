@@ -9,816 +9,226 @@ HTML_TEMPLATE = """<!doctype html>
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Forecast Confidence Atlas</title>
+    <title>Daily High Accuracy Study</title>
+    <link rel="icon" href="data:,">
     <style>
       :root {{
-        --paper: #f6f0e4;
-        --paper-alt: #fffaf2;
-        --ink: #1f2a2e;
-        --muted: #6d7670;
-        --storm: #356a7a;
-        --storm-deep: #123d4d;
-        --sun: #c66b2d;
-        --gold: #e7b35e;
-        --danger: #a64034;
-        --line: rgba(31, 42, 46, 0.14);
-        --shadow: 0 26px 70px rgba(26, 39, 45, 0.15);
+        --paper: #f4efe4;
+        --paper-deep: #e8dcc4;
+        --panel: rgba(255, 251, 245, 0.86);
+        --ink: #13242b;
+        --muted: #5b6a6b;
+        --grid: rgba(19, 36, 43, 0.12);
+        --line: #1c6e7d;
+        --line-glow: rgba(28, 110, 125, 0.18);
+        --accent: #c76632;
+        --accent-soft: rgba(199, 102, 50, 0.14);
+        --thin: #d7a75a;
+        --shadow: 0 26px 60px rgba(35, 47, 53, 0.14);
       }}
 
       * {{ box-sizing: border-box; }}
 
       body {{
         margin: 0;
-        min-height: 100vh;
         color: var(--ink);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
         background:
-          radial-gradient(circle at 15% 15%, rgba(198, 107, 45, 0.16), transparent 24rem),
-          radial-gradient(circle at 85% 10%, rgba(53, 106, 122, 0.22), transparent 28rem),
-          linear-gradient(180deg, #efe3cd, var(--paper));
-        font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+          radial-gradient(circle at 10% 10%, rgba(199, 102, 50, 0.18), transparent 24rem),
+          radial-gradient(circle at 88% 12%, rgba(28, 110, 125, 0.18), transparent 22rem),
+          linear-gradient(180deg, #efe5d4, var(--paper));
       }}
 
       body::before {{
         content: "";
         position: fixed;
         inset: 0;
-        background:
-          radial-gradient(circle at center, rgba(255,255,255,0.18) 0, transparent 42%),
-          repeating-linear-gradient(
-            115deg,
-            rgba(18, 61, 77, 0.04) 0,
-            rgba(18, 61, 77, 0.04) 2px,
-            transparent 2px,
-            transparent 32px
-          );
         pointer-events: none;
-        mix-blend-mode: multiply;
+        opacity: 0.6;
+        background:
+          linear-gradient(rgba(255,255,255,0.28), rgba(255,255,255,0.12)),
+          repeating-linear-gradient(
+            90deg,
+            rgba(19, 36, 43, 0.025) 0,
+            rgba(19, 36, 43, 0.025) 1px,
+            transparent 1px,
+            transparent 26px
+          );
       }}
 
       main {{
-        width: min(1180px, calc(100vw - 2rem));
+        width: min(1380px, calc(100vw - 1.8rem));
         margin: 0 auto;
-        padding: 2.4rem 0 3.5rem;
+        padding: 2rem 0 3rem;
       }}
 
       .hero {{
         display: grid;
-        gap: 0.85rem;
-        margin-bottom: 1.8rem;
+        gap: 0.8rem;
+        margin-bottom: 1.4rem;
       }}
 
       .eyebrow {{
+        font-size: 0.74rem;
         letter-spacing: 0.22em;
         text-transform: uppercase;
-        font-size: 0.76rem;
         color: var(--muted);
       }}
 
       h1 {{
         margin: 0;
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: clamp(2.8rem, 5vw, 5rem);
-        line-height: 0.92;
+        font-family: "Iowan Old Style", "Baskerville", serif;
+        font-size: clamp(2.5rem, 4vw, 4.6rem);
+        line-height: 0.94;
         max-width: 12ch;
       }}
 
-      .hero-copy {{
+      .hero p {{
         margin: 0;
-        max-width: 48rem;
+        max-width: 54rem;
         color: var(--muted);
-        line-height: 1.55;
+        line-height: 1.6;
       }}
 
-      .shell {{
+      .report {{
         display: grid;
         gap: 1rem;
       }}
 
-      .panel {{
-        background: rgba(255, 250, 242, 0.86);
-        border: 1px solid rgba(255, 255, 255, 0.7);
-        border-radius: 1.8rem;
+      .city-card {{
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        border-radius: 1.6rem;
         box-shadow: var(--shadow);
         overflow: hidden;
         backdrop-filter: blur(14px);
       }}
 
-      .topbar {{
+      .city-head {{
         display: grid;
-        grid-template-columns: minmax(16rem, 22rem) 1fr;
+        grid-template-columns: minmax(0, 1fr) auto;
         gap: 1rem;
-        padding: 1.1rem 1.2rem 1rem;
-        border-bottom: 1px solid var(--line);
+        padding: 1.2rem 1.25rem 1rem;
+        border-bottom: 1px solid var(--grid);
         background:
-          linear-gradient(135deg, rgba(255,255,255,0.85), rgba(255,255,255,0.48)),
-          linear-gradient(90deg, rgba(198, 107, 45, 0.08), rgba(53, 106, 122, 0.09));
+          linear-gradient(135deg, rgba(255,255,255,0.78), rgba(255,255,255,0.38)),
+          linear-gradient(90deg, rgba(199, 102, 50, 0.08), rgba(28, 110, 125, 0.08));
       }}
 
-      .selector-wrap {{
-        display: grid;
-        gap: 0.4rem;
+      .city-name {{
+        margin: 0;
+        font-family: "Iowan Old Style", "Baskerville", serif;
+        font-size: clamp(1.8rem, 3vw, 2.5rem);
+        line-height: 0.96;
       }}
 
-      .selector-wrap label {{
-        font-size: 0.72rem;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
+      .city-subtitle {{
+        margin-top: 0.35rem;
         color: var(--muted);
+        font-size: 0.96rem;
       }}
 
-      select {{
-        appearance: none;
-        border: 1px solid rgba(18, 61, 77, 0.2);
-        border-radius: 999px;
-        padding: 0.85rem 1rem;
-        background: linear-gradient(180deg, var(--paper-alt), #f5ecdd);
-        color: var(--ink);
-        font-size: 1rem;
-      }}
-
-      .summary-strip {{
+      .stat-strip {{
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        align-items: end;
         justify-content: flex-end;
+        gap: 0.7rem;
+        align-items: end;
       }}
 
-      .chip {{
-        min-width: 8.5rem;
-        padding: 0.8rem 0.9rem;
-        border-radius: 1.2rem;
-        background: rgba(255,255,255,0.72);
-        border: 1px solid rgba(18, 61, 77, 0.09);
-      }}
-
-      .chip-label {{
-        font-size: 0.72rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }}
-
-      .chip-value {{
-        margin-top: 0.3rem;
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: 1.35rem;
-      }}
-
-      .warning {{
-        display: none;
-        margin: 1rem 1.2rem 0;
-        padding: 0.95rem 1rem;
+      .stat {{
+        min-width: 9rem;
+        padding: 0.72rem 0.82rem;
         border-radius: 1rem;
-        background: rgba(231, 179, 94, 0.18);
-        border: 1px solid rgba(198, 107, 45, 0.25);
-        color: var(--storm-deep);
+        background: rgba(255,255,255,0.68);
+        border: 1px solid rgba(19, 36, 43, 0.08);
       }}
 
-      .warning[data-visible="true"] {{
-        display: block;
-      }}
-
-      .grid {{
-        display: grid;
-        grid-template-columns: 1.7fr 1fr;
-      }}
-
-      .chart-pane, .coverage-pane {{
-        padding: 1.2rem;
-      }}
-
-      .chart-pane {{
-        display: grid;
-        gap: 1rem;
-      }}
-
-      .coverage-pane {{
-        border-left: 1px solid var(--line);
-        background:
-          linear-gradient(180deg, rgba(255,255,255,0.3), rgba(255,255,255,0.55)),
-          linear-gradient(180deg, rgba(198, 107, 45, 0.05), transparent 35%);
-      }}
-
-      .chart-stack {{
-        display: grid;
-        gap: 1rem;
-      }}
-
-      .chart-section {{
-        display: grid;
-        gap: 0.95rem;
-      }}
-
-      .section-head {{
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        gap: 1rem;
-        margin-bottom: 0.9rem;
-      }}
-
-      .section-head h2 {{
-        margin: 0;
-        font-size: 0.88rem;
+      .stat-label {{
+        font-size: 0.68rem;
         letter-spacing: 0.16em;
         text-transform: uppercase;
-      }}
-
-      .section-note {{
         color: var(--muted);
-        font-size: 0.82rem;
       }}
 
-      .chart-frame {{
-        padding: 1rem;
-        border-radius: 1.3rem;
-        background: linear-gradient(180deg, rgba(53, 106, 122, 0.1), rgba(255,255,255,0.55));
-        border: 1px solid rgba(18, 61, 77, 0.08);
+      .stat-value {{
+        margin-top: 0.24rem;
+        font-family: "Iowan Old Style", "Baskerville", serif;
+        font-size: 1.22rem;
       }}
 
-      .chart-frame.market-frame {{
-        background: linear-gradient(180deg, rgba(231, 179, 94, 0.22), rgba(255,255,255,0.55));
+      .chart-copy {{
+        padding: 0.9rem 1.25rem 0;
+        color: var(--muted);
+        line-height: 1.5;
       }}
 
-      #accuracy-chart, #market-chart {{
+      .chart-wrap {{
+        padding: 0.8rem 0.9rem 1rem;
+      }}
+
+      .chart-scroll {{
+        overflow-x: auto;
+        padding-bottom: 0.25rem;
+      }}
+
+      .chart-scroll::-webkit-scrollbar {{
+        height: 10px;
+      }}
+
+      .chart-scroll::-webkit-scrollbar-thumb {{
+        background: rgba(19, 36, 43, 0.18);
+        border-radius: 999px;
+      }}
+
+      .chart-shell {{
+        min-width: 860px;
+      }}
+
+      svg {{
+        display: block;
         width: 100%;
         height: auto;
-        display: block;
       }}
 
-      .coverage-list {{
-        display: grid;
-        gap: 0.55rem;
-      }}
-
-      .coverage-card {{
-        padding: 0.85rem 0.9rem;
-        border-radius: 1rem;
-        background: rgba(255,255,255,0.82);
-        border: 1px solid rgba(18, 61, 77, 0.08);
-      }}
-
-      .coverage-top {{
+      .chart-note {{
         display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        gap: 1rem;
-      }}
-
-      .coverage-hour {{
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: 1.1rem;
-      }}
-
-      .coverage-ratio {{
-        color: var(--muted);
-        font-size: 0.84rem;
-      }}
-
-      .stack {{
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 0.35rem;
-        margin-top: 0.75rem;
-      }}
-
-      .stack-bar {{
-        position: relative;
-        height: 0.55rem;
-        border-radius: 999px;
-        overflow: hidden;
-        background: rgba(18, 61, 77, 0.08);
-      }}
-
-      .stack-fill {{
-        position: absolute;
-        inset: 0 auto 0 0;
-        border-radius: inherit;
-      }}
-
-      .stack-fill.valid {{ background: linear-gradient(90deg, var(--storm), #73a7ae); }}
-      .stack-fill.missing {{ background: linear-gradient(90deg, var(--gold), #f2d59f); }}
-      .stack-fill.excluded {{ background: linear-gradient(90deg, var(--danger), #d97a6d); }}
-
-      .stack-meta {{
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0.35rem;
-        margin-top: 0.45rem;
-        font-size: 0.79rem;
-        color: var(--muted);
-      }}
-
-      .market-meta {{
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-top: 0.7rem;
-        padding-top: 0.7rem;
-        border-top: 1px dashed rgba(18, 61, 77, 0.1);
-        font-size: 0.79rem;
-        color: var(--muted);
-      }}
-
-      .market-meta-empty {{
-        color: rgba(109, 118, 112, 0.84);
-      }}
-
-      .drilldown-panel {{
-        padding: 1.2rem;
-        border-top: 1px solid var(--line);
-        background:
-          linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0.6)),
-          linear-gradient(135deg, rgba(53, 106, 122, 0.05), rgba(198, 107, 45, 0.08));
-      }}
-
-      .drilldown-bar {{
-        display: grid;
-        grid-template-columns: minmax(16rem, 22rem) 1fr;
-        gap: 1rem;
-        align-items: end;
-      }}
-
-      .drilldown-strip {{
-        justify-content: flex-end;
-      }}
-
-      .capture-list {{
-        display: grid;
-        gap: 0.8rem;
-        margin-top: 1rem;
-      }}
-
-      .capture-card {{
-        padding: 1rem;
-        border-radius: 1.2rem;
-        background: rgba(255,255,255,0.82);
-        border: 1px solid rgba(18, 61, 77, 0.08);
-      }}
-
-      .capture-top {{
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: flex-start;
-      }}
-
-      .capture-hour {{
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: 1.2rem;
-      }}
-
-      .capture-stamp {{
-        margin-top: 0.25rem;
-        font-size: 0.8rem;
-        color: var(--muted);
-      }}
-
-      .capture-badges {{
-        display: flex;
-        gap: 0.4rem;
+        gap: 0.9rem;
         flex-wrap: wrap;
-        justify-content: flex-end;
+        padding: 0 1.25rem 1.2rem;
+        color: var(--muted);
+        font-size: 0.86rem;
       }}
 
-      .badge {{
-        padding: 0.3rem 0.55rem;
+      .legend-pill {{
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.46rem 0.62rem;
         border-radius: 999px;
-        font-size: 0.72rem;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-      }}
-
-      .badge.match {{
-        background: rgba(53, 106, 122, 0.14);
-        color: var(--storm-deep);
-      }}
-
-      .badge.miss {{
-        background: rgba(166, 64, 52, 0.12);
-        color: var(--danger);
-      }}
-
-      .badge.pending {{
-        background: rgba(231, 179, 94, 0.2);
-        color: var(--sun);
-      }}
-
-      .badge.error {{
-        background: rgba(166, 64, 52, 0.1);
-        color: var(--danger);
-      }}
-
-      .capture-meta {{
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 0.65rem;
-        margin-top: 0.85rem;
-      }}
-
-      .meta-cell {{
-        padding: 0.75rem;
-        border-radius: 0.95rem;
-        background: rgba(246, 240, 228, 0.7);
-        border: 1px solid rgba(18, 61, 77, 0.06);
-      }}
-
-      .meta-label {{
-        font-size: 0.7rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }}
-
-      .meta-value {{
-        margin-top: 0.3rem;
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: 1rem;
-        line-height: 1.3;
-      }}
-
-      .capture-details {{
-        margin-top: 0.9rem;
-        padding-top: 0.85rem;
-        border-top: 1px dashed rgba(18, 61, 77, 0.12);
-      }}
-
-      .capture-details summary {{
-        cursor: pointer;
-        color: var(--storm-deep);
-        font-weight: 600;
-      }}
-
-      .detail-columns {{
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
-        margin-top: 0.85rem;
-      }}
-
-      .detail-block {{
-        padding: 0.8rem;
-        border-radius: 1rem;
-        background: rgba(255,255,255,0.7);
-        border: 1px solid rgba(18, 61, 77, 0.06);
-      }}
-
-      .detail-title {{
-        font-size: 0.72rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }}
-
-      .detail-list {{
-        margin: 0.55rem 0 0;
-        padding-left: 1rem;
-        display: grid;
-        gap: 0.35rem;
-        color: var(--muted);
-      }}
-
-      .empty-state {{
-        margin-top: 1rem;
-        padding: 1rem;
-        border-radius: 1rem;
-        background: rgba(255,255,255,0.7);
-        color: var(--muted);
-        border: 1px solid rgba(18, 61, 77, 0.06);
-      }}
-
-      .examples-panel {{
-        padding: 1.2rem;
-        border-top: 1px solid var(--line);
-        background:
-          linear-gradient(180deg, rgba(255,255,255,0.3), rgba(255,255,255,0.52)),
-          linear-gradient(90deg, rgba(231, 179, 94, 0.08), rgba(53, 106, 122, 0.06));
-      }}
-
-      .example-grid {{
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-        margin-top: 1rem;
-      }}
-
-      .example-card {{
-        padding: 1rem;
-        border-radius: 1.2rem;
-        background: rgba(255,255,255,0.78);
-        border: 1px solid rgba(18, 61, 77, 0.08);
-      }}
-
-      .example-title {{
-        font-size: 0.82rem;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }}
-
-      .example-table {{
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 0.8rem;
-      }}
-
-      .example-table th,
-      .example-table td {{
-        padding: 0.7rem 0;
-        border-bottom: 1px solid rgba(18, 61, 77, 0.08);
-        text-align: left;
-        vertical-align: top;
-      }}
-
-      .example-table th {{
-        font-size: 0.72rem;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }}
-
-      .example-main {{
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: 1rem;
-      }}
-
-      .example-sub {{
-        margin-top: 0.18rem;
-        font-size: 0.78rem;
-        color: var(--muted);
-        line-height: 1.4;
-      }}
-
-      .signal-pill {{
-        display: inline-block;
-        padding: 0.3rem 0.55rem;
-        border-radius: 999px;
-        font-size: 0.72rem;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-      }}
-
-      .signal-pill.aligned {{
-        background: rgba(53, 106, 122, 0.14);
-        color: var(--storm-deep);
-      }}
-
-      .signal-pill.lagging {{
-        background: rgba(198, 107, 45, 0.14);
-        color: var(--sun);
-      }}
-
-      .signal-pill.none {{
-        background: rgba(166, 64, 52, 0.12);
-        color: var(--danger);
-      }}
-
-      .thresholds-panel {{
-        padding: 1.2rem;
-        border-top: 1px solid var(--line);
-        background:
-          linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0.6)),
-          linear-gradient(120deg, rgba(53, 106, 122, 0.08), rgba(231, 179, 94, 0.08));
-      }}
-
-      .threshold-grid {{
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-        gap: 0.8rem;
-      }}
-
-      .threshold-card {{
-        padding: 1rem;
-        border-radius: 1.1rem;
-        background: rgba(255,255,255,0.82);
-        border: 1px solid rgba(18, 61, 77, 0.08);
-        display: grid;
-        gap: 0.55rem;
-      }}
-
-      .threshold-top {{
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        gap: 0.8rem;
-      }}
-
-      .threshold-target {{
-        font-size: 0.76rem;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }}
-
-      .threshold-hour {{
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: 1.35rem;
-      }}
-
-      .threshold-pills {{
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem;
-      }}
-
-      .threshold-pill {{
-        padding: 0.24rem 0.55rem;
-        border-radius: 999px;
-        font-size: 0.72rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        background: rgba(231, 179, 94, 0.22);
-        color: var(--storm-deep);
-      }}
-
-      .threshold-pill.stable {{
-        background: rgba(53, 106, 122, 0.14);
-      }}
-
-      .threshold-pill.market {{
-        background: rgba(198, 107, 45, 0.16);
-      }}
-
-      .threshold-metric {{
-        font-size: 0.9rem;
-        color: var(--storm-deep);
-      }}
-
-      .threshold-note {{
-        font-size: 0.82rem;
-        line-height: 1.5;
-        color: var(--muted);
-      }}
-
-      .overview-panel {{
-        padding: 1.2rem;
-        border-top: 1px solid var(--line);
-        background:
-          linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0.62)),
-          linear-gradient(135deg, rgba(18, 61, 77, 0.05), rgba(231, 179, 94, 0.06));
-      }}
-
-      .overview-wrap {{
-        overflow-x: auto;
-        border-radius: 1.2rem;
-        border: 1px solid rgba(18, 61, 77, 0.08);
-        background: rgba(255,255,255,0.78);
-      }}
-
-      .overview-table {{
-        width: 100%;
-        min-width: 760px;
-        border-collapse: collapse;
-      }}
-
-      .overview-table th,
-      .overview-table td {{
-        padding: 0.9rem 0.85rem;
-        border-bottom: 1px solid rgba(18, 61, 77, 0.08);
-        vertical-align: top;
-        text-align: left;
-      }}
-
-      .overview-table th {{
-        font-size: 0.72rem;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--muted);
-        background: rgba(246, 240, 228, 0.82);
-      }}
-
-      .overview-row.is-active {{
-        background: linear-gradient(90deg, rgba(53, 106, 122, 0.08), rgba(231, 179, 94, 0.06));
-      }}
-
-      .overview-row.is-missing {{
-        background: rgba(246, 240, 228, 0.45);
-      }}
-
-      .overview-city-button {{
-        appearance: none;
-        border: 0;
-        padding: 0;
-        background: none;
-        color: var(--storm-deep);
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: 1.02rem;
-        cursor: pointer;
-      }}
-
-      .overview-city-button:hover {{
-        color: var(--sun);
-      }}
-
-      .overview-city-label {{
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: 1.02rem;
-        color: rgba(31, 42, 46, 0.78);
-      }}
-
-      .overview-main {{
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: 1rem;
-        color: var(--storm-deep);
-      }}
-
-      .overview-main.status {{
-        color: var(--ink);
-      }}
-
-      .overview-sub {{
-        margin-top: 0.18rem;
-        font-size: 0.76rem;
-        line-height: 1.4;
-        color: var(--muted);
-      }}
-
-      .gaps-panel {{
-        padding: 1.2rem;
-        border-top: 1px solid var(--line);
-        background:
-          linear-gradient(180deg, rgba(255,255,255,0.32), rgba(255,255,255,0.52)),
-          linear-gradient(135deg, rgba(166, 64, 52, 0.04), rgba(231, 179, 94, 0.08));
-      }}
-
-      .gap-list {{
-        display: grid;
-        gap: 0.7rem;
-        margin-top: 1rem;
-      }}
-
-      .gap-card {{
-        padding: 0.9rem 1rem;
-        border-radius: 1rem;
-        background: rgba(255,255,255,0.8);
-        border: 1px solid rgba(18, 61, 77, 0.08);
-      }}
-
-      .gap-top {{
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: baseline;
-      }}
-
-      .gap-date {{
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: 1.05rem;
-      }}
-
-      .gap-stat {{
-        font-size: 0.82rem;
-        color: var(--muted);
-      }}
-
-      .gap-note {{
-        margin-top: 0.4rem;
-        color: var(--muted);
-        font-size: 0.8rem;
-        line-height: 1.45;
-      }}
-
-      .legend {{
-        display: flex;
-        gap: 0.85rem;
-        flex-wrap: wrap;
-        margin-top: 1rem;
-        color: var(--muted);
-        font-size: 0.8rem;
+        background: rgba(255,255,255,0.68);
+        border: 1px solid rgba(19, 36, 43, 0.08);
       }}
 
       .legend-dot {{
-        display: inline-block;
-        width: 0.7rem;
-        height: 0.7rem;
-        margin-right: 0.35rem;
+        width: 0.72rem;
+        height: 0.72rem;
         border-radius: 999px;
       }}
 
-      .footer-note {{
-        margin-top: 1rem;
+      .empty {{
+        padding: 1rem 1.25rem 1.35rem;
         color: var(--muted);
-        font-size: 0.82rem;
-        line-height: 1.55;
       }}
 
-      @media (max-width: 920px) {{
-        .topbar {{ grid-template-columns: 1fr; }}
-        .summary-strip {{ justify-content: flex-start; }}
-        .grid {{ grid-template-columns: 1fr; }}
-        .coverage-pane {{ border-left: 0; border-top: 1px solid var(--line); }}
-        .drilldown-bar {{ grid-template-columns: 1fr; }}
-        .drilldown-strip {{ justify-content: flex-start; }}
-        .capture-meta {{ grid-template-columns: 1fr 1fr; }}
-        .detail-columns {{ grid-template-columns: 1fr; }}
-        .example-grid {{ grid-template-columns: 1fr; }}
-      }}
+      @media (max-width: 900px) {{
+        .city-head {{
+          grid-template-columns: 1fr;
+        }}
 
-      @media (max-width: 620px) {{
-        .capture-top {{ flex-direction: column; }}
-        .capture-badges {{ justify-content: flex-start; }}
-        .capture-meta {{ grid-template-columns: 1fr; }}
+        .stat-strip {{
+          justify-content: flex-start;
+        }}
       }}
     </style>
   </head>
@@ -826,1100 +236,245 @@ HTML_TEMPLATE = """<!doctype html>
     <main>
       <section class="hero">
         <div class="eyebrow">Local Study Export</div>
-        <h1>Forecast Confidence Atlas</h1>
-        <p class="hero-copy">
-          A local-first weather lab view of when each city's remaining-day forecast becomes trustworthy enough to matter.
-          Forecast accuracy sits beside market convergence so you can see when the signal sharpened and whether the ladder had already caught up.
+        <h1>When Each City Finally Gets It Right</h1>
+        <p>
+          Each chart shows the share of resolved days where that hour's remaining-day forecast correctly
+          predicted the final daily high. The label under every hour is the winning temperature market and its
+          average price at that hour.
         </p>
       </section>
-
-      <section class="shell panel">
-        <div class="topbar">
-          <div class="selector-wrap">
-            <label for="city-select">City Selector</label>
-            <select id="city-select"></select>
-          </div>
-          <div class="summary-strip">
-            <div class="chip">
-              <div class="chip-label">Timezone</div>
-              <div class="chip-value" id="city-timezone">-</div>
-            </div>
-            <div class="chip">
-              <div class="chip-label">Study Days</div>
-              <div class="chip-value" id="study-day-count">-</div>
-            </div>
-            <div class="chip">
-              <div class="chip-label">Captured Hours</div>
-              <div class="chip-value" id="hour-count">-</div>
-            </div>
-            <div class="chip">
-              <div class="chip-label">Market Hours</div>
-              <div class="chip-value" id="market-hour-count">-</div>
-            </div>
-            <div class="chip">
-              <div class="chip-label">Resolved Days</div>
-              <div class="chip-value" id="resolved-day-count">-</div>
-            </div>
-            <div class="chip">
-              <div class="chip-label">Capture Window</div>
-              <div class="chip-value" id="capture-window">-</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="warning" id="sample-warning" data-visible="false"></div>
-
-        <section class="overview-panel">
-          <div class="section-head">
-            <h2>City Threshold Overview</h2>
-            <div class="section-note">Compare threshold timing across loaded cities and see configured cities that still have no captures.</div>
-          </div>
-          <div class="overview-wrap">
-            <table class="overview-table">
-              <thead>
-                <tr>
-                  <th>City</th>
-                  <th>60%</th>
-                  <th>70%</th>
-                  <th>80%</th>
-                  <th>90%</th>
-                  <th>Gap Coverage</th>
-                </tr>
-              </thead>
-              <tbody id="overview-table-body"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <div class="grid">
-          <section class="chart-pane">
-            <div class="chart-stack">
-              <section class="chart-section">
-                <div class="section-head">
-                  <h2>Hourly Forecast Accuracy</h2>
-                  <div class="section-note">Remaining-day max forecast versus final observed high</div>
-                </div>
-                <div class="chart-frame">
-                  <svg id="accuracy-chart" viewBox="0 0 760 320" role="img" aria-label="Hourly forecast accuracy chart"></svg>
-                </div>
-                <div class="legend">
-                  <span><span class="legend-dot" style="background: var(--storm);"></span>Accuracy line</span>
-                  <span><span class="legend-dot" style="background: var(--gold);"></span>Coverage warnings appear when valid days stay under the sample threshold</span>
-                </div>
-              </section>
-
-              <section class="chart-section">
-                <div class="section-head">
-                  <h2>Market Convergence</h2>
-                  <div class="section-note">Did the bucket that eventually won already lead the ladder?</div>
-                </div>
-                <div class="chart-frame market-frame">
-                  <svg id="market-chart" viewBox="0 0 760 320" role="img" aria-label="Hourly market convergence chart"></svg>
-                </div>
-                <div class="legend">
-                  <span><span class="legend-dot" style="background: var(--sun);"></span>Winning bucket already leading</span>
-                  <span><span class="legend-dot" style="background: rgba(231, 179, 94, 0.88);"></span>Average last price on the bucket that ended up winning</span>
-                </div>
-              </section>
-            </div>
-          </section>
-
-          <aside class="coverage-pane">
-            <div class="section-head">
-              <h2>Coverage Ledger</h2>
-              <div class="section-note">Valid, missing, and excluded day counts by hour</div>
-            </div>
-            <div class="coverage-list" id="coverage-list"></div>
-            <p class="footer-note">
-              Missing means the city-day had no capture for that hour. Excluded means a capture existed,
-              but the final observed high, weather payload, or winning market bucket could not be used in the finalized metrics.
-            </p>
-          </aside>
-        </div>
-
-        <section class="thresholds-panel">
-          <div class="section-head">
-            <h2>Trust Thresholds</h2>
-            <div class="section-note">Earliest captured hour where finalized forecast accuracy cleared each bar.</div>
-          </div>
-          <div class="threshold-grid" id="threshold-grid"></div>
-          <p class="footer-note">
-            Thresholds use finalized forecast accuracy only. Thin-sample cards are still shown, but flagged so you can separate a real pattern from a tiny denominator.
-          </p>
-        </section>
-
-        <section class="drilldown-panel">
-          <div class="drilldown-bar">
-            <div class="selector-wrap">
-              <label for="day-select">Day Selector</label>
-              <select id="day-select"></select>
-            </div>
-            <div class="summary-strip drilldown-strip">
-              <div class="chip">
-                <div class="chip-label">Actual High</div>
-                <div class="chip-value" id="day-actual-high">-</div>
-              </div>
-              <div class="chip">
-                <div class="chip-label">Captured Hours</div>
-                <div class="chip-value" id="day-capture-count">-</div>
-              </div>
-              <div class="chip">
-                <div class="chip-label">Correct Captures</div>
-                <div class="chip-value" id="day-correct-count">-</div>
-              </div>
-            </div>
-          </div>
-          <div class="section-head" style="margin-top: 1rem;">
-            <h2>Single-Day Drilldown</h2>
-            <div class="section-note">Inspect the captured forecast and market shape hour by hour when a curve point looks strange.</div>
-          </div>
-          <div class="capture-list" id="day-capture-list"></div>
-          <p class="footer-note">
-            Each capture card keeps the hourly forecast snapshot, market leader, and any partial-failure errors in the same export so you can inspect a day without leaving this file.
-          </p>
-        </section>
-
-        <section class="examples-panel">
-          <div class="section-head">
-            <h2>Example Days</h2>
-            <div class="section-note">Concrete resolved days where the forecast snapped into focus early or only corrected late.</div>
-          </div>
-          <div class="example-grid">
-            <section class="example-card">
-              <div class="example-title">Early Confidence</div>
-              <div id="early-example-table"></div>
-            </section>
-            <section class="example-card">
-              <div class="example-title">Late Confidence</div>
-              <div id="late-example-table"></div>
-            </section>
-          </div>
-          <p class="footer-note">
-            The market status below is taken from the first captured hour that matched the final high. That makes it easier to see whether the forecast arrived before the ladder fully centered on the winner.
-          </p>
-        </section>
-
-        <section class="gaps-panel">
-          <div class="section-head">
-            <h2>Collection Gaps</h2>
-            <div class="section-note">Operational visibility for missing city-hours derived from the same ingested raw captures.</div>
-          </div>
-          <div class="summary-strip" style="justify-content: flex-start;">
-            <div class="chip">
-              <div class="chip-label">Coverage</div>
-              <div class="chip-value" id="gap-coverage-ratio">-</div>
-            </div>
-            <div class="chip">
-              <div class="chip-label">Missing Hours</div>
-              <div class="chip-value" id="gap-missing-hours">-</div>
-            </div>
-            <div class="chip">
-              <div class="chip-label">Gap Dates</div>
-              <div class="chip-value" id="gap-date-count">-</div>
-            </div>
-          </div>
-          <div class="gap-list" id="gap-list"></div>
-          <p class="footer-note">
-            Current local dates are shown as in-progress windows, so a same-day gap means a missing scheduled capture, not a missing future hour.
-          </p>
-        </section>
-      </section>
+      <div id="app" class="report"></div>
     </main>
-
-    <script id="report-data" type="application/json">__REPORT_JSON__</script>
+    <script id="report-data" type="application/json">{report_json}</script>
     <script>
       const report = JSON.parse(document.getElementById("report-data").textContent);
-      const select = document.getElementById("city-select");
-      const timezoneNode = document.getElementById("city-timezone");
-      const studyDayNode = document.getElementById("study-day-count");
-      const hourCountNode = document.getElementById("hour-count");
-      const marketHourNode = document.getElementById("market-hour-count");
-      const resolvedDayNode = document.getElementById("resolved-day-count");
-      const captureWindowNode = document.getElementById("capture-window");
-      const warningNode = document.getElementById("sample-warning");
-      const coverageList = document.getElementById("coverage-list");
-      const daySelect = document.getElementById("day-select");
-      const dayActualNode = document.getElementById("day-actual-high");
-      const dayCaptureCountNode = document.getElementById("day-capture-count");
-      const dayCorrectCountNode = document.getElementById("day-correct-count");
-      const dayCaptureList = document.getElementById("day-capture-list");
-      const overviewTableBody = document.getElementById("overview-table-body");
-      const thresholdGrid = document.getElementById("threshold-grid");
-      const earlyExampleTable = document.getElementById("early-example-table");
-      const lateExampleTable = document.getElementById("late-example-table");
-      const gapCoverageRatioNode = document.getElementById("gap-coverage-ratio");
-      const gapMissingHoursNode = document.getElementById("gap-missing-hours");
-      const gapDateCountNode = document.getElementById("gap-date-count");
-      const gapList = document.getElementById("gap-list");
-      const accuracyChart = document.getElementById("accuracy-chart");
-      const marketChart = document.getElementById("market-chart");
-
-      report.cities.forEach((city, index) => {{
-        const option = document.createElement("option");
-        option.value = String(index);
-        option.textContent = city.place;
-        select.appendChild(option);
-      }});
-
-      function formatHourList(hours) {{
-        return hours.map((hour) => hour.toString().padStart(2, "0")).join(", ");
-      }}
-
-      function formatPriceCents(value) {{
-        if (value === null || value === undefined) {{
-          return "n/a";
-        }}
-        const rounded = Math.round(value * 10) / 10;
-        return Number.isInteger(rounded) ? `${rounded.toFixed(0)}c` : `${rounded.toFixed(1)}c`;
-      }}
-
-      function formatTemperature(value) {{
-        if (value === null || value === undefined) {{
-          return "n/a";
-        }}
-        const rounded = Math.round(value * 10) / 10;
-        return Number.isInteger(rounded) ? `${rounded.toFixed(0)}F` : `${rounded.toFixed(1)}F`;
-      }}
-
-      function formatClock(timestamp) {{
-        if (!timestamp || timestamp.length < 16) {{
-          return timestamp || "n/a";
-        }}
-        return timestamp.slice(11, 16);
-      }}
-
-      function formatHourLabel(hour) {{
-        if (hour === null || hour === undefined) {{
-          return "n/a";
-        }}
-        return `${String(hour).padStart(2, "0")}:00`;
-      }}
-
-      function formatDateWindow(startDate, endDate) {{
-        if (!startDate && !endDate) {{
-          return "n/a";
-        }}
-        if (!startDate || startDate === endDate) {{
-          return endDate || startDate;
-        }}
-        return `${startDate} -> ${endDate}`;
-      }}
-
-      function formatPercent(ratio) {{
-        return `${Math.round(Number(ratio) * 100)}%`;
-      }}
 
       function escapeHtml(value) {{
-        return String(value)
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;")
-          .replaceAll('"', "&quot;")
-          .replaceAll("'", "&#39;");
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
       }}
 
-      function roundHalfUp(value) {{
-        return Math.floor(Number(value) + 0.5);
+      function formatPercent(value) {{
+        return `${{Math.round((Number(value) || 0) * 100)}}%`;
       }}
 
-      function summarizeHours(hours) {{
-        if (!Array.isArray(hours) || hours.length === 0) {{
-          return "none";
-        }}
-        if (hours.length <= 6) {{
-          return hours.map((hour) => hour.toString().padStart(2, "0")).join(", ");
-        }}
-        const head = hours.slice(0, 4).map((hour) => hour.toString().padStart(2, "0")).join(", ");
-        return `${head} +${hours.length - 4} more`;
+      function formatHour(hour) {{
+        const normalized = Number(hour);
+        const suffix = normalized >= 12 ? "p" : "a";
+        const clock = normalized % 12 === 0 ? 12 : normalized % 12;
+        return `${{clock}}${{suffix}}`;
       }}
 
-      function labelContainsTemperature(label, temperatureF) {{
-        const normalized = String(label || "").toLowerCase();
-        const values = String(label || "").match(/-?\\d+/g);
-        if (!values || values.length === 0) {{
-          return false;
+      function formatWindow(city) {{
+        if (!city.capture_window_start_date && !city.capture_window_end_date) {{
+          return "n/a";
         }}
-        const ints = values.map((value) => Number(value));
-        if (normalized.includes("or below")) {{
-          return temperatureF <= ints[0];
+        if (city.capture_window_start_date === city.capture_window_end_date) {{
+          return city.capture_window_start_date;
         }}
-        if (normalized.includes("or above")) {{
-          return temperatureF >= ints[0];
-        }}
-        if (normalized.includes("to") && ints.length >= 2) {{
-          return temperatureF >= ints[0] && temperatureF <= ints[1];
-        }}
-        return false;
+        return `${{city.capture_window_start_date}} -> ${{city.capture_window_end_date}}`;
       }}
 
-      function describeOverviewThreshold(item) {{
-        if (!item) {{
-          return { main: "n/a", sub: "Unavailable" };
+      function compactMarketLabel(label) {{
+        if (!label) {{
+          return "n/a";
         }}
-        if (item.status === "unresolved") {{
-          return { main: "Pending", sub: "No finalized days" };
-        }}
-        if (item.status === "not_reached") {{
-          if (item.best_accuracy_ratio === null || item.best_accuracy_ratio === undefined) {{
-            return { main: "Not yet", sub: "No resolved points" };
-          }}
-          return {
-            main: "Not yet",
-            sub: `Best ${formatPercent(item.best_accuracy_ratio)} at ${formatHourLabel(item.best_resolved_hour)}`,
-          };
-        }}
-
-        const notes = [];
-        if (item.thin_sample) {{
-          notes.push("Thin");
-        }}
-        if (item.market_summary && item.market_summary.valid_day_count > 0) {{
-          notes.push(`${formatPercent(item.market_summary.leader_match_ratio)} market`);
-        }}
-        return {
-          main: formatHourLabel(item.local_hour),
-          sub: notes.join(" · ") || `Accuracy ${formatPercent(item.accuracy_ratio)}`,
-        };
+        return String(label)
+          .replace(/°/g, "")
+          .replace(/F/g, "")
+          .replace(/\\s+to\\s+/g, "-")
+          .replace(/\\s+or below/g, "<=")
+          .replace(/\\s+or above/g, ">=")
+          .replace(/\\s+/g, " ")
+          .trim();
       }}
 
-      function renderThresholdOverview(selectedIndex) {{
-        const cityRows = report.cities.map((city, index) => {{
-          const thresholdMap = new Map(
-            (Array.isArray(city.threshold_summary) ? city.threshold_summary : []).map((item) => [item.threshold_label, item])
-          );
-          const gapCoverage = city.gap_summary ? formatPercent(city.gap_summary.coverage_ratio) : "n/a";
-          const thresholdCells = ["60%", "70%", "80%", "90%"].map((label) => {{
-            const summary = describeOverviewThreshold(thresholdMap.get(label));
-            const mainClass = summary.main === "Pending" || summary.main === "Not yet" ? "overview-main status" : "overview-main";
-            return `
-              <td>
-                <div class="${mainClass}">${escapeHtml(summary.main)}</div>
-                <div class="overview-sub">${escapeHtml(summary.sub)}</div>
-              </td>
-            `;
-          }}).join("");
-          return `
-            <tr class="overview-row${index === selectedIndex ? " is-active" : ""}">
-              <td>
-                <button class="overview-city-button" data-city-index="${index}">${escapeHtml(city.place)}</button>
-                <div class="overview-sub">${city.capture_day_count} captured days · ${city.resolved_actual_day_count} resolved</div>
-              </td>
-              ${thresholdCells}
-              <td>
-                <div class="overview-main">${escapeHtml(gapCoverage)}</div>
-                <div class="overview-sub">${city.gap_summary ? `${city.gap_summary.missing_hour_count} missing hours` : "No gap data"}</div>
-              </td>
-            </tr>
-          `;
-        }}).join("");
-        const missingRows = (Array.isArray(report.missing_supported_places) ? report.missing_supported_places : []).map((place) => `
-          <tr class="overview-row is-missing">
-            <td>
-              <div class="overview-city-label">${escapeHtml(place)}</div>
-              <div class="overview-sub">No captures yet</div>
-            </td>
-            <td>
-              <div class="overview-main status">No data</div>
-              <div class="overview-sub">Awaiting first capture</div>
-            </td>
-            <td>
-              <div class="overview-main status">No data</div>
-              <div class="overview-sub">Awaiting first capture</div>
-            </td>
-            <td>
-              <div class="overview-main status">No data</div>
-              <div class="overview-sub">Awaiting first capture</div>
-            </td>
-            <td>
-              <div class="overview-main status">No data</div>
-              <div class="overview-sub">Awaiting first capture</div>
-            </td>
-            <td>
-              <div class="overview-main status">n/a</div>
-              <div class="overview-sub">Not started</div>
-            </td>
-          </tr>
-        `).join("");
-        overviewTableBody.innerHTML = cityRows + missingRows;
+      function formatPrice(value) {{
+        if (value === null || value === undefined) {{
+          return "n/a";
+        }}
+        return `${{Math.round(Number(value))}}c`;
       }}
 
-      function renderCity(index) {{
-        const city = report.cities[index];
-        const marketPoints = Array.isArray(city.market_points) ? city.market_points : [];
-        const dayDrilldowns = Array.isArray(city.day_drilldowns) ? city.day_drilldowns : [];
-        const missingSupportedPlaces = Array.isArray(report.missing_supported_places)
-          ? report.missing_supported_places
-          : [];
-        timezoneNode.textContent = city.timezone;
-        studyDayNode.textContent = String(city.study_day_count);
-        hourCountNode.textContent = String(city.points.length);
-        marketHourNode.textContent = String(marketPoints.length);
-        resolvedDayNode.textContent = `${city.resolved_actual_day_count}/${city.capture_day_count}`;
-        captureWindowNode.textContent = formatDateWindow(
-          city.capture_window_start_date,
-          city.capture_window_end_date
-        );
-
-        const warnings = [];
-        if (missingSupportedPlaces.length > 0) {{
-          warnings.push(`No captures yet for configured cities ${missingSupportedPlaces.join(", ")}.`);
-        }}
-        if (city.points.length > 0 && city.points.every((point) => point.valid_day_count === 0)) {{
-          warnings.push("No finalized forecast days exist yet for these captured hours.");
-        }}
-        if (marketPoints.length > 0 && marketPoints.every((point) => point.valid_day_count === 0)) {{
-          warnings.push("No finalized market-opportunity days exist yet for these captured hours.");
-        }}
-        if (city.thin_sample_hours.length > 0) {{
-          warnings.push(
-            `Thin sample on forecast hours ${formatHourList(city.thin_sample_hours)} with fewer than ${report.min_valid_sample} valid study days.`
-          );
-        }}
-        if (city.market_thin_sample_hours.length > 0) {{
-          warnings.push(
-            `Thin sample on market hours ${formatHourList(city.market_thin_sample_hours)} with fewer than ${report.min_valid_sample} valid market days.`
-          );
-        }}
-
-        if (warnings.length > 0) {{
-          warningNode.dataset.visible = "true";
-          warningNode.textContent = warnings.join(" ");
-        }} else {{
-          warningNode.dataset.visible = "false";
-          warningNode.textContent = "";
-        }}
-
-        renderThresholdOverview(index);
-        renderAccuracyChart(city);
-        renderMarketChart(city);
-        renderCoverage(city);
-        renderThresholdSummary(city);
-        daySelect.innerHTML = "";
-        dayDrilldowns.forEach((day, dayIndex) => {{
-          const option = document.createElement("option");
-          option.value = String(dayIndex);
-          option.textContent = day.local_date;
-          daySelect.appendChild(option);
-        }});
-        daySelect.disabled = dayDrilldowns.length === 0;
-        renderDayDrilldown(city, dayDrilldowns.length === 0 ? -1 : 0);
-        renderExampleDays(city);
-        renderGapSummary(city);
+      function buildPath(points, xForIndex, yForRatio) {{
+        return points
+          .map((point, index) => `${{index === 0 ? "M" : "L"}}${{xForIndex(index)}},${{yForRatio(point.accuracy_ratio)}}`)
+          .join(" ");
       }}
 
-      function renderAccuracyChart(city) {{
-        const points = city.points;
-        const resolvedPoints = points.filter((point) => point.valid_day_count > 0);
-        const width = 760;
-        const height = 320;
-        const margin = {{ top: 18, right: 24, bottom: 44, left: 52 }};
-        const plotWidth = width - margin.left - margin.right;
-        const plotHeight = height - margin.top - margin.bottom;
-        if (points.length === 0 || resolvedPoints.length === 0) {{
-          accuracyChart.innerHTML = `
-            <rect x="0" y="0" width="${width}" height="${height}" rx="26" fill="rgba(255,255,255,0.16)"></rect>
-            <text x="${width / 2}" y="${height / 2 - 6}" text-anchor="middle" fill="rgba(31,42,46,0.7)" font-size="20" font-family="Iowan Old Style, Palatino Linotype, serif">
-              No finalized accuracy days yet
-            </text>
-            <text x="${width / 2}" y="${height / 2 + 20}" text-anchor="middle" fill="rgba(31,42,46,0.55)" font-size="13">
-              Captures exist, but every city-day is still missing a resolved observed high for this hour.
-            </text>
-          `;
-          return;
+      function renderCityChart(city) {{
+        const points = Array.isArray(city.points) ? city.points : [];
+        if (!points.length) {{
+          return `<div class="empty">No hourly accuracy points are available for this city yet.</div>`;
         }}
-        const minHour = Math.min(...points.map((point) => point.local_hour));
-        const maxHour = Math.max(...points.map((point) => point.local_hour));
-        const xForHour = (hour) =>
-          margin.left + ((hour - minHour) / Math.max(1, maxHour - minHour)) * plotWidth;
-        const yForRatio = (ratio) => margin.top + (1 - ratio) * plotHeight;
 
-        const gridLines = [0, 0.5, 1].map((ratio) => {{
-          const y = yForRatio(ratio);
-          return `
-            <line x1="${margin.left}" y1="${y}" x2="${width - margin.right}" y2="${y}"
-                  stroke="rgba(18, 61, 77, 0.12)" stroke-dasharray="4 6" />
-            <text x="${margin.left - 12}" y="${y + 4}" text-anchor="end" fill="rgba(31,42,46,0.6)" font-size="12">
-              ${Math.round(ratio * 100)}%
-            </text>
-          `;
-        }}).join("");
+        const columnWidth = 52;
+        const margin = {{ top: 26, right: 26, bottom: 118, left: 68 }};
+        const plotWidth = Math.max(780, (points.length - 1) * columnWidth);
+        const plotHeight = 190;
+        const width = margin.left + plotWidth + margin.right;
+        const height = margin.top + plotHeight + margin.bottom;
+        const xForIndex = (index) =>
+          points.length === 1
+            ? margin.left + (plotWidth / 2)
+            : margin.left + ((plotWidth / (points.length - 1)) * index);
+        const yForRatio = (ratio) => margin.top + ((1 - Number(ratio || 0)) * plotHeight);
+        const gridRatios = [0, 0.25, 0.5, 0.75, 1];
+        const linePath = buildPath(points, xForIndex, yForRatio);
+        const areaPath = `${{linePath}} L${{xForIndex(points.length - 1)}},${{margin.top + plotHeight}} L${{xForIndex(0)}},${{margin.top + plotHeight}} Z`;
 
-        const xLabels = points.map((point) => {{
-          const x = xForHour(point.local_hour);
-          return `
-            <text x="${x}" y="${height - 14}" text-anchor="middle" fill="rgba(31,42,46,0.65)" font-size="12">
-              ${String(point.local_hour).padStart(2, "0")}
-            </text>
-          `;
-        }}).join("");
-
-        const path = resolvedPoints.map((point, index) => {{
-          const x = xForHour(point.local_hour);
-          const y = yForRatio(point.accuracy_ratio);
-          return `${index === 0 ? "M" : "L"} ${x} ${y}`;
-        }}).join(" ");
-
-        const pointNodes = resolvedPoints.map((point) => {{
-          const x = xForHour(point.local_hour);
-          const y = yForRatio(point.accuracy_ratio);
-          const thin = point.valid_day_count < report.min_valid_sample;
-          return `
-            <g>
-              <circle cx="${x}" cy="${y}" r="8" fill="${thin ? "var(--gold)" : "var(--storm)"}" stroke="rgba(255,255,255,0.9)" stroke-width="3" />
-              <text x="${x}" y="${y - 14}" text-anchor="middle" fill="var(--storm-deep)" font-size="12" font-weight="700">
-                ${Math.round(point.accuracy_ratio * 100)}%
-              </text>
-            </g>
-          `;
-        }}).join("");
-
-        const unresolvedNodes = points
-          .filter((point) => point.valid_day_count === 0)
-          .map((point) => {{
-            const x = xForHour(point.local_hour);
-            const y = margin.top + plotHeight - 12;
-            return `
-              <g>
-                <circle cx="${x}" cy="${y}" r="7" fill="rgba(255,255,255,0.9)" stroke="var(--gold)" stroke-width="3" />
-                <text x="${x}" y="${y - 14}" text-anchor="middle" fill="rgba(31,42,46,0.7)" font-size="11" font-weight="700">
-                  n/a
-                </text>
-              </g>
-            `;
-          }}).join("");
-
-        accuracyChart.innerHTML = `
-          <rect x="0" y="0" width="${width}" height="${height}" rx="26" fill="rgba(255,255,255,0.16)"></rect>
-          ${gridLines}
-          <path d="${path}" fill="none" stroke="var(--storm)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
-          ${pointNodes}
-          ${unresolvedNodes}
-          ${xLabels}
-          <text x="${width - margin.right}" y="${margin.top + 4}" text-anchor="end" fill="rgba(31,42,46,0.55)" font-size="12">
-            Higher is better
-          </text>
+        return `
+          <div class="chart-scroll">
+            <div class="chart-shell" style="width:${{width}}px">
+              <svg viewBox="0 0 ${{width}} ${{height}}" role="img" aria-label="${{escapeHtml(city.place)}} hourly accuracy chart">
+                <defs>
+                  <linearGradient id="area-${{escapeHtml(city.place).replace(/[^a-zA-Z0-9]/g, "")}}" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="rgba(28, 110, 125, 0.28)"></stop>
+                    <stop offset="100%" stop-color="rgba(28, 110, 125, 0.02)"></stop>
+                  </linearGradient>
+                </defs>
+                ${{gridRatios.map((ratio) => `
+                  <g>
+                    <line
+                      x1="${{margin.left}}"
+                      y1="${{yForRatio(ratio)}}"
+                      x2="${{margin.left + plotWidth}}"
+                      y2="${{yForRatio(ratio)}}"
+                      stroke="rgba(19, 36, 43, 0.12)"
+                      stroke-dasharray="${{ratio === 0 ? "" : "4 6"}}"
+                    />
+                    <text
+                      x="${{margin.left - 14}}"
+                      y="${{yForRatio(ratio) + 4}}"
+                      text-anchor="end"
+                      fill="rgba(19, 36, 43, 0.62)"
+                      font-size="12"
+                      font-family="Avenir Next, sans-serif"
+                    >${{Math.round(ratio * 100)}}%</text>
+                  </g>
+                `).join("")}}
+                <path d="${{areaPath}}" fill="url(#area-${{escapeHtml(city.place).replace(/[^a-zA-Z0-9]/g, "")}})"></path>
+                <path
+                  d="${{linePath}}"
+                  fill="none"
+                  stroke="var(--line)"
+                  stroke-width="4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></path>
+                ${{points.map((point, index) => `
+                  <g>
+                    <line
+                      x1="${{xForIndex(index)}}"
+                      y1="${{margin.top}}"
+                      x2="${{xForIndex(index)}}"
+                      y2="${{margin.top + plotHeight}}"
+                      stroke="rgba(19, 36, 43, 0.06)"
+                    />
+                    <circle
+                      cx="${{xForIndex(index)}}"
+                      cy="${{yForRatio(point.accuracy_ratio)}}"
+                      r="${{point.thin_sample ? 5 : 6}}"
+                      fill="${{point.thin_sample ? "var(--thin)" : "var(--accent)"}}"
+                      stroke="rgba(255,255,255,0.95)"
+                      stroke-width="2.5"
+                    ></circle>
+                    <text
+                      x="${{xForIndex(index)}}"
+                      y="${{margin.top + plotHeight + 22}}"
+                      text-anchor="middle"
+                      fill="var(--ink)"
+                      font-size="12"
+                      font-weight="700"
+                      font-family="Avenir Next, sans-serif"
+                    >${{escapeHtml(formatHour(point.local_hour))}}</text>
+                    <text
+                      x="${{xForIndex(index)}}"
+                      y="${{margin.top + plotHeight + 41}}"
+                      text-anchor="middle"
+                      fill="rgba(19, 36, 43, 0.7)"
+                      font-size="11"
+                      font-family="Avenir Next, sans-serif"
+                    >${{escapeHtml(compactMarketLabel(point.winning_market_label))}}</text>
+                    <text
+                      x="${{xForIndex(index)}}"
+                      y="${{margin.top + plotHeight + 59}}"
+                      text-anchor="middle"
+                      fill="var(--accent)"
+                      font-size="11"
+                      font-weight="700"
+                      font-family="Avenir Next, sans-serif"
+                    >${{escapeHtml(formatPrice(point.avg_winning_bucket_last_price_cents))}}</text>
+                    <text
+                      x="${{xForIndex(index)}}"
+                      y="${{margin.top + plotHeight + 76}}"
+                      text-anchor="middle"
+                      fill="rgba(19, 36, 43, 0.55)"
+                      font-size="10"
+                      font-family="Avenir Next, sans-serif"
+                    >${{point.correct_day_count}}/${{point.valid_day_count}}</text>
+                  </g>
+                `).join("")}}
+              </svg>
+            </div>
+          </div>
         `;
       }}
 
-      function renderMarketChart(city) {{
-        const points = Array.isArray(city.market_points) ? city.market_points : [];
-        const resolvedPoints = points.filter((point) => point.valid_day_count > 0);
-        const width = 760;
-        const height = 320;
-        const margin = {{ top: 18, right: 24, bottom: 44, left: 52 }};
-        const plotWidth = width - margin.left - margin.right;
-        const plotHeight = height - margin.top - margin.bottom;
-
-        if (points.length === 0) {{
-          marketChart.innerHTML = `
-            <rect x="0" y="0" width="${width}" height="${height}" rx="26" fill="rgba(255,255,255,0.16)"></rect>
-            <text x="${width / 2}" y="${height / 2 - 6}" text-anchor="middle" fill="rgba(31,42,46,0.7)" font-size="20" font-family="Iowan Old Style, Palatino Linotype, serif">
-              Market metrics not loaded
-            </text>
-            <text x="${width / 2}" y="${height / 2 + 20}" text-anchor="middle" fill="rgba(31,42,46,0.55)" font-size="13">
-              Run compute-market-opportunity-metrics to add the ladder timing overlay.
-            </text>
-          `;
-          return;
-        }}
-        if (resolvedPoints.length === 0) {{
-          marketChart.innerHTML = `
-            <rect x="0" y="0" width="${width}" height="${height}" rx="26" fill="rgba(255,255,255,0.16)"></rect>
-            <text x="${width / 2}" y="${height / 2 - 6}" text-anchor="middle" fill="rgba(31,42,46,0.7)" font-size="20" font-family="Iowan Old Style, Palatino Linotype, serif">
-              No finalized market days yet
-            </text>
-            <text x="${width / 2}" y="${height / 2 + 20}" text-anchor="middle" fill="rgba(31,42,46,0.55)" font-size="13">
-              Captures exist, but no city-day has both a resolved actual high and a usable winning bucket here.
-            </text>
-          `;
-          return;
-        }}
-
-        const minHour = Math.min(...points.map((point) => point.local_hour));
-        const maxHour = Math.max(...points.map((point) => point.local_hour));
-        const xForHour = (hour) =>
-          margin.left + ((hour - minHour) / Math.max(1, maxHour - minHour)) * plotWidth;
-        const yForRatio = (ratio) => margin.top + (1 - ratio) * plotHeight;
-        const barWidth = Math.max(20, Math.min(54, plotWidth / Math.max(points.length * 1.9, 6)));
-
-        const gridLines = [0, 0.5, 1].map((ratio) => {{
-          const y = yForRatio(ratio);
-          return `
-            <line x1="${margin.left}" y1="${y}" x2="${width - margin.right}" y2="${y}"
-                  stroke="rgba(198, 107, 45, 0.16)" stroke-dasharray="4 6" />
-            <text x="${margin.left - 12}" y="${y + 4}" text-anchor="end" fill="rgba(31,42,46,0.6)" font-size="12">
-              ${Math.round(ratio * 100)}%
-            </text>
-          `;
-        }}).join("");
-
-        const xLabels = points.map((point) => {{
-          const x = xForHour(point.local_hour);
-          return `
-            <text x="${x}" y="${height - 14}" text-anchor="middle" fill="rgba(31,42,46,0.65)" font-size="12">
-              ${String(point.local_hour).padStart(2, "0")}
-            </text>
-          `;
-        }}).join("");
-
-        const priceBars = resolvedPoints.map((point) => {{
-          if (point.avg_winning_bucket_last_price_cents === null || point.avg_winning_bucket_last_price_cents === undefined) {{
-            return "";
-          }}
-          const x = xForHour(point.local_hour);
-          const barHeight = (point.avg_winning_bucket_last_price_cents / 100) * plotHeight;
-          const y = margin.top + plotHeight - barHeight;
-          const labelY = Math.max(margin.top + 14, y - 8);
-          return `
-            <g>
-              <rect
-                x="${x - barWidth / 2}"
-                y="${y}"
-                width="${barWidth}"
-                height="${barHeight}"
-                rx="12"
-                fill="rgba(231, 179, 94, 0.78)"
-              ></rect>
-              <text x="${x}" y="${labelY}" text-anchor="middle" fill="rgba(31,42,46,0.72)" font-size="12" font-weight="700">
-                ${formatPriceCents(point.avg_winning_bucket_last_price_cents)}
-              </text>
-            </g>
-          `;
-        }}).join("");
-
-        const path = resolvedPoints.map((point, index) => {{
-          const x = xForHour(point.local_hour);
-          const y = yForRatio(point.leader_match_ratio);
-          return `${index === 0 ? "M" : "L"} ${x} ${y}`;
-        }}).join(" ");
-
-        const pointNodes = resolvedPoints.map((point) => {{
-          const x = xForHour(point.local_hour);
-          const y = yForRatio(point.leader_match_ratio);
-          const thin = point.valid_day_count < report.min_valid_sample;
-          return `
-            <g>
-              <circle cx="${x}" cy="${y}" r="8" fill="${thin ? "var(--gold)" : "var(--sun)"}" stroke="rgba(255,255,255,0.9)" stroke-width="3" />
-              <text x="${x}" y="${y - 14}" text-anchor="middle" fill="rgba(31,42,46,0.78)" font-size="12" font-weight="700">
-                ${Math.round(point.leader_match_ratio * 100)}%
-              </text>
-            </g>
-          `;
-        }}).join("");
-
-        const unresolvedNodes = points
-          .filter((point) => point.valid_day_count === 0)
-          .map((point) => {{
-            const x = xForHour(point.local_hour);
-            const y = margin.top + plotHeight - 12;
-            return `
-              <g>
-                <circle cx="${x}" cy="${y}" r="7" fill="rgba(255,255,255,0.9)" stroke="var(--gold)" stroke-width="3" />
-                <text x="${x}" y="${y - 14}" text-anchor="middle" fill="rgba(31,42,46,0.7)" font-size="11" font-weight="700">
-                  n/a
-                </text>
-              </g>
-            `;
-          }}).join("");
-
-        marketChart.innerHTML = `
-          <rect x="0" y="0" width="${width}" height="${height}" rx="26" fill="rgba(255,255,255,0.16)"></rect>
-          ${gridLines}
-          ${priceBars}
-          <path d="${path}" fill="none" stroke="var(--sun)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
-          ${pointNodes}
-          ${unresolvedNodes}
-          ${xLabels}
-          <text x="${width - margin.right}" y="${margin.top + 4}" text-anchor="end" fill="rgba(31,42,46,0.55)" font-size="12">
-            Line = winning bucket already leading
-          </text>
+      function renderCityCard(city) {{
+        return `
+          <section class="city-card">
+            <div class="city-head">
+              <div>
+                <h2 class="city-name">${{escapeHtml(city.place)}}</h2>
+                <div class="city-subtitle">
+                  ${{escapeHtml(formatWindow(city))}} · Peak accuracy ${{escapeHtml(formatPercent(city.best_accuracy_ratio))}} at
+                  ${{escapeHtml(formatHour(city.best_hour))}}
+                </div>
+              </div>
+              <div class="stat-strip">
+                <div class="stat">
+                  <div class="stat-label">Resolved Days</div>
+                  <div class="stat-value">${{city.resolved_actual_day_count}}/${{city.capture_day_count}}</div>
+                </div>
+                <div class="stat">
+                  <div class="stat-label">Timezone</div>
+                  <div class="stat-value">${{escapeHtml(city.timezone)}}</div>
+                </div>
+                <div class="stat">
+                  <div class="stat-label">Coverage</div>
+                  <div class="stat-value">${{Array.isArray(city.points) ? city.points.length : 0}} hours</div>
+                </div>
+              </div>
+            </div>
+            <div class="chart-copy">
+              Accuracy is the percentage of resolved days where that hour's forecasted daily high matched the final
+              observed high. Under each hour: winning market label, average winner price, and correct-days count.
+            </div>
+            <div class="chart-wrap">${{renderCityChart(city)}}</div>
+            <div class="chart-note">
+              <span class="legend-pill"><span class="legend-dot" style="background:var(--accent)"></span>Hourly accuracy</span>
+              <span class="legend-pill"><span class="legend-dot" style="background:var(--thin)"></span>Thin sample hour</span>
+            </div>
+          </section>
         `;
       }}
 
-      function renderCoverage(city) {{
-        coverageList.innerHTML = "";
-        const marketPointByHour = new Map(
-          (Array.isArray(city.market_points) ? city.market_points : []).map((point) => [point.local_hour, point])
-        );
-        city.points.forEach((point) => {{
-          const total = point.valid_day_count + point.missing_day_count + point.excluded_day_count;
-          const safeTotal = Math.max(1, total);
-          const marketPoint = marketPointByHour.get(point.local_hour);
-          const marketMeta = marketPoint
-            ? `
-              <div class="market-meta">
-                <div>Market lead ${marketPoint.valid_day_count > 0 ? `${marketPoint.leader_match_day_count}/${marketPoint.valid_day_count} days` : "Unresolved"}</div>
-                <div>Avg winner ${formatPriceCents(marketPoint.avg_winning_bucket_last_price_cents)}</div>
-              </div>
-            `
-            : `
-              <div class="market-meta market-meta-empty">
-                <div>Market metrics unavailable for this hour.</div>
-              </div>
-            `;
-          const card = document.createElement("article");
-          card.className = "coverage-card";
-          card.innerHTML = `
-            <div class="coverage-top">
-              <div class="coverage-hour">${String(point.local_hour).padStart(2, "0")}:00</div>
-              <div class="coverage-ratio">${point.valid_day_count > 0 ? `${point.correct_day_count}/${point.valid_day_count} correct` : "Unresolved"}</div>
-            </div>
-            <div class="stack">
-              <div>
-                <div class="stack-bar"><div class="stack-fill valid" style="width:${(point.valid_day_count / safeTotal) * 100}%"></div></div>
-              </div>
-              <div>
-                <div class="stack-bar"><div class="stack-fill missing" style="width:${(point.missing_day_count / safeTotal) * 100}%"></div></div>
-              </div>
-              <div>
-                <div class="stack-bar"><div class="stack-fill excluded" style="width:${(point.excluded_day_count / safeTotal) * 100}%"></div></div>
-              </div>
-            </div>
-            <div class="stack-meta">
-              <div>Valid ${point.valid_day_count}</div>
-              <div>Missing ${point.missing_day_count}</div>
-              <div>Excluded ${point.excluded_day_count}</div>
-            </div>
-            ${marketMeta}
-          `;
-          coverageList.appendChild(card);
-        }});
-      }}
-
-      function renderThresholdSummary(city) {{
-        const thresholdSummary = Array.isArray(city.threshold_summary) ? city.threshold_summary : [];
-        if (thresholdSummary.length === 0) {{
-          thresholdGrid.innerHTML = `<div class="empty-state">Threshold summary is unavailable for this city.</div>`;
+      function renderReport() {{
+        const app = document.getElementById("app");
+        const cities = Array.isArray(report.cities) ? report.cities : [];
+        if (!cities.length) {{
+          app.innerHTML = `<section class="city-card"><div class="empty">No study cities are available in this report.</div></section>`;
           return;
         }}
-
-        thresholdGrid.innerHTML = thresholdSummary.map((item) => {{
-          if (item.status === "unresolved") {{
-            return `
-              <article class="threshold-card">
-                <div class="threshold-top">
-                  <div class="threshold-target">${escapeHtml(item.threshold_label)}</div>
-                  <div class="threshold-hour">No finalized days</div>
-                </div>
-                <div class="threshold-note">
-                  Captures exist, but no city-day has a resolved observed high yet, so this trust threshold cannot be timed.
-                </div>
-              </article>
-            `;
-          }}
-
-          if (item.status === "not_reached") {{
-            const bestNote = item.best_accuracy_ratio === null || item.best_accuracy_ratio === undefined
-              ? "No resolved forecast points are available for this city."
-              : `Best resolved point was ${formatPercent(item.best_accuracy_ratio)} at ${formatHourLabel(item.best_resolved_hour)} (${item.best_correct_day_count}/${item.best_valid_day_count} days).`;
-            return `
-              <article class="threshold-card">
-                <div class="threshold-top">
-                  <div class="threshold-target">${escapeHtml(item.threshold_label)}</div>
-                  <div class="threshold-hour">Not reached</div>
-                </div>
-                <div class="threshold-note">${bestNote}</div>
-              </article>
-            `;
-          }}
-
-          const marketSummary = item.market_summary;
-          let marketLine = "Market summary unavailable at this hour.";
-          if (marketSummary) {{
-            marketLine = marketSummary.valid_day_count > 0
-              ? `${formatPercent(marketSummary.leader_match_ratio)} winner-leading rate · Avg winner ${formatPriceCents(marketSummary.avg_winning_bucket_last_price_cents)}`
-              : "Market metrics remain unresolved at this hour.";
-          }}
-          const pillNodes = [];
-          pillNodes.push(
-            item.thin_sample
-              ? '<span class="threshold-pill">Thin sample</span>'
-              : '<span class="threshold-pill stable">Sample ok</span>'
-          );
-          if (marketSummary && marketSummary.valid_day_count > 0) {{
-            pillNodes.push(`<span class="threshold-pill market">${formatPercent(marketSummary.leader_match_ratio)} market</span>`);
-          }}
-
-          return `
-            <article class="threshold-card">
-              <div class="threshold-top">
-                <div class="threshold-target">${escapeHtml(item.threshold_label)}</div>
-                <div class="threshold-hour">${formatHourLabel(item.local_hour)}</div>
-              </div>
-              <div class="threshold-pills">${pillNodes.join("")}</div>
-              <div class="threshold-metric">Accuracy ${formatPercent(item.accuracy_ratio)} · ${item.correct_day_count}/${item.valid_day_count} days</div>
-              <div class="threshold-note">${marketLine}</div>
-            </article>
-          `;
-        }}).join("");
+        app.innerHTML = cities.map(renderCityCard).join("");
       }}
 
-      function renderDayDrilldown(city, dayIndex) {{
-        const dayDrilldowns = Array.isArray(city.day_drilldowns) ? city.day_drilldowns : [];
-        const day = dayDrilldowns[dayIndex] || dayDrilldowns[0];
-
-        if (!day) {{
-          dayActualNode.textContent = "-";
-          dayCaptureCountNode.textContent = "0";
-          dayCorrectCountNode.textContent = "0";
-          dayCaptureList.innerHTML = `
-            <div class="empty-state">
-              No captured city-days are available for drilldown yet.
-            </div>
-          `;
-          return;
-        }}
-
-        daySelect.value = String(dayDrilldowns.indexOf(day));
-        dayActualNode.textContent = formatTemperature(day.actual_high_temperature_f);
-        dayCaptureCountNode.textContent = String(day.capture_count);
-        dayCorrectCountNode.textContent = String(day.correct_capture_count);
-
-        const captureCards = day.captures.map((capture) => {{
-          const matchBadge = capture.forecast_matches_actual === true
-            ? '<span class="badge match">Forecast Matched</span>'
-            : capture.forecast_matches_actual === false
-              ? '<span class="badge miss">Forecast Diverged</span>'
-              : '<span class="badge pending">Actual Pending</span>';
-          const errorBadges = (capture.error_sources || []).map((source) =>
-            `<span class="badge error">${escapeHtml(source)} issue</span>`
-          ).join("");
-          const forecastItems = capture.forecast_periods.length > 0
-            ? capture.forecast_periods.map((period) => `
-                <li>
-                  <strong>${escapeHtml(formatClock(period.start))}-${escapeHtml(formatClock(period.end))}</strong>
-                  ${period.temperature_f === null || period.temperature_f === undefined ? "" : ` · ${escapeHtml(formatTemperature(period.temperature_f))}`}
-                  ${period.summary ? ` · ${escapeHtml(period.summary)}` : ""}
-                </li>
-              `).join("")
-            : "<li>No forecast periods captured.</li>";
-          const marketItems = capture.market_rows.length > 0
-            ? capture.market_rows.map((row) => `
-                <li>
-                  <strong>${escapeHtml(row.label)}</strong>
-                  ${row.last_price_cents === null || row.last_price_cents === undefined ? "" : ` · ${escapeHtml(formatPriceCents(row.last_price_cents))}`}
-                </li>
-              `).join("")
-            : "<li>No market ladder rows captured.</li>";
-          const errorItems = (capture.error_messages || []).length > 0
-            ? `<div class="meta-value">${(capture.error_messages || []).map((message) => escapeHtml(message)).join("<br>")}</div>`
-            : '<div class="meta-value">None</div>';
-
-          return `
-            <article class="capture-card">
-              <div class="capture-top">
-                <div>
-                  <div class="capture-hour">${String(capture.local_hour).padStart(2, "0")}:00</div>
-                  <div class="capture-stamp">
-                    Local ${escapeHtml(formatClock(capture.local_timestamp))} · Captured ${escapeHtml(capture.captured_at_utc)}
-                  </div>
-                </div>
-                <div class="capture-badges">
-                  ${matchBadge}
-                  ${errorBadges}
-                </div>
-              </div>
-              <div class="capture-meta">
-                <div class="meta-cell">
-                  <div class="meta-label">Forecast High</div>
-                  <div class="meta-value">${escapeHtml(formatTemperature(capture.forecast_high_temperature_f))}</div>
-                </div>
-                <div class="meta-cell">
-                  <div class="meta-label">Market Leader</div>
-                  <div class="meta-value">${capture.market_leader_label ? escapeHtml(capture.market_leader_label) : "n/a"}</div>
-                </div>
-                <div class="meta-cell">
-                  <div class="meta-label">Leader Price</div>
-                  <div class="meta-value">${escapeHtml(formatPriceCents(capture.market_leader_last_price_cents))}</div>
-                </div>
-                <div class="meta-cell">
-                  <div class="meta-label">Errors</div>
-                  ${errorItems}
-                </div>
-              </div>
-              <details class="capture-details">
-                <summary>
-                  Forecast periods ${capture.forecast_period_count} · Market rows ${capture.market_row_count}
-                </summary>
-                <div class="detail-columns">
-                  <div class="detail-block">
-                    <div class="detail-title">Forecast Snapshot</div>
-                    <ul class="detail-list">${forecastItems}</ul>
-                  </div>
-                  <div class="detail-block">
-                    <div class="detail-title">Market Ladder</div>
-                    <ul class="detail-list">${marketItems}</ul>
-                  </div>
-                </div>
-              </details>
-            </article>
-          `;
-        }}).join("");
-
-        dayCaptureList.innerHTML = captureCards;
-      }}
-
-      function buildExampleRows(city) {{
-        const dayDrilldowns = Array.isArray(city.day_drilldowns) ? city.day_drilldowns : [];
-        return dayDrilldowns
-          .filter((day) => day.actual_high_temperature_f !== null && day.actual_high_temperature_f !== undefined)
-          .map((day) => {{
-            const firstCorrectCapture = day.captures.find((capture) => capture.forecast_matches_actual === true) || null;
-            const roundedActual = roundHalfUp(day.actual_high_temperature_f);
-            const marketAligned = firstCorrectCapture
-              ? labelContainsTemperature(firstCorrectCapture.market_leader_label, roundedActual)
-              : false;
-            return {{
-              local_date: day.local_date,
-              actual_high_temperature_f: day.actual_high_temperature_f,
-              capture_count: day.capture_count,
-              correct_capture_count: day.correct_capture_count,
-              first_correct_hour: firstCorrectCapture ? firstCorrectCapture.local_hour : null,
-              first_correct_label: firstCorrectCapture ? firstCorrectCapture.market_leader_label : null,
-              first_correct_price: firstCorrectCapture ? firstCorrectCapture.market_leader_last_price_cents : null,
-              market_aligned: firstCorrectCapture ? marketAligned : null,
-            }};
-          }});
-      }}
-
-      function renderExampleTable(node, rows, emptyMessage) {{
-        if (rows.length === 0) {{
-          node.innerHTML = `<div class="empty-state">${escapeHtml(emptyMessage)}</div>`;
-          return;
-        }}
-
-        node.innerHTML = `
-          <table class="example-table">
-            <thead>
-              <tr>
-                <th>Day</th>
-                <th>First Correct</th>
-                <th>Market</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows.map((row) => {{
-                const hourLabel = row.first_correct_hour === null
-                  ? "Never"
-                  : `${String(row.first_correct_hour).padStart(2, "0")}:00`;
-                const pillClass = row.market_aligned === true ? "aligned" : row.market_aligned === false ? "lagging" : "none";
-                const pillLabel = row.market_aligned === true ? "Winner Leading" : row.market_aligned === false ? "Leader Elsewhere" : "No Match";
-                const marketLabel = row.first_correct_label
-                  ? `${escapeHtml(row.first_correct_label)}${row.first_correct_price === null || row.first_correct_price === undefined ? "" : ` · ${escapeHtml(formatPriceCents(row.first_correct_price))}`}`
-                  : "No correct capture";
-                return `
-                  <tr>
-                    <td>
-                      <div class="example-main">${escapeHtml(row.local_date)}</div>
-                      <div class="example-sub">Actual ${escapeHtml(formatTemperature(row.actual_high_temperature_f))} · ${row.correct_capture_count}/${row.capture_count} correct</div>
-                    </td>
-                    <td>
-                      <div class="example-main">${escapeHtml(hourLabel)}</div>
-                      <div class="example-sub">${row.first_correct_hour === null ? "Forecast never matched final high." : "First captured hour that matched the final high."}</div>
-                    </td>
-                    <td>
-                      <div><span class="signal-pill ${pillClass}">${pillLabel}</span></div>
-                      <div class="example-sub">${marketLabel}</div>
-                    </td>
-                  </tr>
-                `;
-              }}).join("")}
-            </tbody>
-          </table>
-        `;
-      }}
-
-      function renderExampleDays(city) {{
-        const rows = buildExampleRows(city);
-        const earlyRows = [...rows]
-          .sort((left, right) => {{
-            const leftHour = left.first_correct_hour === null ? 99 : left.first_correct_hour;
-            const rightHour = right.first_correct_hour === null ? 99 : right.first_correct_hour;
-            if (leftHour !== rightHour) {{
-              return leftHour - rightHour;
-            }}
-            return right.local_date.localeCompare(left.local_date);
-          }})
-          .slice(0, 3);
-        const lateRows = [...rows]
-          .sort((left, right) => {{
-            const leftHour = left.first_correct_hour === null ? 99 : left.first_correct_hour;
-            const rightHour = right.first_correct_hour === null ? 99 : right.first_correct_hour;
-            if (leftHour !== rightHour) {{
-              return rightHour - leftHour;
-            }}
-            return right.local_date.localeCompare(left.local_date);
-          }})
-          .slice(0, 3);
-
-        renderExampleTable(
-          earlyExampleTable,
-          earlyRows,
-          "No resolved city-days are available yet for early-confidence examples."
-        );
-        renderExampleTable(
-          lateExampleTable,
-          lateRows,
-          "No resolved city-days are available yet for late-confidence examples."
-        );
-      }}
-
-      function renderGapSummary(city) {{
-        const gapSummary = city.gap_summary;
-        if (!gapSummary) {{
-          gapCoverageRatioNode.textContent = "-";
-          gapMissingHoursNode.textContent = "-";
-          gapDateCountNode.textContent = "-";
-          gapList.innerHTML = `<div class="empty-state">No gap summary is available for this city yet.</div>`;
-          return;
-        }}
-
-        gapCoverageRatioNode.textContent = formatPercent(gapSummary.coverage_ratio);
-        gapMissingHoursNode.textContent = String(gapSummary.missing_hour_count);
-        gapDateCountNode.textContent = String(gapSummary.gap_date_count);
-
-        const gapDates = (gapSummary.dates || []).filter((date) => date.missing_hour_count > 0);
-        if (gapDates.length === 0) {{
-          gapList.innerHTML = `<div class="empty-state">No missing city-hours are currently recorded for this city.</div>`;
-          return;
-        }}
-
-        gapList.innerHTML = gapDates
-          .slice(0, 4)
-          .map((date) => `
-            <article class="gap-card">
-              <div class="gap-top">
-                <div class="gap-date">${escapeHtml(date.local_date)}${date.is_current_local_date ? " (in progress)" : ""}</div>
-                <div class="gap-stat">${date.observed_hour_count}/${date.expected_hour_count} hours present</div>
-              </div>
-              <div class="gap-note">
-                Window ${String(date.expected_start_hour).padStart(2, "0")}-${String(date.expected_end_hour).padStart(2, "0")} ·
-                observed ${escapeHtml(summarizeHours(date.observed_hours))} ·
-                missing ${escapeHtml(summarizeHours(date.missing_hours))}
-              </div>
-            </article>
-          `)
-          .join("");
-      }}
-
-      select.addEventListener("change", () => renderCity(Number(select.value)));
-      overviewTableBody.addEventListener("click", (event) => {{
-        const button = event.target.closest("[data-city-index]");
-        if (!button) {{
-          return;
-        }}
-        const index = Number(button.dataset.cityIndex);
-        if (Number.isNaN(index)) {{
-          return;
-        }}
-        select.value = String(index);
-        renderCity(index);
-      }});
-      daySelect.addEventListener("change", () => {{
-        const city = report.cities[Number(select.value)];
-        renderDayDrilldown(city, Number(daySelect.value));
-      }});
-      renderCity(0);
+      renderReport();
     </script>
   </body>
 </html>
@@ -1927,6 +482,4 @@ HTML_TEMPLATE = """<!doctype html>
 
 
 def render_accuracy_dashboard_html(report: dict[str, Any]) -> str:
-    report_json = json.dumps(report).replace("</", "<\\/")
-    html = HTML_TEMPLATE.replace("{{", "{").replace("}}", "}")
-    return html.replace("__REPORT_JSON__", report_json)
+    return HTML_TEMPLATE.format(report_json=json.dumps(report))

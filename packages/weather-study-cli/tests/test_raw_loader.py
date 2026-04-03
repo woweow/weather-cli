@@ -10,12 +10,20 @@ from weather_study_cli.application import DEFAULT_MOCK_DATA_DIR, StudyValidation
 def test_load_capture_directory_validates_bundled_mock_data():
     summary = load_capture_directory(DEFAULT_MOCK_DATA_DIR)
 
-    assert summary.file_count == 8
+    assert summary.file_count == 336
     assert summary.cities == ("Denver,CO", "Seattle,WA")
-    assert summary.local_dates == ("2026-03-26", "2026-03-27")
-    assert summary.weather_missing_count == 1
-    assert summary.market_missing_count == 1
-    assert summary.capture_windows[0]["hours"] == [8, 14]
+    assert summary.local_dates == (
+        "2026-03-22",
+        "2026-03-23",
+        "2026-03-24",
+        "2026-03-25",
+        "2026-03-26",
+        "2026-03-27",
+        "2026-03-28",
+    )
+    assert summary.weather_missing_count == 0
+    assert summary.market_missing_count == 0
+    assert summary.capture_windows[0]["hours"] == list(range(24))
 
 
 def test_load_capture_directory_accepts_single_capture_file():
@@ -24,16 +32,16 @@ def test_load_capture_directory_accepts_single_capture_file():
         / "study_version=1"
         / "city=Seattle"
         / "state=WA"
-        / "local_date=2026-03-26"
-        / "local_hour=09"
-        / "captured_at_utc=2026-03-26T16-00-00Z.json"
+        / "local_date=2026-03-22"
+        / "local_hour=00"
+        / "captured_at_utc=2026-03-22T07-00-00Z.json"
     )
 
     summary = load_capture_directory(file_path)
 
     assert summary.file_count == 1
     assert summary.cities == ("Seattle,WA",)
-    assert summary.local_dates == ("2026-03-26",)
+    assert summary.local_dates == ("2026-03-22",)
 
 
 def test_load_capture_directory_rejects_path_payload_mismatch(tmp_path):

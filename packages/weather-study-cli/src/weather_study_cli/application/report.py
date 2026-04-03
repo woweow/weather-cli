@@ -1,23 +1,24 @@
 from __future__ import annotations
 
+import json
 import sys
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
-from weather_study_cli.application.day_report import load_day_drilldown_report
 from weather_study_cli.application.errors import StudyValidationError
-from weather_study_cli.application.gaps import load_collection_gap_report
+from weather_study_cli.application.market_utils import find_winning_market_row
 from weather_study_cli.persistence.connection import DEFAULT_DB_PATH, open_connection
 from weather_study_cli.persistence.migrations import initialize_schema
 from weather_study_cli.persistence.repository import (
+    list_accuracy_actual_rows,
     list_daily_actual_targets,
     list_hourly_accuracy_metric_rows,
-    list_hourly_market_opportunity_metric_rows,
+    list_market_capture_rows,
 )
 from weather_study_cli.ui import render_accuracy_dashboard_html
-
-ACCURACY_THRESHOLDS = (0.6, 0.7, 0.8, 0.9)
 
 
 @dataclass(frozen=True)
@@ -36,94 +37,6 @@ class AccuracyDashboardReport:
         }
 
 
-def _build_threshold_summary(
-    *,
-    accuracy_rows: list[dict[str, object]],
-    market_rows: list[dict[str, object]],
-    min_valid_sample: int,
-) -> list[dict[str, object]]:
-    resolved_rows = [
-        row for row in accuracy_rows if int(row["valid_day_count"]) > 0
-    ]
-    market_by_hour = {
-        int(row["local_hour"]): row
-        for row in market_rows
-    }
-    best_resolved_row = max(
-        resolved_rows,
-        key=lambda row: (
-            float(row["accuracy_ratio"]),
-            -int(row["local_hour"]),
-        ),
-        default=None,
-    )
-    summary: list[dict[str, object]] = []
-
-    for threshold_ratio in ACCURACY_THRESHOLDS:
-        threshold_label = f"{int(threshold_ratio * 100)}%"
-        reached_row = next(
-            (
-                row
-                for row in accuracy_rows
-                if int(row["valid_day_count"]) > 0
-                and float(row["accuracy_ratio"]) >= threshold_ratio
-            ),
-            None,
-        )
-        if reached_row is None:
-            summary.append(
-                {
-                    "threshold_ratio": threshold_ratio,
-                    "threshold_label": threshold_label,
-                    "status": "unresolved" if not resolved_rows else "not_reached",
-                    "best_resolved_hour": (
-                        None if best_resolved_row is None else int(best_resolved_row["local_hour"])
-                    ),
-                    "best_accuracy_ratio": (
-                        None if best_resolved_row is None else float(best_resolved_row["accuracy_ratio"])
-                    ),
-                    "best_valid_day_count": (
-                        None if best_resolved_row is None else int(best_resolved_row["valid_day_count"])
-                    ),
-                    "best_correct_day_count": (
-                        None if best_resolved_row is None else int(best_resolved_row["correct_day_count"])
-                    ),
-                }
-            )
-            continue
-
-        hour = int(reached_row["local_hour"])
-        market_row = market_by_hour.get(hour)
-        summary.append(
-            {
-                "threshold_ratio": threshold_ratio,
-                "threshold_label": threshold_label,
-                "status": "reached",
-                "local_hour": hour,
-                "accuracy_ratio": float(reached_row["accuracy_ratio"]),
-                "valid_day_count": int(reached_row["valid_day_count"]),
-                "correct_day_count": int(reached_row["correct_day_count"]),
-                "thin_sample": int(reached_row["valid_day_count"]) < min_valid_sample,
-                "market_summary": (
-                    None
-                    if market_row is None
-                    else {
-                        "valid_day_count": int(market_row["valid_day_count"]),
-                        "leader_match_day_count": int(market_row["leader_match_day_count"]),
-                        "leader_match_ratio": float(market_row["leader_match_ratio"]),
-                        "avg_winning_bucket_last_price_cents": (
-                            None
-                            if market_row["avg_winning_bucket_last_price_cents"] is None
-                            else float(market_row["avg_winning_bucket_last_price_cents"])
-                        ),
-                    }
-                ),
-            }
-        )
-
-    return summary
-
-
 def load_accuracy_dashboard_report(
     *,
     db_path: str | Path = DEFAULT_DB_PATH,
@@ -133,121 +46,88 @@ def load_accuracy_dashboard_report(
     target_db_path = Path(db_path).expanduser().resolve()
     with open_connection(target_db_path) as connection:
         initialize_schema(connection)
-        rows = list_hourly_accuracy_metric_rows(connection, place=place)
-        market_rows = list_hourly_market_opportunity_metric_rows(connection, place=place)
+        accuracy_rows = list_hourly_accuracy_metric_rows(connection, place=place)
+        capture_rows = list_market_capture_rows(connection, place=place)
+        actual_rows = list_accuracy_actual_rows(connection, place=place)
         day_targets = list_daily_actual_targets(connection, place=place)
-    gap_report = load_collection_gap_report(db_path=target_db_path, place=place)
 
-    if not rows:
+    if not accuracy_rows:
         raise StudyValidationError(
             "No hourly accuracy metrics were found. Run `weather-study compute-accuracy-metrics` first."
         )
 
-    grouped: dict[str, list[dict[str, object]]] = {}
-    market_by_place: dict[str, list[dict[str, object]]] = {}
-    day_targets_by_place: dict[str, list[dict[str, str]]] = {}
-    gap_by_place = {place_summary.place: place_summary.to_dict() for place_summary in gap_report.places}
+    grouped_accuracy: dict[str, list[dict[str, object]]] = defaultdict(list)
     timezone_by_place: dict[str, str] = {}
-    for row in rows:
-        grouped.setdefault(row["place"], []).append(row)
-        timezone_by_place[row["place"]] = str(row["timezone"])
-    for row in market_rows:
-        market_by_place.setdefault(row["place"], []).append(row)
-        timezone_by_place[row["place"]] = str(row["timezone"])
-    for target in day_targets:
-        day_targets_by_place.setdefault(target["place"], []).append(target)
-        timezone_by_place[target["place"]] = str(target["timezone"])
+    for row in accuracy_rows:
+        grouped_accuracy[str(row["place"])].append(row)
+        timezone_by_place[str(row["place"])] = str(row["timezone"])
 
-    cities = []
-    for current_place, current_rows in sorted(grouped.items()):
-        ordered_rows = sorted(current_rows, key=lambda item: int(item["local_hour"]))
-        ordered_market_rows = sorted(
-            market_by_place.get(current_place, ()),
-            key=lambda item: int(item["local_hour"]),
+    day_targets_by_place: dict[str, list[dict[str, str]]] = defaultdict(list)
+    for target in day_targets:
+        day_targets_by_place[str(target["place"])].append(target)
+        timezone_by_place[str(target["place"])] = str(target["timezone"])
+
+    actual_dates_by_place: dict[str, set[str]] = defaultdict(set)
+    for row in actual_rows:
+        actual_dates_by_place[str(row["place"])].add(str(row["local_date"]))
+
+    market_annotations = _build_market_annotations(capture_rows=capture_rows, actual_rows=actual_rows)
+    cities: list[dict[str, object]] = []
+    for current_place, rows in sorted(grouped_accuracy.items()):
+        ordered_rows = sorted(rows, key=lambda item: int(item["local_hour"]))
+        local_dates = sorted(str(target["local_date"]) for target in day_targets_by_place.get(current_place, ()))
+        annotation_by_hour = market_annotations.get(current_place, {})
+        best_row = max(
+            ordered_rows,
+            key=lambda item: (
+                float(item["accuracy_ratio"]),
+                -int(item["local_hour"]),
+            ),
         )
-        study_day_count = max(
-            int(row["valid_day_count"]) + int(row["missing_day_count"]) + int(row["excluded_day_count"])
-            for row in ordered_rows
-        )
-        thin_sample_hours = [
-            int(row["local_hour"])
-            for row in ordered_rows
-            if int(row["valid_day_count"]) < min_valid_sample
-        ]
-        market_thin_sample_hours = [
-            int(row["local_hour"])
-            for row in ordered_market_rows
-            if int(row["valid_day_count"]) < min_valid_sample
-        ]
-        day_drilldowns = [
-            load_day_drilldown_report(
-                db_path=target_db_path,
-                place=current_place,
-                local_date=str(target["local_date"]),
-            ).to_dict()
-            for target in sorted(
-                day_targets_by_place.get(current_place, ()),
-                key=lambda item: str(item["local_date"]),
-                reverse=True,
+        points = []
+        for row in ordered_rows:
+            local_hour = int(row["local_hour"])
+            annotation = annotation_by_hour.get(local_hour, {})
+            valid_day_count = int(row["valid_day_count"])
+            points.append(
+                {
+                    "local_hour": local_hour,
+                    "accuracy_ratio": float(row["accuracy_ratio"]),
+                    "valid_day_count": valid_day_count,
+                    "missing_day_count": int(row["missing_day_count"]),
+                    "excluded_day_count": int(row["excluded_day_count"]),
+                    "correct_day_count": int(row["correct_day_count"]),
+                    "thin_sample": valid_day_count < min_valid_sample,
+                    "winning_market_label": annotation.get("winning_market_label"),
+                    "avg_winning_bucket_last_price_cents": annotation.get(
+                        "avg_winning_bucket_last_price_cents"
+                    ),
+                    "winning_market_sample_count": int(annotation.get("winning_market_sample_count", 0)),
+                }
             )
-        ]
-        local_dates = [str(target["local_date"]) for target in day_targets_by_place.get(current_place, ())]
+
         cities.append(
             {
                 "place": current_place,
                 "timezone": timezone_by_place[current_place],
-                "study_day_count": study_day_count,
-                "capture_day_count": len(local_dates),
-                "resolved_actual_day_count": sum(
-                    1
-                    for day in day_drilldowns
-                    if day["actual_high_temperature_f"] is not None
-                ),
-                "capture_window_start_date": (None if not local_dates else min(local_dates)),
-                "capture_window_end_date": (None if not local_dates else max(local_dates)),
-                "thin_sample_hours": thin_sample_hours,
-                "market_thin_sample_hours": market_thin_sample_hours,
-                "gap_summary": gap_by_place.get(current_place),
-                "day_drilldowns": day_drilldowns,
-                "threshold_summary": _build_threshold_summary(
-                    accuracy_rows=ordered_rows,
-                    market_rows=ordered_market_rows,
-                    min_valid_sample=min_valid_sample,
-                ),
-                "points": [
-                    {
-                        "local_hour": int(row["local_hour"]),
-                        "accuracy_ratio": float(row["accuracy_ratio"]),
-                        "valid_day_count": int(row["valid_day_count"]),
-                        "missing_day_count": int(row["missing_day_count"]),
-                        "excluded_day_count": int(row["excluded_day_count"]),
-                        "correct_day_count": int(row["correct_day_count"]),
-                    }
+                "study_day_count": max(
+                    int(row["valid_day_count"]) + int(row["missing_day_count"]) + int(row["excluded_day_count"])
                     for row in ordered_rows
-                ],
-                "market_points": [
-                    {
-                        "local_hour": int(row["local_hour"]),
-                        "leader_match_ratio": float(row["leader_match_ratio"]),
-                        "valid_day_count": int(row["valid_day_count"]),
-                        "missing_day_count": int(row["missing_day_count"]),
-                        "excluded_day_count": int(row["excluded_day_count"]),
-                        "leader_match_day_count": int(row["leader_match_day_count"]),
-                        "avg_winning_bucket_last_price_cents": (
-                            None
-                            if row["avg_winning_bucket_last_price_cents"] is None
-                            else float(row["avg_winning_bucket_last_price_cents"])
-                        ),
-                    }
-                    for row in ordered_market_rows
-                ],
+                ),
+                "capture_day_count": len(local_dates),
+                "resolved_actual_day_count": len(actual_dates_by_place.get(current_place, set())),
+                "capture_window_start_date": None if not local_dates else min(local_dates),
+                "capture_window_end_date": None if not local_dates else max(local_dates),
+                "best_hour": int(best_row["local_hour"]),
+                "best_accuracy_ratio": float(best_row["accuracy_ratio"]),
+                "points": points,
             }
         )
 
     return AccuracyDashboardReport(
         generated_at_utc=datetime.now(tz=UTC).isoformat().replace("+00:00", "Z"),
         min_valid_sample=min_valid_sample,
-        missing_supported_places=gap_report.missing_supported_places,
+        missing_supported_places=(),
         cities=tuple(cities),
     )
 
@@ -272,3 +152,65 @@ def export_accuracy_html(
     else:
         sys.stdout.write(html)
     return 0
+
+
+def _build_market_annotations(
+    *,
+    capture_rows: list[dict[str, Any]],
+    actual_rows: list[dict[str, Any]],
+) -> dict[str, dict[int, dict[str, object]]]:
+    latest_capture_by_day_hour: dict[tuple[str, str, int], dict[str, Any]] = {}
+    for row in capture_rows:
+        key = (str(row["place"]), str(row["local_date"]), int(row["local_hour"]))
+        existing = latest_capture_by_day_hour.get(key)
+        if existing is None or str(row["captured_at_utc"]) > str(existing["captured_at_utc"]):
+            latest_capture_by_day_hour[key] = row
+
+    actual_by_day = {
+        (str(row["place"]), str(row["local_date"])): float(row["observed_high_temperature_f"])
+        for row in actual_rows
+    }
+    grouped: dict[str, dict[int, list[dict[str, object]]]] = defaultdict(lambda: defaultdict(list))
+
+    for (place, local_date, local_hour), row in latest_capture_by_day_hour.items():
+        actual_high = actual_by_day.get((place, local_date))
+        if actual_high is None:
+            continue
+        payload = json.loads(str(row["capture_json"]))
+        market_payload = payload.get("market", {}).get("payload")
+        market_rows = tuple(market_payload.get("markets", [])) if market_payload else ()
+        if not market_rows:
+            continue
+        winning_market = find_winning_market_row(market_rows, actual_high)
+        if winning_market is None:
+            continue
+        grouped[place][local_hour].append(
+            {
+                "label": str(winning_market.get("label") or ""),
+                "last_price_cents": winning_market.get("last_price_cents"),
+            }
+        )
+
+    annotations: dict[str, dict[int, dict[str, object]]] = {}
+    for place, by_hour in grouped.items():
+        annotations[place] = {}
+        for local_hour, entries in by_hour.items():
+            labels = [str(entry["label"]) for entry in entries if entry.get("label")]
+            prices = [
+                float(entry["last_price_cents"])
+                for entry in entries
+                if entry.get("last_price_cents") is not None
+            ]
+            label_counter = Counter(labels)
+            winning_market_label = None
+            if label_counter:
+                winning_market_label = sorted(
+                    label_counter.items(),
+                    key=lambda item: (-item[1], item[0]),
+                )[0][0]
+            annotations[place][local_hour] = {
+                "winning_market_label": winning_market_label,
+                "avg_winning_bucket_last_price_cents": (sum(prices) / len(prices)) if prices else None,
+                "winning_market_sample_count": len(entries),
+            }
+    return annotations

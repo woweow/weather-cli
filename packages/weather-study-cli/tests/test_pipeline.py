@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from weather_study_cli.application import DEFAULT_MOCK_DATA_DIR, build_study_report
+from weather_study_cli.application import build_study_report
 from weather_study_cli.cli.main import render_build_report_text_summary
+from .support import LEGACY_RAW_DATA_DIR
 
 
 class FakeObservedHighService:
@@ -25,7 +26,7 @@ def test_build_study_report_includes_city_maturity_summary(tmp_path):
     db_path = tmp_path / "study.db"
     output_path = tmp_path / "study.html"
     summary = build_study_report(
-        input_path=DEFAULT_MOCK_DATA_DIR,
+        input_path=LEGACY_RAW_DATA_DIR,
         db_path=db_path,
         output_path=output_path,
         weather_service=FakeObservedHighService(
