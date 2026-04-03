@@ -41,3 +41,34 @@ Default validation after changes:
 4. Use Playwright MCP to open the UI, toggle selections, enter stakes, click Record, and verify the session via `weather-bets sessions` and `weather-bets bets`.
 5. Run `weather-bets settle --bet-id <id> ...` and verify the updated row through the CLI.
 6. For provider settlement work, run `weather-bets-sync kalshi settle-open [--dry-run]` and verify the updated rows through `weather-bets bets`.
+
+## Cursor Cloud specific instructions
+
+### Environment
+
+- Python 3.12 and `uv` are pre-installed. `uv` lives at `~/.local/bin/uv`; make sure `$PATH` includes `$HOME/.local/bin`.
+- `uv sync` at the workspace root installs all 7 packages in editable mode into `.venv/`.
+- `pytest` is not a declared dev dependency. Run tests with `uv run --with pytest pytest -q`.
+
+### Running the dashboard end-to-end
+
+The `skills/build-weather-bet-dashboard/scripts/build_dashboard.py` currently emits `schema_version: "1"`, but the dashboard server requires version `"2"`. To build a working dashboard JSON, assemble it manually from the CLI outputs:
+
+1. Fetch weather: `uv run --package weather-cli weather "Seattle,WA" --range next-24h --format json`
+2. Fetch market: `uv run --package kalshi-weather-markets-cli kalshi-weather-markets Seattle --format json`
+3. Build `dashboard.json` with `schema_version: "2"`. Map the market `ticker` field to `provider_market_ticker` in the dashboard rows.
+4. Serve: `uv run --package weather-dashboard-cli weather-dashboard serve --input dashboard.json --host 0.0.0.0 --port 8765`
+5. Initialize the journal first if needed: `uv run --package weather-bets weather-bets init --reset`
+
+### Key CLI commands (see README.md for full list)
+
+- Weather: `uv run --package weather-cli weather "<City,ST>" --range today --format json`
+- Markets: `uv run --package kalshi-weather-markets-cli kalshi-weather-markets --list-cities`
+- Journal: `uv run --package weather-bets weather-bets sessions` / `weather-bets bets`
+- Sync: `uv run --package weather-bets-sync weather-bets-sync kalshi settle-open --dry-run`
+
+### Gotchas
+
+- All packages use only the Python standard library (no pip dependencies beyond workspace internals).
+- The NOAA and Kalshi APIs require outbound HTTPS; tests mock HTTP calls and work offline.
+- The SQLite journal lives at `.bets/bets.db` relative to the workspace root.
