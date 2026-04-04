@@ -113,7 +113,10 @@ def build_parser() -> argparse.ArgumentParser:
     sync_s3.add_argument(
         "--profile",
         default=DEFAULT_AWS_PROFILE,
-        help="AWS CLI profile to use for sync (default: %(default)s)",
+        help=(
+            'AWS CLI profile for sync; pass "" to use the default credential chain '
+            "(env vars, instance role) without --profile (default: %(default)s)"
+        ),
     )
     sync_s3.add_argument(
         "--delete",
@@ -367,7 +370,10 @@ def build_parser() -> argparse.ArgumentParser:
     sample.add_argument(
         "--profile",
         default=DEFAULT_AWS_PROFILE,
-        help="AWS CLI profile to use for optional upload (default: %(default)s)",
+        help=(
+            'AWS CLI profile for optional upload; pass "" for the default credential chain '
+            "(default: %(default)s)"
+        ),
     )
     sample.add_argument(
         "--contact-email",
@@ -418,7 +424,10 @@ def build_parser() -> argparse.ArgumentParser:
     build_report.add_argument(
         "--profile",
         default=DEFAULT_AWS_PROFILE,
-        help="AWS CLI profile to use when syncing from S3 (default: %(default)s)",
+        help=(
+            'AWS CLI profile when syncing from S3; pass "" for the default credential chain '
+            "(default: %(default)s)"
+        ),
     )
     build_report.add_argument(
         "--delete",

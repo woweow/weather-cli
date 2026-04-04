@@ -19,7 +19,7 @@ from weather_study_cli.application.errors import S3SyncError, StudyValidationErr
 from weather_study_cli.application.market_utils import round_half_up
 from weather_study_cli.application.raw_loader import DEFAULT_MOCK_DATA_DIR, build_capture_relative_path
 from weather_study_cli.application.raw_schema import StudyCapture
-from weather_study_cli.application.s3 import DEFAULT_AWS_PROFILE
+from weather_study_cli.application.s3 import DEFAULT_AWS_PROFILE, build_aws_s3_sync_command
 
 
 DEFAULT_SAMPLE_OUTPUT_ROOT = DEFAULT_MOCK_DATA_DIR
@@ -466,15 +466,11 @@ def _upload_sample_directory_to_s3(
     profile: str,
 ) -> None:
     target_uri = _build_s3_target_uri(bucket, prefix)
-    command = [
-        "aws",
-        "s3",
-        "sync",
-        str(output_root),
-        target_uri,
-        "--profile",
-        profile,
-    ]
+    command = build_aws_s3_sync_command(
+        source=str(output_root),
+        destination=target_uri,
+        profile=profile,
+    )
     completed = subprocess.run(command, capture_output=True, text=True, check=False)
     if completed.returncode != 0:
         detail = completed.stderr.strip() or completed.stdout.strip() or "unknown AWS CLI error"

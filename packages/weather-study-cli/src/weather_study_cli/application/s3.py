@@ -13,6 +13,14 @@ DEFAULT_S3_PREFIX = "raw"
 DEFAULT_S3_DOWNLOAD_DIR = Path(".study") / "raw-s3"
 
 
+def build_aws_s3_sync_command(*, source: str, destination: str, profile: str) -> list[str]:
+    command = ["aws", "s3", "sync", source, destination]
+    normalized = profile.strip()
+    if normalized:
+        command.extend(["--profile", normalized])
+    return command
+
+
 @dataclass(frozen=True)
 class S3SyncSummary:
     source_uri: str
@@ -57,15 +65,11 @@ def sync_capture_directory_from_s3(
     if not dry_run:
         target_output_root.mkdir(parents=True, exist_ok=True)
 
-    command = [
-        "aws",
-        "s3",
-        "sync",
-        source_uri,
-        str(target_output_root),
-        "--profile",
-        profile,
-    ]
+    command = build_aws_s3_sync_command(
+        source=source_uri,
+        destination=str(target_output_root),
+        profile=profile,
+    )
     if delete:
         command.append("--delete")
     if dry_run:
