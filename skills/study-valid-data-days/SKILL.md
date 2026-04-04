@@ -1,13 +1,15 @@
 ---
 name: study-valid-data-days
-description: Answer questions about how many complete local days of weather-study test data exist per city (Seattle, San Francisco, Los Angeles, Las Vegas, Phoenix, Denver). Use when the user asks for valid days, complete days, data coverage, or "how much study data" after S3 sync and ingest—run the fixed weather-study CLI sequence and return command output only.
+description: Answer questions about how many complete local days of weather-study test data exist per city (Seattle, San Francisco, Los Angeles, Las Vegas, Phoenix, Denver). Use when the user says "summarize lambda data" or asks for valid days, complete days, data coverage, or "how much study data" after S3 sync and ingest—run the fixed weather-study CLI sequence and return command output only.
 ---
 
 # Study valid data days
 
 ## When this applies
 
-Phrases like: valid days of test data, complete capture days, how many days of study data, data completeness per city, incomplete days filtered out before the study UI.
+Trigger phrase: **summarize lambda data**.
+
+Also applies for: valid days of test data, complete capture days, how many days of study data, data completeness per city, incomplete days filtered out before the study UI.
 
 ## What to run (do not re-derive counts mentally)
 
