@@ -14,27 +14,30 @@ Also applies for: valid days of study data, complete capture days, data coverage
 ## Agent behavior (keep this deterministic)
 
 1. Work from the **repository root** with `PATH` including `$HOME/.local/bin` (for `uv`).
-2. Run **exactly** the three commands in **Execution block A** below, in order. Substitute only the bucket/prefix/profile as documented there.
+2. Run **Execution block A** below from the repo root in order (S3 sync, then ingest, then count). Bucket defaults to the live collector config; override with env vars as documented.
 3. Reply with **only** the stdout of step 3 (`count-valid-study-days`), unless step 1 or 2 fails—in that case paste the failing command’s stderr/stdout so the user can fix credentials or bucket access.
 4. Do **not** recompute counts, infer numbers from files, or substitute mock data unless the user explicitly asked for offline/mock mode (see **Offline fallback**).
 
 ## Execution block A — live data (default)
 
-Bucket: use environment variable `WEATHER_STUDY_BUCKET`. If it is unset or empty, stop and tell the user to set it (do not guess a bucket name).
+Bucket: use `WEATHER_STUDY_BUCKET` when set and non-empty. Otherwise use the repo’s live collector bucket (same value as `aws/weather-study-collector/config/dev-live.json`): **`weather-study-raw-084375548651-us-west-2`**. Override the env var if you ever point the study at a different bucket.
 
-Prefix: use `WEATHER_STUDY_PREFIX` if set and non-empty; otherwise use `raw`.
+Prefix: use `WEATHER_STUDY_PREFIX` if set and non-empty; otherwise use `raw` (matches `dev-live.json`).
 
-AWS credentials:
-
-- If the environment uses **access keys** (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`), pass **`--profile ""`** on `sync-s3` so the AWS CLI uses the default credential chain (no named profile).
-- If the user relies on a **named profile** (for example `dev` on a laptop), use `--profile dev` instead of `--profile ""`.
+AWS profile for `sync-s3`: use `WEATHER_STUDY_AWS_PROFILE` when set and non-empty (e.g. `dev` per `dev-live.json`). Otherwise use **`--profile ""`** so the AWS CLI uses the default credential chain (typical for access keys in CI).
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
+BUCKET="${WEATHER_STUDY_BUCKET:-weather-study-raw-084375548651-us-west-2}"
+if [ -n "${WEATHER_STUDY_AWS_PROFILE:-}" ]; then
+  PROFILE_ARGS=(--profile "$WEATHER_STUDY_AWS_PROFILE")
+else
+  PROFILE_ARGS=(--profile "")
+fi
 uv run --package weather-study-cli weather-study sync-s3 \
-  --bucket "$WEATHER_STUDY_BUCKET" \
+  --bucket "$BUCKET" \
   --prefix "${WEATHER_STUDY_PREFIX:-raw}" \
-  --profile ""
+  "${PROFILE_ARGS[@]}"
 uv run --package weather-study-cli weather-study ingest-raw --reset --input .study/raw-s3
 uv run --package weather-study-cli weather-study count-valid-study-days
 ```
