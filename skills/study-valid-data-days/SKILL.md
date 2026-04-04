@@ -12,8 +12,15 @@ Trigger phrases: **summarize lambda data**, **summarize landed data**, valid day
 ## Credentials (read this first)
 
 - **`weather-study sync-s3` does not pass `--profile` by default.** It runs plain `aws s3 sync`, which uses the **default AWS credential chain**: `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN`, then optional `AWS_PROFILE` / `AWS_DEFAULT_REGION`, then shared config `[default]`, then instance role, etc.
-- **Local machine with a named profile:** run sync with `--profile dev` (or set `export AWS_PROFILE=dev` so every `aws` invocation uses it).
-- **Cloud / CI with injected keys:** ensure `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION` (or `AWS_REGION`) are set. No `~/.aws` file is required. **Do not** assume a `dev` profile exists.
+
+### Cursor cloud agent vs local agent
+
+Infer from context (e.g. Cursor Cloud / remote VM vs your own laptop). Rule of thumb:
+
+- **If you are an agent running in the cloud** (Cursor Cloud, CI, or any environment where AWS is supplied via injected environment variables or an instance role): **do not use the `dev` profile.** Run `sync-s3` **without** `--profile` so `aws` picks up those credentials. A `dev` entry in `~/.aws` often does not exist and will error.
+- **If you are an agent running locally** on a machine where you authenticate with a shared-credentials profile (the repo convention is `dev`): **use `--profile dev`** (or `export AWS_PROFILE=dev`) for `sync-s3` so the CLI uses that profile.
+
+- **Generic cloud / CI with injected keys:** ensure `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION` (or `AWS_REGION`) are set. No `~/.aws` file is required.
 - Optional sanity check (uses the same default chain as sync when no `--profile` is passed):
 
 ```bash
