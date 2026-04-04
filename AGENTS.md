@@ -4,7 +4,7 @@ Example: for the remaining hours of today in Seattle, run `uv run --package weat
 
 This is a local-only personal project. Not looking to scale to the cloud or come off of this machine.
 
-Skills in this repo's `skills/` folder are symlinked into `.cursor/skills/`, `.codex/skills/`, and `.claude/skills/`. Add a symlink for each new skill directory there; otherwise agents that only load listed skills will not see it.
+Skills in this repo's `skills/` folder are symlinked into `.cursor/skills/`, `.codex/skills/`, and `.claude/skills/`. Add a symlink for each new skill directory there; otherwise agents that only load listed skills will not see it. (`CLAUDE.md` in the repo root is a symlink to this file.)
 
 Clean-slate policy:
 
