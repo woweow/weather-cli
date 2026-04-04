@@ -27,6 +27,11 @@ if TYPE_CHECKING:
         WeatherStudyCliError,
     )
     from weather_study_cli.application.gaps import CollectionGapReport, load_collection_gap_report
+    from weather_study_cli.application.valid_study_days import (
+        ValidStudyDayRow,
+        ValidStudyDaysSummary,
+        count_valid_study_days,
+    )
     from weather_study_cli.application.ingest import IngestSummary, ingest_capture_directory
     from weather_study_cli.application.market_metrics import (
         MarketOpportunityMetricSummary,
@@ -98,11 +103,14 @@ __all__ = [
     "StudyDatasetSummary",
     "StudyDayDrilldownReport",
     "StudyValidationError",
+    "ValidStudyDayRow",
+    "ValidStudyDaysSummary",
     "WeatherStudyCliError",
     "build_capture_relative_path",
     "derive_daily_actuals",
     "compute_accuracy_metrics",
     "compute_market_opportunity_metrics",
+    "count_valid_study_days",
     "build_study_report",
     "ingest_capture_directory",
     "export_accuracy_html",
@@ -164,6 +172,8 @@ _EXPORTS = {
     "StudyDatasetSummary": ("weather_study_cli.application.raw_loader", "StudyDatasetSummary"),
     "StudyDayDrilldownReport": ("weather_study_cli.application.day_report", "StudyDayDrilldownReport"),
     "StudyValidationError": ("weather_study_cli.application.errors", "StudyValidationError"),
+    "ValidStudyDayRow": ("weather_study_cli.application.valid_study_days", "ValidStudyDayRow"),
+    "ValidStudyDaysSummary": ("weather_study_cli.application.valid_study_days", "ValidStudyDaysSummary"),
     "WeatherStudyCliError": ("weather_study_cli.application.errors", "WeatherStudyCliError"),
     "build_capture_relative_path": (
         "weather_study_cli.application.raw_loader",
@@ -175,6 +185,7 @@ _EXPORTS = {
         "weather_study_cli.application.market_metrics",
         "compute_market_opportunity_metrics",
     ),
+    "count_valid_study_days": ("weather_study_cli.application.valid_study_days", "count_valid_study_days"),
     "build_study_report": ("weather_study_cli.application.pipeline", "build_study_report"),
     "ingest_capture_directory": ("weather_study_cli.application.ingest", "ingest_capture_directory"),
     "export_accuracy_html": ("weather_study_cli.application.report", "export_accuracy_html"),

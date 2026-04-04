@@ -9,6 +9,7 @@ from weather_study_cli.application import (
     AccuracyMetricSummary,
     BuildStudyReportSummary,
     CollectionGapReport,
+    ValidStudyDaysSummary,
     DEFAULT_AWS_PROFILE,
     DEFAULT_DB_PATH,
     DEFAULT_HTML_REPORT_PATH,
@@ -27,6 +28,7 @@ from weather_study_cli.application import (
     WeatherStudyCliError,
     compute_accuracy_metrics,
     compute_market_opportunity_metrics,
+    count_valid_study_days,
     derive_daily_actuals,
     export_accuracy_html,
     generate_sample_capture_directory,
@@ -491,6 +493,31 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output format for the gap report (default: %(default)s)",
     )
 
+    valid_days = subparsers.add_parser(
+        "count-valid-study-days",
+        help="List supported cities with complete local-day capture counts.",
+        description=(
+            "For each configured study city, count local dates with no missing expected city-hours.\n\n"
+            "Uses the same expected-hour window as `report-gaps` (full 0–23 for completed dates;\n"
+            "partial window for the current local date). Does not apply chart-spec eligibility.\n\n"
+            "Examples:\n"
+            "  weather-study count-valid-study-days\n"
+            "  weather-study count-valid-study-days --db-path /tmp/weather-study.db --format json"
+        ),
+        formatter_class=HelpFormatter,
+    )
+    valid_days.add_argument(
+        "--db-path",
+        default=str(DEFAULT_DB_PATH),
+        help="SQLite database path for the study DB (default: %(default)s)",
+    )
+    valid_days.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format (default: %(default)s)",
+    )
+
     drilldown = subparsers.add_parser(
         "export-day-drilldown",
         help="Export a single city-day drill-down from the study DB.",
@@ -644,6 +671,13 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(render_gap_text_summary(summary))
             return 0
+        if args.command == "count-valid-study-days":
+            summary = count_valid_study_days(db_path=args.db_path)
+            if args.format == "json":
+                print(json.dumps(summary.to_dict(), indent=2, sort_keys=False))
+            else:
+                print(render_valid_study_days_text_summary(summary))
+            return 0
         if args.command == "export-day-drilldown":
             summary = load_day_drilldown_report(
                 db_path=args.db_path,
@@ -775,6 +809,19 @@ def render_sample_generation_text_summary(summary) -> str:
                 f"AWS profile: {summary.profile}",
             ]
         )
+    return "\n".join(lines)
+
+
+def render_valid_study_days_text_summary(summary: ValidStudyDaysSummary) -> str:
+    lines = [
+        f"SQLite database: {summary.db_path}",
+        f"generated_at_utc: {summary.generated_at_utc}",
+        "",
+        "Valid complete local days (no missing expected hours, same rules as report-gaps):",
+    ]
+    for row in summary.places:
+        label = row.city if row.has_captures else f"{row.city} (no captures)"
+        lines.append(f"  {label}: {row.valid_day_count}")
     return "\n".join(lines)
 
 
