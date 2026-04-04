@@ -22,7 +22,7 @@ uv run --package weather-study-collector -- weather-study-collector capture-s3 -
 Notes:
 
 - The collector writes files rooted at `study_version=.../city=.../state=...` so `weather-study validate-raw` and `ingest-raw` can read them unchanged.
-- `capture-s3` reuses that same raw tree shape in a temp directory and syncs it to `s3://<bucket>/<prefix>/` with the AWS CLI.
+- `capture-s3` reuses that same raw tree shape in a temp directory and syncs it to `s3://<bucket>/<prefix>/` with the AWS CLI (default: no `--profile`; use `--profile dev` if you use named profiles).
 - Captures default to the current UTC hour. Explicit `--captured-at-utc` values must also be UTC top-of-hour timestamps.
 - Weather and market fetches are independent. If one side fails, the other side is still persisted with an `errors` entry.
 - If both weather and market fail for a city, no raw file is written for that city-hour.

@@ -91,7 +91,7 @@ def build_study_report(
     bucket: str | None = None,
     prefix: str = DEFAULT_S3_PREFIX,
     sync_output_root: str | Path = DEFAULT_S3_DOWNLOAD_DIR,
-    profile: str = DEFAULT_AWS_PROFILE,
+    profile: str | None = DEFAULT_AWS_PROFILE,
     delete: bool = False,
     validate_sync: bool = True,
     contact_email: str = DEFAULT_CONTACT_EMAIL,

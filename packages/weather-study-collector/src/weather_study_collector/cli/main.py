@@ -97,7 +97,11 @@ def build_parser() -> argparse.ArgumentParser:
     capture_s3.add_argument(
         "--profile",
         default=DEFAULT_AWS_PROFILE,
-        help="AWS CLI profile to use for S3 upload (default: %(default)s)",
+        metavar="NAME",
+        help=(
+            "Optional AWS CLI named profile for S3 upload. When omitted, `aws` uses its default "
+            "credential chain."
+        ),
     )
     capture_s3.add_argument(
         "--place",
@@ -182,10 +186,15 @@ def render_capture_summary(summary) -> str:
 
 
 def render_s3_capture_summary(summary) -> str:
+    profile_line = (
+        "AWS profile: (default credential chain)"
+        if summary.profile is None or not str(summary.profile).strip()
+        else f"AWS profile: {summary.profile.strip()}"
+    )
     lines = [
         f"Uploaded study captures for {summary.target_count} city target(s) at {summary.captured_at_utc}",
         f"S3 prefix: s3://{summary.bucket}/{summary.prefix}/" if summary.prefix else f"S3 bucket: s3://{summary.bucket}/",
-        f"AWS profile: {summary.profile}",
+        profile_line,
         f"uploaded: {summary.uploaded_count}",
         f"success: {summary.success_count}",
         f"partial: {summary.partial_count}",

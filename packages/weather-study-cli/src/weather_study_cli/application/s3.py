@@ -4,11 +4,12 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from weather_study_cli.application.aws_cli import extend_aws_cli_command_with_profile
 from weather_study_cli.application.errors import S3SyncError, StudyValidationError
 from weather_study_cli.application.raw_loader import StudyDatasetSummary, load_capture_directory
 
 
-DEFAULT_AWS_PROFILE = "dev"
+DEFAULT_AWS_PROFILE = None
 DEFAULT_S3_PREFIX = "raw"
 DEFAULT_S3_DOWNLOAD_DIR = Path(".study") / "raw-s3"
 
@@ -17,7 +18,7 @@ DEFAULT_S3_DOWNLOAD_DIR = Path(".study") / "raw-s3"
 class S3SyncSummary:
     source_uri: str
     output_root: Path
-    profile: str
+    profile: str | None
     delete: bool
     dry_run: bool
     validation: StudyDatasetSummary | None
@@ -40,7 +41,7 @@ def sync_capture_directory_from_s3(
     *,
     prefix: str = DEFAULT_S3_PREFIX,
     output_root: str | Path = DEFAULT_S3_DOWNLOAD_DIR,
-    profile: str = DEFAULT_AWS_PROFILE,
+    profile: str | None = DEFAULT_AWS_PROFILE,
     delete: bool = False,
     dry_run: bool = False,
     validate: bool = True,
@@ -57,15 +58,8 @@ def sync_capture_directory_from_s3(
     if not dry_run:
         target_output_root.mkdir(parents=True, exist_ok=True)
 
-    command = [
-        "aws",
-        "s3",
-        "sync",
-        source_uri,
-        str(target_output_root),
-        "--profile",
-        profile,
-    ]
+    command = ["aws", "s3", "sync", source_uri, str(target_output_root)]
+    extend_aws_cli_command_with_profile(command, profile)
     if delete:
         command.append("--delete")
     if dry_run:

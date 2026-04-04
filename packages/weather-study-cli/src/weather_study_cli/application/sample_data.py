@@ -19,6 +19,7 @@ from weather_study_cli.application.errors import S3SyncError, StudyValidationErr
 from weather_study_cli.application.market_utils import round_half_up
 from weather_study_cli.application.raw_loader import DEFAULT_MOCK_DATA_DIR, build_capture_relative_path
 from weather_study_cli.application.raw_schema import StudyCapture
+from weather_study_cli.application.aws_cli import extend_aws_cli_command_with_profile
 from weather_study_cli.application.s3 import DEFAULT_AWS_PROFILE
 
 
@@ -69,7 +70,7 @@ def generate_sample_capture_directory(
     end_local_date: str | None = None,
     bucket: str | None = None,
     prefix: str = DEFAULT_SAMPLE_S3_PREFIX,
-    profile: str = DEFAULT_AWS_PROFILE,
+    profile: str | None = DEFAULT_AWS_PROFILE,
     contact_email: str = DEFAULT_CONTACT_EMAIL,
     now: datetime | None = None,
     weather_service: ObservedHighService | None = None,
@@ -463,18 +464,11 @@ def _upload_sample_directory_to_s3(
     *,
     bucket: str,
     prefix: str,
-    profile: str,
+    profile: str | None,
 ) -> None:
     target_uri = _build_s3_target_uri(bucket, prefix)
-    command = [
-        "aws",
-        "s3",
-        "sync",
-        str(output_root),
-        target_uri,
-        "--profile",
-        profile,
-    ]
+    command = ["aws", "s3", "sync", str(output_root), target_uri]
+    extend_aws_cli_command_with_profile(command, profile)
     completed = subprocess.run(command, capture_output=True, text=True, check=False)
     if completed.returncode != 0:
         detail = completed.stderr.strip() or completed.stdout.strip() or "unknown AWS CLI error"

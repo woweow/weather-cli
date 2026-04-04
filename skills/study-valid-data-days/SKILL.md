@@ -1,48 +1,75 @@
 ---
 name: study-valid-data-days
-description: Answer questions about how many complete local days of weather-study test data exist per city (Seattle, San Francisco, Los Angeles, Las Vegas, Phoenix, Denver). Use when the user says "summarize lambda data" or asks for valid days, complete days, data coverage, or "how much study data" after S3 sync and ingest—run the fixed weather-study CLI sequence and return command output only.
+description: Summarize live (or local) weather-study raw captures—sync from S3 if needed, ingest, then count complete local days per city. Triggered by "summarize lambda data" / landed data / valid study days. Prefer live S3; do not fall back to mock data unless sync is impossible after fixing credentials.
 ---
 
-# Study valid data days
+# Study valid data days ("summarize lambda data")
 
 ## When this applies
 
-Trigger phrase: **summarize lambda data**.
+Trigger phrases: **summarize lambda data**, **summarize landed data**, valid days of test data, complete capture days, data coverage per city, how much study data after S3 ingest.
 
-Also applies for: valid days of test data, complete capture days, how many days of study data, data completeness per city, incomplete days filtered out before the study UI.
+## Credentials (read this first)
 
-## What to run (do not re-derive counts mentally)
-
-From the repository root, with AWS credentials if syncing from S3:
-
-1. **Optional — live data:** sync raw captures from S3 (set bucket and optional prefix; defaults match `weather-study`):
+- **`weather-study sync-s3` does not pass `--profile` by default.** It runs plain `aws s3 sync`, which uses the **default AWS credential chain**: `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN`, then optional `AWS_PROFILE` / `AWS_DEFAULT_REGION`, then shared config `[default]`, then instance role, etc.
+- **Local machine with a named profile:** run sync with `--profile dev` (or set `export AWS_PROFILE=dev` so every `aws` invocation uses it).
+- **Cloud / CI with injected keys:** ensure `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION` (or `AWS_REGION`) are set. No `~/.aws` file is required. **Do not** assume a `dev` profile exists.
+- Optional sanity check (uses the same default chain as sync when no `--profile` is passed):
 
 ```bash
-uv run --package weather-study-cli weather-study sync-s3 --bucket "<WEATHER_STUDY_BUCKET>" --prefix raw
+aws sts get-caller-identity
 ```
 
-2. **Rebuild SQLite from the raw tree** (after S3 sync, `--input` should match `--output-root` from step 1, default `.study/raw-s3`; for bundled mock data only, use the package path below):
+If that fails, fix credentials before running the study commands.
+
+## Required inputs
+
+- **`WEATHER_STUDY_BUCKET`**: S3 bucket containing Lambda collector output (example from repo docs: `weather-study-raw-084375548651-us-west-2`).
+- **Prefix**: usually `raw` (matches the live collector). Pass `--prefix raw` explicitly if unsure.
+
+## What to run (live path — always try this first)
+
+From the repository root:
+
+**1. Sync raw captures from S3**
+
+```bash
+uv run --package weather-study-cli weather-study sync-s3 --bucket "${WEATHER_STUDY_BUCKET}" --prefix raw
+```
+
+If (and only if) this environment uses a named AWS profile instead of env vars:
+
+```bash
+uv run --package weather-study-cli weather-study sync-s3 --bucket "${WEATHER_STUDY_BUCKET}" --prefix raw --profile dev
+```
+
+**2. Rebuild the study SQLite DB from the synced tree**
 
 ```bash
 uv run --package weather-study-cli weather-study ingest-raw --reset --input .study/raw-s3
 ```
 
-Bundled mock captures only (no S3):
-
-```bash
-uv run --package weather-study-cli weather-study ingest-raw --reset --input packages/weather-study-cli/mock-data/raw
-```
-
-3. **Print per-city counts** of local dates with no missing expected hourly captures (same rules as `report-gaps`):
+**3. Print per-city counts** of local dates with no missing expected hourly captures (same rules as `report-gaps`):
 
 ```bash
 uv run --package weather-study-cli weather-study count-valid-study-days
 ```
 
-For machine-readable output:
+JSON:
 
 ```bash
 uv run --package weather-study-cli weather-study count-valid-study-days --format json
+```
+
+## Agent behavior
+
+1. Run steps 1–3 in order. **Do not skip sync** when the user asked for landed/lambda data and credentials may be present.
+2. If step 1 fails on credentials, state the error and **one** concrete fix (e.g. set the three env vars, or pass `--profile dev`). **Do not** silently switch to mock data.
+3. Use bundled mock raw data **only** when the user explicitly wants offline/demo data, or when sync cannot succeed after credential fixes:
+
+```bash
+uv run --package weather-study-cli weather-study ingest-raw --reset --input packages/weather-study-cli/mock-data/raw
+uv run --package weather-study-cli weather-study count-valid-study-days
 ```
 
 ## What the user gets
@@ -51,6 +78,6 @@ Text lines like `Seattle: 6` or `San Francisco (no captures): 0`—one row per c
 
 ## Notes
 
-- **Completeness** here means full expected city-hour coverage for each local date (completed days expect hours 0–23; the current local date uses a partial window). This is **not** the same as the chart/UI `valid_day_count` inside `compute-accuracy-metrics` (which applies spec eligibility, censoring, and market resolution).
+- **Completeness** here means full expected city-hour coverage for each local date (completed days expect hours 0–23; the current local date uses a partial window). This is **not** the same as the chart/UI `valid_day_count` inside `compute-accuracy-metrics`.
 - Default DB path is `.study/weather-study.db` under the repo root.
-- If step 1 is skipped, use `packages/weather-study-cli/mock-data/raw` or another local raw tree for `--input` instead of `.study/raw-s3`.
+- Default sync download directory is `.study/raw-s3`.

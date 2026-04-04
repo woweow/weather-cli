@@ -91,7 +91,8 @@ def build_parser() -> argparse.ArgumentParser:
             "Examples:\n"
             "  weather-study sync-s3 --bucket my-study-bucket\n"
             "  weather-study sync-s3 --bucket my-study-bucket --output-root /tmp/weather-study-s3\n"
-            "  weather-study sync-s3 --bucket my-study-bucket --prefix raw --profile dev --delete"
+            "  weather-study sync-s3 --bucket my-study-bucket --prefix raw --profile dev --delete\n"
+            "  weather-study sync-s3 --bucket my-study-bucket  # uses default AWS credential chain"
         ),
         formatter_class=HelpFormatter,
     )
@@ -113,7 +114,11 @@ def build_parser() -> argparse.ArgumentParser:
     sync_s3.add_argument(
         "--profile",
         default=DEFAULT_AWS_PROFILE,
-        help="AWS CLI profile to use for sync (default: %(default)s)",
+        metavar="NAME",
+        help=(
+            "Optional AWS CLI named profile. When omitted, `aws` uses its default credential chain "
+            "(environment variables, [default] profile, instance role, etc.)."
+        ),
     )
     sync_s3.add_argument(
         "--delete",
@@ -367,7 +372,11 @@ def build_parser() -> argparse.ArgumentParser:
     sample.add_argument(
         "--profile",
         default=DEFAULT_AWS_PROFILE,
-        help="AWS CLI profile to use for optional upload (default: %(default)s)",
+        metavar="NAME",
+        help=(
+            "Optional AWS CLI named profile for S3 upload. When omitted, `aws` uses its default "
+            "credential chain."
+        ),
     )
     sample.add_argument(
         "--contact-email",
@@ -418,7 +427,11 @@ def build_parser() -> argparse.ArgumentParser:
     build_report.add_argument(
         "--profile",
         default=DEFAULT_AWS_PROFILE,
-        help="AWS CLI profile to use when syncing from S3 (default: %(default)s)",
+        metavar="NAME",
+        help=(
+            "Optional AWS CLI named profile when syncing from S3. When omitted, `aws` uses its "
+            "default credential chain."
+        ),
     )
     build_report.add_argument(
         "--delete",
@@ -728,10 +741,16 @@ def render_text_summary(summary) -> str:
     return "\n".join(lines)
 
 
+def _format_aws_profile_line(profile: str | None) -> str:
+    if profile is None or not str(profile).strip():
+        return "AWS profile: (default credential chain)"
+    return f"AWS profile: {profile.strip()}"
+
+
 def render_s3_sync_text_summary(summary) -> str:
     lines = [
         f"Synced raw study files from {summary.source_uri} to {summary.output_root}",
-        f"AWS profile: {summary.profile}",
+        _format_aws_profile_line(summary.profile),
         f"dry run: {'yes' if summary.dry_run else 'no'}",
         f"delete: {'yes' if summary.delete else 'no'}",
     ]
@@ -806,7 +825,7 @@ def render_sample_generation_text_summary(summary) -> str:
         lines.extend(
             [
                 f"S3 target: s3://{summary.bucket}/{prefix}/" if prefix else f"S3 target: s3://{summary.bucket}/",
-                f"AWS profile: {summary.profile}",
+                _format_aws_profile_line(summary.profile),
             ]
         )
     return "\n".join(lines)
@@ -878,7 +897,7 @@ def render_build_report_text_summary(summary: BuildStudyReportSummary) -> str:
         lines.extend(
             [
                 f"S3 source: {summary.sync.source_uri}",
-                f"AWS profile: {summary.sync.profile}",
+                _format_aws_profile_line(summary.sync.profile),
             ]
         )
     lines.extend(

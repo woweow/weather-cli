@@ -16,6 +16,7 @@ from weather_cli.adapters.geocoding import OpenMeteoGeocoder
 from weather_cli.adapters.http import JsonHttpClient
 from weather_cli.adapters.noaa import NoaaApi
 from weather_cli.application.service import WeatherService
+from weather_study_cli.application.aws_cli import extend_aws_cli_command_with_profile
 from weather_study_cli.application.cities import resolve_study_cities
 from weather_study_cli.application.errors import StudyValidationError
 from weather_study_cli.application.raw_loader import build_capture_relative_path
@@ -26,7 +27,7 @@ DEFAULT_OUTPUT_ROOT = Path(".study") / "raw"
 DEFAULT_CONTACT_EMAIL = os.getenv("WEATHER_CLI_CONTACT_EMAIL", "weather-cli@example.com")
 DEFAULT_COLLECTOR_NAME = "weather-market-study-local"
 DEFAULT_COLLECTOR_VERSION = "1"
-DEFAULT_AWS_PROFILE = "dev"
+DEFAULT_AWS_PROFILE = None
 DEFAULT_S3_PREFIX = "raw"
 SCHEMA_VERSION = "1"
 
@@ -111,7 +112,7 @@ class S3CollectorRunSummary:
     captured_at_utc: str
     bucket: str
     prefix: str
-    profile: str
+    profile: str | None
     results: tuple[CaptureUploadResult, ...]
 
     @property
@@ -191,7 +192,7 @@ class LiveStudyCollector:
         *,
         bucket: str,
         prefix: str = DEFAULT_S3_PREFIX,
-        profile: str = DEFAULT_AWS_PROFILE,
+        profile: str | None = DEFAULT_AWS_PROFILE,
         places: tuple[str, ...] | list[str] | None = None,
         captured_at_utc: datetime | None = None,
     ) -> S3CollectorRunSummary:
@@ -210,15 +211,8 @@ class LiveStudyCollector:
             uploadable_results = [result for result in local_summary.results if result.path is not None]
             if uploadable_results:
                 target_uri = build_s3_prefix_uri(normalized_bucket, normalized_prefix)
-                command = [
-                    "aws",
-                    "s3",
-                    "sync",
-                    str(temp_root),
-                    target_uri,
-                    "--profile",
-                    profile,
-                ]
+                command = ["aws", "s3", "sync", str(temp_root), target_uri]
+                extend_aws_cli_command_with_profile(command, profile)
                 completed = subprocess.run(command, capture_output=True, text=True, check=False)
                 if completed.returncode != 0:
                     detail = completed.stderr.strip() or completed.stdout.strip() or "unknown AWS CLI error"
