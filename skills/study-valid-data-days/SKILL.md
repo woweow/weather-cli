@@ -1,56 +1,67 @@
 ---
 name: study-valid-data-days
-description: Answer questions about how many complete local days of weather-study test data exist per city (Seattle, San Francisco, Los Angeles, Las Vegas, Phoenix, Denver). Use when the user says "summarize lambda data" or asks for valid days, complete days, data coverage, or "how much study data" after S3 sync and ingest—run the fixed weather-study CLI sequence and return command output only.
+description: When the user says "summarize lambda data" (or asks for valid/complete study days per city), run a fixed three-command bash sequence from the repo root—S3 sync, ingest, count-valid-study-days—and paste the CLI output only. No manual counting, no extra analysis unless the user asks.
 ---
 
-# Study valid data days
+# Study valid data days (live Lambda / S3 pipeline)
 
 ## When this applies
 
 Trigger phrase: **summarize lambda data**.
 
-Also applies for: valid days of test data, complete capture days, how many days of study data, data completeness per city, incomplete days filtered out before the study UI.
+Also applies for: valid days of study data, complete capture days, data coverage per city, "how much lambda data", completeness before the study UI.
 
-## What to run (do not re-derive counts mentally)
+## Agent behavior (keep this deterministic)
 
-From the repository root, with AWS credentials if syncing from S3:
+1. Work from the **repository root** with `PATH` including `$HOME/.local/bin` (for `uv`).
+2. Run **exactly** the three commands in **Execution block A** below, in order. Substitute only the bucket/prefix/profile as documented there.
+3. Reply with **only** the stdout of step 3 (`count-valid-study-days`), unless step 1 or 2 fails—in that case paste the failing command’s stderr/stdout so the user can fix credentials or bucket access.
+4. Do **not** recompute counts, infer numbers from files, or substitute mock data unless the user explicitly asked for offline/mock mode (see **Offline fallback**).
 
-1. **Optional — live data:** sync raw captures from S3 (set bucket and optional prefix; defaults match `weather-study`):
+## Execution block A — live data (default)
+
+Bucket: use environment variable `WEATHER_STUDY_BUCKET`. If it is unset or empty, stop and tell the user to set it (do not guess a bucket name).
+
+Prefix: use `WEATHER_STUDY_PREFIX` if set and non-empty; otherwise use `raw`.
+
+AWS credentials:
+
+- If the environment uses **access keys** (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`), pass **`--profile ""`** on `sync-s3` so the AWS CLI uses the default credential chain (no named profile).
+- If the user relies on a **named profile** (for example `dev` on a laptop), use `--profile dev` instead of `--profile ""`.
 
 ```bash
-uv run --package weather-study-cli weather-study sync-s3 --bucket "<WEATHER_STUDY_BUCKET>" --prefix raw
-```
-
-2. **Rebuild SQLite from the raw tree** (after S3 sync, `--input` should match `--output-root` from step 1, default `.study/raw-s3`; for bundled mock data only, use the package path below):
-
-```bash
+export PATH="$HOME/.local/bin:$PATH"
+uv run --package weather-study-cli weather-study sync-s3 \
+  --bucket "$WEATHER_STUDY_BUCKET" \
+  --prefix "${WEATHER_STUDY_PREFIX:-raw}" \
+  --profile ""
 uv run --package weather-study-cli weather-study ingest-raw --reset --input .study/raw-s3
-```
-
-Bundled mock captures only (no S3):
-
-```bash
-uv run --package weather-study-cli weather-study ingest-raw --reset --input packages/weather-study-cli/mock-data/raw
-```
-
-3. **Print per-city counts** of local dates with no missing expected hourly captures (same rules as `report-gaps`):
-
-```bash
 uv run --package weather-study-cli weather-study count-valid-study-days
 ```
 
-For machine-readable output:
+Defaults aligned with the CLI: synced files land under **`.study/raw-s3`**; the study database is **`.study/weather-study.db`**. Step 2 must use the same `--input` path as step 1’s effective output root (the default `.study/raw-s3`).
 
-```bash
-uv run --package weather-study-cli weather-study count-valid-study-days --format json
-```
+Optional: for machine-readable output, run step 3 again with `--format json` **after** the text table, only if the user asked for JSON.
 
 ## What the user gets
 
-Text lines like `Seattle: 6` or `San Francisco (no captures): 0`—one row per configured study city in fixed order.
+The third command prints a **fixed-order table**, one line per configured study city, for example:
+
+`Seattle: 7` and `San Francisco (no captures): 0` when that city has no raw captures after sync.
+
+## Offline fallback (only when requested)
+
+If the user explicitly wants **bundled mock data** (no S3, no AWS), skip step 1 and run:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+uv run --package weather-study-cli weather-study ingest-raw --reset --input packages/weather-study-cli/mock-data/raw
+uv run --package weather-study-cli weather-study count-valid-study-days
+```
+
+State clearly that the summary is from **mock captures**, not Lambda.
 
 ## Notes
 
-- **Completeness** here means full expected city-hour coverage for each local date (completed days expect hours 0–23; the current local date uses a partial window). This is **not** the same as the chart/UI `valid_day_count` inside `compute-accuracy-metrics` (which applies spec eligibility, censoring, and market resolution).
-- Default DB path is `.study/weather-study.db` under the repo root.
-- If step 1 is skipped, use `packages/weather-study-cli/mock-data/raw` or another local raw tree for `--input` instead of `.study/raw-s3`.
+- **Completeness** here means full expected city-hour coverage for each local date (completed days expect hours 0–23; the current local date uses a partial window). This is **not** the same as the chart/UI `valid_day_count` inside `compute-accuracy-metrics`.
+- Cities with zero captures after sync usually mean the collector never wrote that city under the S3 prefix, not an ingest bug.
